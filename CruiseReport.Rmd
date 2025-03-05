@@ -1,0 +1,1000 @@
+---
+title: '**PROJECT REPORT**'
+header-includes:
+  - \usepackage{tabto}
+  - \usepackage{pdflscape}
+  - \usepackage{titling}
+  - \usepackage{graphicx} 
+  - \usepackage{fancyhdr}
+  - \newcommand{\blandscape}{\begin{landscape}}
+  - \newcommand{\elandscape}{\end{landscape}}
+  - \usepackage[T1]{fontenc}
+  - \usepackage[utf8]{inputenc}
+  - \usepackage{titling}
+  - \setlength{\droptitle}{-1in}
+  - \pretitle{\begin{center}
+  -  \includegraphics[width=4.5in]{PIFSCletterhead.png}\LARGE\\}
+mainfont: Times New Roman
+fontsize: 12pt
+output:
+  pdf_document:
+    toc: no
+    df_print: paged
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = '~/Documents/Cruises/BEToceanography/SE2204 - Hot Spot/')
+```
+
+```{r message=FALSE, include=FALSE}
+# Clear workspace
+rm(list=ls())
+
+# Set working directory
+mainDir <- '~/Documents/Cruises/BEToceanography/SE2204 - Hot Spot/'
+
+# Load libraries
+library(dplyr)
+library(geosphere)
+library(ggplot2)
+library(lubridate)
+library(kableExtra)
+require(oce)
+require(ocedata)
+require(sf)
+require(leaflet)
+require(tidyverse)
+library(cowplot)
+library(RColorBrewer)
+library(ggpubr)
+library(knitr)
+
+```
+
+```{r include=FALSE}
+# Planned track line
+orig <- read.csv('SE2204_wpt_timing_140.csv')
+# Argo drop locations
+argo <- data.frame(lon=c(-155.95, -153.61, -151.7, -150, -150, -150, -(155+(52.35/60)), -(153+(22.81/60)), -(151+(44.2/60)), -(149+(46.2/60)), -(149+(50.29/60)), -(149+(56.3/60))), lat=c(23.5, 26, 28, 27, 24, 21, (23+(14.85/60)), (26+(14.35/60)), (27+(57.71/60)), (27+(21/60)), (24+(6.81/60)), (21+(8.7/60))), type=rep(c('planned', 'acctual'),each=6))
+# CTD data
+test <- read.csv('CTD/SE2204_CTDlocations.csv')
+test$Date_HST <- as.POSIXct(test$Date_HST, format='%m/%d/%y %H:%M')
+edna <- read.csv('eDNA_Metadata_BigeyeSE2204 - CTD Casts.csv')
+test <- test %>% mutate(Cast=1:nrow(test)) %>% 
+  left_join(edna[,c(8,14)], by='Cast')
+  
+# Staff
+staff <- read.csv('SE2204_participants_2.csv')
+# net tow logs
+bongo <- read.csv('SE2204_bongo_log.csv')
+mocness <- readRDS('SE2204_MOCNESS_jwEdit.rds')
+ring <- read.csv('SE2204_2mRingNet_log_08222022_B.csv') %>% na.omit()
+ikmt <- read.csv('SE2204_IKMT_log.csv')
+
+ring$start_date <- as.POSIXct(ring$start_date, format='%m/%d/%y')
+ring$end_date <- as.POSIXct(ring$end_date, format='%m/%d/%y')
+ikmt$start_date <- as.POSIXct(ikmt$start_date, format='%m/%d/%y')
+ikmt$end_date <- as.POSIXct(ikmt$end_date, format='%m/%d/%y')
+```
+
+```{r eval=FALSE, include=FALSE}
+# set up the CTD file
+# preallocate the container to store the individual 
+ctd = list()
+
+## Loop the CNV file and create a list of casted CTD
+files = dir(path = "CTD/", pattern = "downOnly_loopEdit.cnv", full.names = TRUE )
+
+for (i in 1:length(files)){
+  ctd[[i]]  = read.ctd(files[i])%>%
+    #ctdTrim(method = "downcast")%>% # this doesn't seem to work very well on our data so I saved only the downcast in Seabird
+    ctdDecimate(p = 1) # align to the same standard pressure
+}
+
+# A section allows you to plot multiple stations along a lon/lat line
+section = ctd %>% 
+  as.section()
+
+test <- data.frame(ID=1:length(section@metadata$time), Station=files, Date=section@metadata$time, Lon=section@metadata$longitude, Lat=section@metadata$latitude)
+# Make time in HST
+test$Date_HST <- with_tz(test$Date, 'HST')
+test$Time <- strftime(test$Date_HST, format='%H%M')
+# Simplify station names
+idx <- strsplit(test$Station, '_downOnly_loopEdit.cnv')
+idx <- unlist(strsplit(unlist(idx), './SE-22-04_'))
+test$Station <- idx[seq(2,92, by=2)]
+
+# Add depth
+depth <- vector()
+for (i in 1:nrow(test)) {depth <- c(depth,section@data$station[[test$ID[i]]]@metadata$waterDepth) }
+test$Depth <- depth
+
+test <- test %>% 
+  select(Station, Date_HST, Time, Lon, Lat, Depth, Date) %>% 
+  arrange(Date_HST)
+```
+
+```{r eval=FALSE, include=FALSE}
+# TSG data
+tsg <- read.ctd('TSG/SE-22-04_TSG.cnv', deploymentType = 'tsg')
+tsg <- tsg@data %>% as_tibble()
+
+ctdSummary <- ctd.tb.all %>% filter(depth < 6) %>% select(longitude, latitude, temperature, salinity) %>% mutate(longitude=round(longitude), latitude=round(latitude, 1)) %>% group_by(longitude, latitude) %>% summarise_at(c('temperature', 'salinity'), mean, na.rm=T)
+
+tsgSummary <- tsg %>% mutate(longitude=round(longitude), latitude=round(latitude, 1)) %>% group_by(longitude, latitude) %>% summarise_at(c('temperature', 'salinity'), mean, na.rm=T)
+
+ctd_v_tsg <- inner_join(ctdSummary, tsgSummary, by=c('latitude', 'longitude'))
+```
+
+
+**VESSEL:** \hangindent=1.5in \tabto{1.5in} 
+NOAA Ship *Oscar Elton Sette*, Project SE-22-04
+
+**PROJECT**  
+**PERIOD:** \tabto{1.5in} 
+June 9 -- 12, 2022 gear trials
+
+\tabto{1.5in} June 13 -- July 10, 2022 planned project start date
+
+\tabto{1.5in} June 20 -- July 10, 2022 actual project start date
+
+**AREA OF**  
+**OPERATION:** \tabto{1.5in}
+Operations were conducted in the waters of the North Pacific along the 
+
+\tabto{1.5in} 150$^\circ$W meridian from 30$^\circ$N to 10.7$^\circ$N (Fig. 1).
+
+**TYPE OF**  
+**OPERATION:** \tabto{1.5in}
+Conductivity-temperature-depth (CTD) casts to 1300 m depth were
+
+\hangindent=1.5in \tabto{1.5in}  150$^\circ$ meridian from 30$^\circ$N to 10$^\circ$N, as well as two casts at the end of a sample cycle (approximately at 0530 and/or 1730) at the extended stations. An oblique bongo tow down to ~200 m was conducted at 0800 and 2000 daily at all 13 base stations. A 2-m ring net yo-yo tow down in the top 50 m was conducted at 0930 and 2130 daily at all 13 base stations. Operations were extended at a subset of stations along the transect, where we held station for 24 hours. At those stations, the bongo and ring-net operations were replaced by MOCNESS and IKMT tows, respectively. 
+Acoustic backscatter and surface temperature and salinity were collected continuously throughout the project.
+
+**ITINERARY:**
+
+09 June 
+\hangindent=1in \tabto{1in} 
+0800 Start of project (All times in HST). Embarked `r staff$Name[-13]`. Proceeded to first gear trial location off leeward Oahu and began Cobb trawl gear trials. 1800 started EK80 calibration. 2330 Completed EK80 calibration. 
+
+10 June 
+\hangindent=1in \tabto{1in}
+0750 Disembarked Dianna Miller-Green at Wai‘anae Small Boat Harbor via small boat. 0831 commenced trawl gear trials. 1930 Reported positive COVID test aboard. Suspended gear trials and returned to Pearl Harbor in the morning. 
+
+11 June 
+\hangindent=1in \tabto{1in}
+0700 Returned to port due to COVID positive test aboard. 1230 disembarked `r staff$Name[-c(13, 17)]`.
+
+12-17 June
+\hangindent=1in \tabto{1in}
+COVID-19 delay. Although COVID-19 complications prevented sailing away from port overnight, gear trials occurred during day trips from Pearl Harbor on 18 and 19 June. 
+
+18 June
+\hangindent=1in \tabto{1in}
+Day trip gear trial. 
+
+19 June
+\hangindent=1in \tabto{1in}
+Day trip gear trial. An issue was discovered with the Cobb trawl winch, and this issue could not be easily repaired and eliminated the possibility that the Cobb trawl could be used during the project. 
+
+20 June
+\hangindent=1in \tabto{1in}
+Resumed project. Survey location moved from 30--10$^\circ$N, 140$^\circ$W to 30--10$^\circ$N, 150$^\circ$W to accommodate the reduction from 28 DAS to 21 DAS. Further, extended stations reduced from eight (8) to five (5) to make up for COVID delay while base stations remained the same. Cobb trawl operations replaced with 10' IKMT (Isaacs Kidd Midwater Trawl) operations. 
+
+\setlength{\leftskip}{1in} 
+1000 Embarked `r staff$Name[1:15]`. Proceeded to first project station A at 30$^\circ$N and 150$^\circ$W (Fig. 1.). Began active acoustics data collection. 
+
+\setlength{\leftskip}{0in}
+
+21 June
+\hangindent=1in \tabto{1in}
+0529 Stopped for first Argo buoy F1396 deployment at position 23$^\circ$ 14.87'N,  155$^\circ$ 52.35'W which is within 30 nm of preferred drop location at `r argo[1,2]`$^\circ$N, `r abs(argo[1,1])`$^\circ$W. After Argo drop, proceeded towards first project station A. 
+
+22 June
+\hangindent=1in \tabto{1in}
+0607 Stopped for second Argo buoy F1285 deployment at position 26$^\circ$ 14.35'N, 153$^\circ$ 22.81'W which is within 30 nm of preferred drop location at `r argo[2,2]`$^\circ$N, `r abs(argo[2,1])`$^\circ$W. After Argo drop, proceeded towards first project station A. 
+
+\hangindent=1in \tabto{1in} 2058 Stopped for third Argo buoy F1375 deployment at position 27$^\circ$ 57.71'N, 151$^\circ$ 44.2'W which is within 30 nm of preferred drop location at `r argo[3,2]`$^\circ$N, `r abs(argo[3,1])`$^\circ$W. After Argo drop, proceeded towards first project station A. 
+
+23 June
+\hangindent=1in \tabto{1in}
+1000 Deployed neuston net from starboard side aft deck crane. Net not stable at transit (10 knot) speeds so tweaks needed. 1045 neuston net test finished. 1300 commenced second neuston net test. 1320 Completed neuston net test.
+
+<!-- Extended Station A night -->
+\setlength{\leftskip}{1in}
+1808 Arrived on station A at `r round(test$Lat[1],2)`$^\circ$N, `r abs(round(test$Lon[1],2))`$^\circ$W. `r sprintf('%04d', as.numeric(test$Time[1]))` conducted CTD cast 1, an opportunistic CTD cast used for RNA collection for visiting scientist. 
+
+`r sprintf('%04d', as.numeric(test$Time[2]))` Began extended station A night-time sampling at `r round(test$Lat[2],2)`$^\circ$N, `r abs(round(test$Lon[2],2))`$^\circ$W with CTD cast 2 to `r test$Depth[2]` Meters. 
+
+`r sprintf('%04d', mocness$start_time_hst[1])` Began MOCNESS tow 1 down to 1300 m at `r round(mocness$start_lat_decdeg[1],2)`$^\circ$N, `r abs(round(mocness$start_lon_decdeg[1],2))`$^\circ$W.
+
+\setlength{\leftskip}{0in}
+
+`r strftime(test$Date_HST[3], format='%d %B')`
+\hangindent=1in \tabto{1in}
+`r sprintf('%04d', mocness$end_time_hst[1])` MOCNESS tow 1 complete.
+
+\setlength{\leftskip}{1in}
+`r sprintf('%04d', ikmt$start_time_hst[1])` Began IKMT tow 1 down to `r round(ikmt$max_depth[1])` m at `r round(ikmt$start_lat_decdeg[1],2)`$^\circ$N, `r abs(round(ikmt$start_lon_decdeg[1],2))`$^\circ$W. `r sprintf('%04d', ikmt$end_time_hst[1])` IKMT tow 1 completed. 
+
+`r sprintf('%04d', as.numeric(test$Time[3]))` Began CTD cast 3 at `r round(test$Lat[3],2)`$^\circ$N, `r abs(round(test$Lon[3],2))`$^\circ$W down to `r test$Depth[3]` m for eDNA water collection. The winch wire was loose on the drum and skipping so the wire needed to be fed out all the way and re-spooled with the tension of weight of the CTD provided. 
+
+`r sprintf('%04d', as.numeric(test$Time[4]))` Began CTD cast 4 at `r round(test$Lat[4],2)`$^\circ$N, `r abs(round(test$Lon[4],2))`$^\circ$W down to `r test$Depth[4]` m for eDNA water collection. 
+
+`r sprintf('%04d', as.numeric(test$Time.on.board[4]))` Finish extended station A night-time operations, repositioned the vessel as much as possible for station A day-time operations. 
+
+<!-- Extended Station A day -->
+`r sprintf('%04d', as.numeric(test$Time[5]))` Began extended station A day-time sampling at `r round(test$Lat[5],2)`$^\circ$N, `r abs(round(test$Lon[5],2))`$^\circ$W with CTD cast 5 to `r test$Depth[5]` m. 
+
+`r sprintf('%04d', mocness$start_time_hst[2])` Began MOCNESS tow 2 down to 1300 m at `r round(mocness$start_lat_decdeg[2],2)`$^\circ$N, `r abs(round(mocness$start_lon_decdeg[2],2))`$^\circ$W. `r sprintf('%04d', mocness$end_time_hst[2])` MOCNESS tow 2 completed. We were behind schedule so decided to forgo the planned IKMT tow to make up time spent on spooling out the CTD wire earlier at the station during CTD cast 3. 
+
+`r sprintf('%04d', as.numeric(test$Time[6]))` Began CTD cast 6 at `r round(test$Lat[6],2)`$^\circ$N, `r abs(round(test$Lon[6],2))`$^\circ$W down to `r test$Depth[6]` m for eDNA water collection. 
+
+`r sprintf('%04d', as.numeric(test$Time[7]))` Began CTD cast 7 at `r round(test$Lat[7],2)`$^\circ$N, `r abs(round(test$Lon[7],2))`$^\circ$W down to `r test$Depth[7]` m for eDNA water collection. `r sprintf('%04d', as.numeric(test$Time.on.board[7]))` CTD completed, transited to next station. 
+
+2131 Neuston net deployed while underway to next station at 29$^\circ$ 55.100'N 149$^\circ$ 30.406'W. This is another test to try a different tow configuration from the crane on the starboard side of the ship. Net still didn't stay steady in the water at transit speeds. 2206 Neuston net test completed at 29$^\circ$ 51.209'N 149$^\circ$ 31.447'W, continued transit to next station. 
+
+\setlength{\leftskip}{0in}
+
+<!-- Base station 1-->
+`r strftime(test$Date_HST[8], format='%d %B')`
+\hangindent=1in \tabto{1in}
+`r sprintf('%04d', as.numeric(test$Time[8]))` Arrived at base station 1 at `r round(test$Lat[8],2)`$^\circ$N, `r abs(round(test$Lon[8],2))`$^\circ$W and began base station operations with CTD cast 8 down to `r test$Depth[8]` m. 
+
+\setlength{\leftskip}{1in}
+`r sprintf('%04d', bongo$start_time_hst[1])` Began bongo tow 1 down to `r bongo$max_depth[1]` m at `r round(bongo$start_lat_decdeg[1],2)`$^\circ$N, `r abs(round(bongo$start_lon_decdeg[1],2))`$^\circ$W. All bongo tows have a target depth of 150 m, but we did not have real-time depth readings for any towed gear except the MOCNESS so we relied on wire out schedules and wire angles. `r sprintf('%04d', bongo$end_time_hst[1])` Bongo tow 1 completed at `r round(bongo$end_lat_decdeg[1],2)`$^\circ$N, `r abs(round(bongo$end_lon_decdeg[1],2))`$^\circ$W.
+
+`r sprintf('%04d', ring$start_time_hst[1])` Began 2-m ring net tow 1 at `r round(ring$start_lat_decdeg[1],2)`$^\circ$N, `r abs(round(ring$start_lon_decdeg[1],2))`$^\circ$W. All 2-m ring net tows are yo-yo towed in the top 50 m to target bigeye tuna larvae. We did not have real-time depth monitoring so we relied on wire angle and wire out schedules. Max depth for the tow was `r round(ring$max_depth[1])` m. `r sprintf('%04d', ring$end_time_hst[1])` two-m ring net tow 1 completed, transited to next station. 
+
+<!-- Base station 2 -->
+`r sprintf('%04d', as.numeric(test$Time[9]))` Arrived at base station 2 at `r round(test$Lat[9],2)`$^\circ$N, `r abs(round(test$Lon[9],2))`$^\circ$W and began station operations with CTD cast 9 down to `r test$Depth[9]` m. 
+
+`r sprintf('%04d', bongo$start_time_hst[2])` Began bongo tow 2 down to `r bongo$max_depth[2]` m at `r round(bongo$start_lat_decdeg[2],2)`$^\circ$N, `r abs(round(bongo$start_lon_decdeg[2],2))`$^\circ$W. `r sprintf('%04d', bongo$end_time_hst[2])` Bongo tow 1 completed.
+
+`r sprintf('%04d', ring$start_time_hst[2])` Began 2-m ring net tow 2 at `r round(ring$start_lat_decdeg[2],2)`$^\circ$N, `r abs(round(ring$start_lon_decdeg[2],2))`$^\circ$W. Max depth for the yo-yo tow was `r round(ring$max_depth[2])` m. `r sprintf('%04d', ring$end_time_hst[2])` two-m ring net tow 2 completed, transited to next station. 
+
+\setlength{\leftskip}{0in}
+
+<!-- Base station 3 -->
+`r strftime(test$Date_HST[10], format='%d %B')`
+\hangindent=1in \tabto{1in}
+0235 Stopped for fourth Argo buoy (serial number not noted) deployment at position 27$^\circ$ 21.0'N, 149$^\circ$ 46.2'W which is within 30 nm of preferred drop location at `r argo[4,2]`$^\circ$N, `r abs(argo[4,1])`$^\circ$W. After Argo drop, continued transit towards base station 3. 
+
+\setlength{\leftskip}{1in}
+`r sprintf('%04d', as.numeric(test$Time[10]))` Arrived at base station 3 at `r round(test$Lat[10],2)`$^\circ$N, `r abs(round(test$Lon[10],2))`$^\circ$W and began base station operations with CTD cast 10 down to `r test$Depth[10]` m. 
+
+`r sprintf('%04d', bongo$start_time_hst[3])` Began bongo tow 3 down to `r bongo$max_depth[3]` m at `r round(bongo$start_lat_decdeg[3],2)`$^\circ$N, `r abs(round(bongo$start_lon_decdeg[3],2))`$^\circ$W. `r sprintf('%04d', bongo$end_time_hst[3])` Bongo tow 3 completed at `r round(bongo$end_lat_decdeg[3],2)`$^\circ$N, `r abs(round(bongo$end_lon_decdeg[3],2))`$^\circ$W.
+
+`r sprintf('%04d', ring$start_time_hst[3])` Began 2-m ring net tow 3 at `r round(ring$start_lat_decdeg[3],2)`$^\circ$N, `r abs(round(ring$start_lon_decdeg[3],2))`$^\circ$W. Max depth for the yo-yo tow was `r round(ring$max_depth[3])` m. `r sprintf('%04d', ring$end_time_hst[3])` two-m ring net tow 3 completed, transited to next station.
+
+<!-- Extended Station B night -->
+`r sprintf('%04d', as.numeric(test$Time[11]))` Arrived at extended station B at `r round(test$Lat[11],2)`$^\circ$N, `r abs(round(test$Lon[11],2))`$^\circ$W and began night-time sampling with CTD cast 11 to `r test$Depth[11]` m. 
+
+`r sprintf('%04d', mocness$start_time_hst[3])` Began MOCNESS tow 3 down to 1300 m at `r round(mocness$start_lat_decdeg[3],2)`$^\circ$N, `r abs(round(mocness$start_lon_decdeg[3],2))`$^\circ$W.
+
+\setlength{\leftskip}{0in}
+
+`r strftime(test$Date_HST[12], format='%d %B')`
+\hangindent=1in \tabto{1in}
+`r sprintf('%04d', mocness$end_time_hst[3])` MOCNESS tow 3 completed at `r round(mocness$end_lat_decdeg[3],2)`$^\circ$N, `r abs(round(mocness$end_lon_decdeg[3],2))`$^\circ$W.
+
+\setlength{\leftskip}{1in}
+`r sprintf('%04d', ikmt$start_time_hst[2])` Began IKMT tow 2 down to `r round(ikmt$max_depth[2])` m at `r round(ikmt$start_lat_decdeg[2],2)`$^\circ$N, `r abs(round(ikmt$start_lon_decdeg[2],2))`$^\circ$W. `r sprintf('%04d', ikmt$end_time_hst[2])` IKMT tow 2 completed.
+
+`r sprintf('%04d', as.numeric(test$Time[12]))` Began CTD cast 12 at `r round(test$Lat[12],2)`$^\circ$N, `r abs(round(test$Lon[12],2))`$^\circ$W down to `r test$Depth[12]` m for eDNA water collection.
+
+`r sprintf('%04d', as.numeric(test$Time[13]))` Began CTD cast 13 at `r round(test$Lat[13],2)`$^\circ$N, `r abs(round(test$Lon[13],2))`$^\circ$W down to `r test$Depth[13]` m for eDNA water collection. 
+
+`r sprintf('%04d', as.numeric(test$Time.on.board[13]))` Finished extended station B night-time operations, conducted reset for station B day-time operations. 
+
+<!-- Extended Station B day -->
+`r sprintf('%04d', as.numeric(test$Time[14]))` Began extended station B day-time sampling at `r round(test$Lat[14],2)`$^\circ$N, `r abs(round(test$Lon[14],2))`$^\circ$W with CTD cast 14 to `r test$Depth[14]` m. 
+
+`r sprintf('%04d', mocness$start_time_hst[4])` Began MOCNESS tow 4 down to 1300 m at `r round(mocness$start_lat_decdeg[4],2)`$^\circ$N, `r abs(round(mocness$start_lon_decdeg[4],2))`$^\circ$W. `r sprintf('%04d', mocness$end_time_hst[4])` MOCNESS tow 4 completed at `r round(mocness$end_lat_decdeg[4],2)`$^\circ$N, `r abs(round(mocness$end_lon_decdeg[4],2))`$^\circ$W.
+
+`r sprintf('%04d', ikmt$start_time_hst[3])` Began IKMT tow 3 down to `r round(ikmt$max_depth[3])` m at `r round(ikmt$start_lat_decdeg[3],2)`$^\circ$N, `r abs(round(ikmt$start_lon_decdeg[3],2))`$^\circ$W. `r sprintf('%04d', ikmt$end_time_hst[3])` IKMT tow 1 completed. 
+
+`r sprintf('%04d', as.numeric(test$Time[15]))` Began CTD cast 15 at `r round(test$Lat[15],2)`$^\circ$N, `r abs(round(test$Lon[15],2))`$^\circ$W down to `r test$Depth[15]` m for eDNA water collection. 
+
+`r sprintf('%04d', as.numeric(test$Time[16]))` Began CTD cast 16 at `r round(test$Lat[16],2)`$^\circ$N, `r abs(round(test$Lon[16],2))`$^\circ$W down to `r test$Depth[16]` m for eDNA water collection. `r sprintf('%04d', as.numeric(test$Time.on.board[16]))` CTD completed, transited to next station. 
+
+\setlength{\leftskip}{0in}
+
+<!-- Base station 4-->
+`r strftime(test$Date_HST[17], format='%d %B')`
+\hangindent=1in \tabto{1in}
+0520 Stopped for fifth Argo buoy F1374 deployment at position 24$^\circ$ 06.81'N, 149$^\circ$ 50.29'W which is within 30 nm of preferred drop location at `r argo[5,2]`$^\circ$N, `r abs(argo[5,1])`$^\circ$W. After Argo drop, continued transit towards base station 4. 
+
+\setlength{\leftskip}{1in}
+`r sprintf('%04d', as.numeric(test$Time[17]))` Arrived at base station 4 at `r round(test$Lat[17],2)`$^\circ$N, `r abs(round(test$Lon[17],2))`$^\circ$W and began base station operations with CTD cast 17 down to `r test$Depth[17]` m. 
+
+`r sprintf('%04d', bongo$start_time_hst[4])` Began bongo tow 4 down to `r bongo$max_depth[4]` m at `r round(bongo$start_lat_decdeg[4],2)`$^\circ$N, `r abs(round(bongo$start_lon_decdeg[4],2))`$^\circ$W. `r sprintf('%04d', bongo$end_time_hst[4])` Bongo tow 4 completed at `r round(bongo$end_lat_decdeg[4],2)`$^\circ$N, `r abs(round(bongo$end_lon_decdeg[4],2))`$^\circ$W.
+
+`r sprintf('%04d', ring$start_time_hst[4])` Began 2-m ring net tow 4 at `r round(ring$start_lat_decdeg[4],2)`$^\circ$N, `r abs(round(ring$start_lon_decdeg[4],2))`$^\circ$W. Max depth for the yo-yo tow was `r round(ring$max_depth[4])` m. `r sprintf('%04d', ring$end_time_hst[4])` two-m ring net tow 4 completed, transited to next station.
+
+<!-- Base station 5 -->
+`r sprintf('%04d', as.numeric(test$Time[18]))` Arrived at base station 5 at `r round(test$Lat[18],2)`$^\circ$N, `r abs(round(test$Lon[18],2))`$^\circ$W and began station operations with CTD cast 18 down to `r test$Depth[18]` m. 
+
+`r sprintf('%04d', bongo$start_time_hst[5])` Began bongo tow 5 down to `r bongo$max_depth[5]` m at `r round(bongo$start_lat_decdeg[5],2)`$^\circ$N, `r abs(round(bongo$start_lon_decdeg[5],2))`$^\circ$W. `r sprintf('%04d', bongo$end_time_hst[5])` Bongo tow 5 completed.
+
+`r sprintf('%04d', ring$start_time_hst[5])` Began 2-m ring net tow 5 at `r round(ring$start_lat_decdeg[5],2)`$^\circ$N, `r abs(round(ring$start_lon_decdeg[5],2))`$^\circ$W. Max depth for the yo-yo tow was `r round(ring$max_depth[5])` m. A GoPro was attached to the 2-m ring, faced aft, and filmed the net opening for the duration of the tow. `r sprintf('%04d', ring$end_time_hst[5])` two-m ring net tow 5 completed, transited to next station.
+
+\setlength{\leftskip}{0in}
+
+<!-- Base station 6 -->
+`r strftime(test$Date_HST[19], format='%d %B')`
+\hangindent=1in \tabto{1in}
+`r sprintf('%04d', as.numeric(test$Time[19]))` Arrived at base station 6 at `r round(test$Lat[19],2)`$^\circ$N, `r abs(round(test$Lon[19],2))`$^\circ$W and began base station operations with CTD cast 19 down to `r test$Depth[19]` m. 
+
+\setlength{\leftskip}{1in}
+`r sprintf('%04d', bongo$start_time_hst[6])` Began bongo tow 6 down to `r bongo$max_depth[6]` m at `r round(bongo$start_lat_decdeg[6],2)`$^\circ$N, `r abs(round(bongo$start_lon_decdeg[6],2))`$^\circ$W. `r sprintf('%04d', bongo$end_time_hst[6])` Bongo tow 6 completed at `r round(bongo$end_lat_decdeg[6],2)`$^\circ$N, `r abs(round(bongo$end_lon_decdeg[6],2))`$^\circ$W.
+
+`r sprintf('%04d', ring$start_time_hst[6])` Began 2-m ring net tow 6 at `r round(ring$start_lat_decdeg[6],2)`$^\circ$N, `r abs(round(ring$start_lon_decdeg[6],2))`$^\circ$W. Max depth for the yo-yo tow was `r round(ring$max_depth[6])` m. A GoPro was attached to the 2-m ring, faced aft, and filmed the net opening for the duration of the tow. `r sprintf('%04d', ring$end_time_hst[6])` two-m ring net tow 6 completed, transited to next station.
+
+1620 Stopped for sixth and final Argo buoy (serial number not noted) deployment at position 21$^\circ$ 08.7'N, 149$^\circ$ 56.3'W which is within 30 nm of preferred drop location at `r argo[6,2]`$^\circ$N, `r abs(argo[6,1])`$^\circ$W. After Argo drop, continued transit towards extended station C. 
+
+<!-- Extended Station C night -->
+`r sprintf('%04d', as.numeric(test$Time[20]))` Arrived at extended station C at `r round(test$Lat[20],2)`$^\circ$N, `r abs(round(test$Lon[20],2))`$^\circ$W and began night-time sampling with CTD cast 20 to `r test$Depth[20]` m. 
+
+`r sprintf('%04d', ikmt$start_time_hst[4])` Began IKMT tow 4 down to `r round(ikmt$max_depth[4])` m at `r round(ikmt$start_lat_decdeg[4],2)`$^\circ$N, `r abs(round(ikmt$start_lon_decdeg[4],2))`$^\circ$W. The order of the MOCNESS and IKMT was changed and the IKMT was moved up to give the MOCNESS team more time to trouble shoot the issues with the depth sensor. `r sprintf('%04d', ikmt$end_time_hst[4])` IKMT tow 4 completed.
+
+`r sprintf('%04d', mocness$start_time_hst[5])` Began MOCNESS tow 5 down to 1300 m at `r round(mocness$start_lat_decdeg[5],2)`$^\circ$N, `r abs(round(mocness$start_lon_decdeg[5],2))`$^\circ$W.
+
+\setlength{\leftskip}{0in}
+
+`r strftime(test$Date_HST[21], format='%d %B')`
+\hangindent=1in \tabto{1in}
+`r sprintf('%04d', mocness$end_time_hst[5])` MOCNESS tow 5 completed at `r round(mocness$end_lat_decdeg[5],2)`$^\circ$N, `r abs(round(mocness$end_lon_decdeg[5],2))`$^\circ$W.
+
+\setlength{\leftskip}{1in}
+
+`r sprintf('%04d', as.numeric(test$Time[21]))` Began CTD cast 21 at `r round(test$Lat[21],2)`$^\circ$N, `r abs(round(test$Lon[21],2))`$^\circ$W down to `r test$Depth[21]` m for eDNA water collection.
+
+`r sprintf('%04d', as.numeric(test$Time[22]))` Began CTD cast 22 at `r round(test$Lat[22],2)`$^\circ$N, `r abs(round(test$Lon[22],2))`$^\circ$W down to `r test$Depth[22]` m for eDNA water collection. 
+
+`r sprintf('%04d', as.numeric(test$Time.on.board[22]))` Finished extended station C night time operations and began resetting for station C day time operations. 
+
+<!-- Extended Station C day -->
+`r sprintf('%04d', as.numeric(test$Time[23]))` Began extended station C day-time sampling at `r round(test$Lat[23],2)`$^\circ$N, `r abs(round(test$Lon[23],2))`$^\circ$W with CTD cast 23 to `r test$Depth[23]` m. 
+
+`r sprintf('%04d', mocness$start_time_hst[6])` Began MOCNESS tow 6 down to 1300 m at `r round(mocness$start_lat_decdeg[6],2)`$^\circ$N, `r abs(round(mocness$start_lon_decdeg[6],2))`$^\circ$W. `r sprintf('%04d', mocness$end_time_hst[6])` MOCNESS tow 6 completed at `r round(mocness$end_lat_decdeg[6],2)`$^\circ$N, `r abs(round(mocness$end_lon_decdeg[6],2))`$^\circ$W.
+
+`r sprintf('%04d', ikmt$start_time_hst[5])` Began IKMT tow 5 down to `r round(ikmt$max_depth[5])` m at `r round(ikmt$start_lat_decdeg[5],2)`$^\circ$N, `r abs(round(ikmt$start_lon_decdeg[5],2))`$^\circ$W. A GoPro was attached to the IKMT paravane, faced aft, and filmed the net opening for the duration of the tow. `r sprintf('%04d', ikmt$end_time_hst[5])` IKMT tow 5 completed.
+
+`r sprintf('%04d', as.numeric(test$Time[24]))` Began CTD cast 24 at `r round(test$Lat[24],2)`$^\circ$N, `r abs(round(test$Lon[24],2))`$^\circ$W down to `r test$Depth[24]` m for eDNA water collection. 
+
+`r sprintf('%04d', as.numeric(test$Time[25]))` Began CTD cast 25 at `r round(test$Lat[25],2)`$^\circ$N, `r abs(round(test$Lon[25],2))`$^\circ$W down to `r test$Depth[25]` m for eDNA water collection. `r sprintf('%04d', as.numeric(test$Time.on.board[25]))` CTD completed, transited to next station. 
+
+\setlength{\leftskip}{0in}
+
+<!-- Base station 7-->
+`r strftime(test$Date_HST[26], format='%d %B')`
+\hangindent=1in \tabto{1in}
+`r sprintf('%04d', as.numeric(test$Time[26]))` Arrived at base station 7 at `r round(test$Lat[26],2)`$^\circ$N, `r abs(round(test$Lon[26],2))`$^\circ$W and began base station operations with CTD cast 26 down to `r test$Depth[26]` m. 
+
+\setlength{\leftskip}{1in}
+`r sprintf('%04d', bongo$start_time_hst[7])` Began bongo tow 7 down to `r bongo$max_depth[7]` m at `r round(bongo$start_lat_decdeg[7],2)`$^\circ$N, `r abs(round(bongo$start_lon_decdeg[7],2))`$^\circ$W. `r sprintf('%04d', bongo$end_time_hst[7])` Bongo tow 7 completed at `r round(bongo$end_lat_decdeg[7],2)`$^\circ$N, `r abs(round(bongo$end_lon_decdeg[7],2))`$^\circ$W.
+
+`r sprintf('%04d', ring$start_time_hst[7])` Began 2-m ring net tow 7 at `r round(ring$start_lat_decdeg[7],2)`$^\circ$N, `r abs(round(ring$start_lon_decdeg[7],2))`$^\circ$W. Max depth for the yo-yo tow was `r round(ring$max_depth[7])` m. `r sprintf('%04d', ring$end_time_hst[7])` two-m ring net tow 7 completed, transited to next station.
+
+<!-- Base station 8 -->
+`r sprintf('%04d', as.numeric(test$Time[27]))` Arrived at base station 8 at `r round(test$Lat[27],2)`$^\circ$N, `r abs(round(test$Lon[27],2))`$^\circ$W and began station operations with CTD cast 18 down to `r test$Depth[27]` m. 
+
+`r sprintf('%04d', bongo$start_time_hst[8])` Began bongo tow 8 down to `r bongo$max_depth[8]` m at `r round(bongo$start_lat_decdeg[8],2)`$^\circ$N, `r abs(round(bongo$start_lon_decdeg[8],2))`$^\circ$W. `r sprintf('%04d', bongo$end_time_hst[8])` Bongo tow 8 completed at `r round(bongo$end_lat_decdeg[8],2)`$^\circ$N, `r abs(round(bongo$end_lon_decdeg[8],2))`$^\circ$W.
+
+`r sprintf('%04d', ring$start_time_hst[8])` Began 2-m ring net tow 8 at `r round(ring$start_lat_decdeg[8],2)`$^\circ$N, `r abs(round(ring$start_lon_decdeg[8],2))`$^\circ$W. Max depth for the yo-yo tow was `r round(ring$max_depth[8])` m. `r sprintf('%04d', ring$end_time_hst[8])` two-m ring net tow 8 completed, transited to next station.
+
+\setlength{\leftskip}{0in}
+
+<!-- Base station 9 -->
+`r strftime(test$Date_HST[28], format='%d %B')`
+\hangindent=1in \tabto{1in}
+`r sprintf('%04d', as.numeric(test$Time[28]))` Arrived at base station 9 at `r round(test$Lat[28],2)`$^\circ$N, `r abs(round(test$Lon[28],2))`$^\circ$W and began base station operations with CTD cast 28 down to `r test$Depth[28]` m. 
+
+\setlength{\leftskip}{1in}
+`r sprintf('%04d', bongo$start_time_hst[9])` Began bongo tow 9 down to `r bongo$max_depth[9]` m at `r round(bongo$start_lat_decdeg[9],2)`$^\circ$N, `r abs(round(bongo$start_lon_decdeg[9],2))`$^\circ$W. `r sprintf('%04d', bongo$end_time_hst[9])` Bongo tow 9 completed at `r round(bongo$end_lat_decdeg[9],2)`$^\circ$N, `r abs(round(bongo$end_lon_decdeg[9],2))`$^\circ$W.
+
+`r sprintf('%04d', ring$start_time_hst[9])` Began 2-m ring net tow 9 at `r round(ring$start_lat_decdeg[9],2)`$^\circ$N, `r abs(round(ring$start_lon_decdeg[9],2))`$^\circ$W. Max depth for the yo-yo tow was `r round(ring$max_depth[9])` m. `r sprintf('%04d', ring$end_time_hst[9])` two-m ring net tow 9 completed, transited to next station.
+
+<!-- Extended Station D night -->
+`r sprintf('%04d', as.numeric(test$Time[29]))` Arrived at extended station D at `r round(test$Lat[29],2)`$^\circ$N, `r abs(round(test$Lon[29],2))`$^\circ$W and began night-time sampling with CTD cast 29 to `r test$Depth[29]` m. 
+
+`r sprintf('%04d', mocness$start_time_hst[7])` Began MOCNESS tow 7 down to 1300 m at `r round(mocness$start_lat_decdeg[7],2)`$^\circ$N, `r abs(round(mocness$start_lon_decdeg[7],2))`$^\circ$W.
+
+\setlength{\leftskip}{0in}
+
+`r strftime(test$Date_HST[30], format='%d %B')`
+\hangindent=1in \tabto{1in}
+`r sprintf('%04d', mocness$end_time_hst[7])` MOCNESS tow 7 completed at `r round(mocness$end_lat_decdeg[7],2)`$^\circ$N, `r abs(round(mocness$end_lon_decdeg[7],2))`$^\circ$W.
+
+\setlength{\leftskip}{1in}
+`r sprintf('%04d', ikmt$start_time_hst[6])` Began IKMT tow 6 down to `r round(ikmt$max_depth[6])` m at `r round(ikmt$start_lat_decdeg[6],2)`$^\circ$N, `r abs(round(ikmt$start_lon_decdeg[6],2))`$^\circ$W. `r sprintf('%04d', ikmt$end_time_hst[6])` IKMT tow 6 completed.
+
+`r sprintf('%04d', as.numeric(test$Time[30]))` Began CTD cast 30 at `r round(test$Lat[30],2)`$^\circ$N, `r abs(round(test$Lon[30],2))`$^\circ$W down to `r test$Depth[30]` m for eDNA water collection.
+
+`r sprintf('%04d', as.numeric(test$Time[31]))` Began CTD cast 31 at `r round(test$Lat[31],2)`$^\circ$N, `r abs(round(test$Lon[31],2))`$^\circ$W down to `r test$Depth[31]` m for eDNA water collection. 
+
+`r sprintf('%04d', as.numeric(test$Time.on.board[31]))` Finished extended station D night-time operations and began the reset for station D day-time operations. 
+
+<!-- Extended Station D day -->
+`r sprintf('%04d', as.numeric(test$Time[32]))` Began extended station D day-time sampling at `r round(test$Lat[32],2)`$^\circ$N, `r abs(round(test$Lon[32],2))`$^\circ$W with CTD cast 32 to `r test$Depth[32]` m. 
+
+`r sprintf('%04d', mocness$start_time_hst[8])` Began MOCNESS tow 8 down to 1300 m at `r round(mocness$start_lat_decdeg[8],2)`$^\circ$N, `r abs(round(mocness$start_lon_decdeg[8],2))`$^\circ$W. `r sprintf('%04d', mocness$end_time_hst[8])` MOCNESS tow 8 completed at `r round(mocness$end_lat_decdeg[8],2)`$^\circ$N, `r abs(round(mocness$end_lon_decdeg[8],2))`$^\circ$W.
+
+`r sprintf('%04d', ikmt$start_time_hst[7])` Began IKMT tow 7 down to `r round(ikmt$max_depth[7])` m at `r round(ikmt$start_lat_decdeg[7],2)`$^\circ$N, `r abs(round(ikmt$start_lon_decdeg[7],2))`$^\circ$W. `r sprintf('%04d', ikmt$end_time_hst[7])` IKMT tow 7 completed.
+
+`r sprintf('%04d', as.numeric(test$Time[33]))` Began CTD cast 33 at `r round(test$Lat[33],2)`$^\circ$N, `r abs(round(test$Lon[33],2))`$^\circ$W down to `r test$Depth[33]` m for eDNA water collection. 
+
+`r sprintf('%04d', as.numeric(test$Time[34]))` Began CTD cast 34 at `r round(test$Lat[34],2)`$^\circ$N, `r abs(round(test$Lon[34],2))`$^\circ$W down to `r test$Depth[34]` m for eDNA water collection. 
+
+`r sprintf('%04d', as.numeric(test$Time.on.board[34]))` CTD completed, transited to next station. 
+
+\setlength{\leftskip}{0in}
+
+<!-- Base station 10-->
+`r strftime(test$Date_HST[35], format='%d %B')`
+\hangindent=1in \tabto{1in}
+`r sprintf('%04d', as.numeric(test$Time[35]))` Arrived at base station 10 at `r round(test$Lat[35],2)`$^\circ$N, `r abs(round(test$Lon[35],2))`$^\circ$W and began base station operations with CTD cast 35 down to `r test$Depth[35]` m. 
+
+\setlength{\leftskip}{1in}
+`r sprintf('%04d', bongo$start_time_hst[10])` Began bongo tow 10 down to `r bongo$max_depth[10]` m at `r round(bongo$start_lat_decdeg[10],2)`$^\circ$N, `r abs(round(bongo$start_lon_decdeg[10],2))`$^\circ$W. `r sprintf('%04d', bongo$end_time_hst[10])` Bongo tow 10 completed at `r round(bongo$end_lat_decdeg[10],2)`$^\circ$N, `r abs(round(bongo$end_lon_decdeg[10],2))`$^\circ$W.
+
+`r sprintf('%04d', ring$start_time_hst[10])` Began 2-m ring net tow 10 at `r round(ring$start_lat_decdeg[10],2)`$^\circ$N, `r abs(round(ring$start_lon_decdeg[10],2))`$^\circ$W. Max depth for the yo-yo tow was `r round(ring$max_depth[10])` m. A GoPro was attached to the 2-m ring, faced aft, and filmed the net opening for the duration of the tow. `r sprintf('%04d', ring$end_time_hst[10])` two-m ring net tow 10 completed, transited to next station.
+
+<!-- Base station 11 -->
+`r sprintf('%04d', as.numeric(test$Time[36]))` Arrived at base station 11 at `r round(test$Lat[36],2)`$^\circ$N, `r abs(round(test$Lon[36],2))`$^\circ$W and began station operations with CTD cast 36 down to `r test$Depth[36]` m. 
+
+`r sprintf('%04d', bongo$start_time_hst[11])` Began bongo tow 11 down to `r bongo$max_depth[11]` m at `r round(bongo$start_lat_decdeg[11],2)`$^\circ$N, `r abs(round(bongo$start_lon_decdeg[11],2))`$^\circ$W. `r sprintf('%04d', bongo$end_time_hst[11])` Bongo tow 11 completed at `r round(bongo$end_lat_decdeg[11],2)`$^\circ$N, `r abs(round(bongo$end_lon_decdeg[11],2))`$^\circ$W.
+
+`r sprintf('%04d', ring$start_time_hst[11])` Began 2-m ring net tow 11 at `r round(ring$start_lat_decdeg[11],2)`$^\circ$N, `r abs(round(ring$start_lon_decdeg[11],2))`$^\circ$W. Max depth for the yo-yo tow was `r round(ring$max_depth[11])` m. `r sprintf('%04d', ring$end_time_hst[11])` two-m ring net tow 11 completed, transited to next station. 
+
+\setlength{\leftskip}{0in}
+
+<!-- Base station 12 -->
+`r strftime(test$Date_HST[37], format='%d %B')`
+\hangindent=1in \tabto{1in}
+`r sprintf('%04d', as.numeric(test$Time[37]))` Arrived at base station 12 at `r round(test$Lat[37],2)`$^\circ$N, `r abs(round(test$Lon[37],2))`$^\circ$W and began base station operations with CTD cast 37 down to `r test$Depth[37]` m. 
+
+\setlength{\leftskip}{1in}
+`r sprintf('%04d', bongo$start_time_hst[12])` Began bongo tow 12 down to `r bongo$max_depth[12]` m at `r round(bongo$start_lat_decdeg[12],2)`$^\circ$N, `r abs(round(bongo$start_lon_decdeg[12],2))`$^\circ$W. `r sprintf('%04d', bongo$end_time_hst[12])` Bongo tow 12 completed at `r round(bongo$end_lat_decdeg[12],2)`$^\circ$N, `r abs(round(bongo$end_lon_decdeg[12],2))`$^\circ$W.
+
+`r sprintf('%04d', ring$start_time_hst[12])` Began 2-m ring net tow 12 at `r round(ring$start_lat_decdeg[12],2)`$^\circ$N, `r abs(round(ring$start_lon_decdeg[12],2))`$^\circ$W. Max depth for the yo-yo tow was `r round(ring$max_depth[12])` m. A GoPro was attached to the 2-m ring, faced aft, and filmed the net opening for the duration of the tow. `r sprintf('%04d', ring$end_time_hst[12])` two-m ring net tow 12 completed, transited to next station.
+
+<!-- Base station 13 -->
+`r sprintf('%04d', as.numeric(test$Time[38]))` Arrived at base station 13 at `r round(test$Lat[38],2)`$^\circ$N, `r abs(round(test$Lon[38],2))`$^\circ$W and began base station operations with CTD cast 38 down to `r test$Depth[38]` m. 
+
+`r sprintf('%04d', bongo$start_time_hst[13])` Began bongo tow 13 down to `r bongo$max_depth[13]` m at `r round(bongo$start_lat_decdeg[13],2)`$^\circ$N, `r abs(round(bongo$start_lon_decdeg[13],2))`$^\circ$W. `r sprintf('%04d', bongo$end_time_hst[13])` Bongo tow 13 completed at `r round(bongo$end_lat_decdeg[13],2)`$^\circ$N, `r abs(round(bongo$end_lon_decdeg[13],2))`$^\circ$W.
+
+`r sprintf('%04d', ring$start_time_hst[13])` Began 2-m ring net tow 13 at `r round(ring$start_lat_decdeg[13],2)`$^\circ$N, `r abs(round(ring$start_lon_decdeg[13],2))`$^\circ$W. Max depth for the yo-yo tow was `r round(ring$max_depth[13])` m. `r sprintf('%04d', ring$end_time_hst[13])` two-m ring net tow 13 completed, and the final base station sampled. Transited to the next station.
+
+\setlength{\leftskip}{0in}
+
+<!-- Extended Station E day -->
+`r strftime(test$Date_HST[39], format='%d %B')`
+\hangindent=1in \tabto{1in}
+`r sprintf('%04d', as.numeric(test$Time[39]))` Arrived at extended station E at `r round(test$Lat[39],2)`$^\circ$N, `r abs(round(test$Lon[39],2))`$^\circ$W and began day-time sampling with CTD cast 39 to `r test$Depth[39]` m. 
+
+\setlength{\leftskip}{1in}
+`r sprintf('%04d', mocness$start_time_hst[9])` Began MOCNESS tow 9 down to 1300 m at `r round(mocness$start_lat_decdeg[9],2)`$^\circ$N, `r abs(round(mocness$start_lon_decdeg[9],2))`$^\circ$W. `r sprintf('%04d', mocness$end_time_hst[9])` MOCNESS tow 9 complete at `r round(mocness$end_lat_decdeg[9],2)`$^\circ$N, `r abs(round(mocness$end_lon_decdeg[9],2))`$^\circ$W.
+
+`r sprintf('%04d', ikmt$start_time_hst[8])` Began IKMT tow 8 down to `r round(ikmt$max_depth[8])` m at `r round(ikmt$start_lat_decdeg[8],2)`$^\circ$N, `r abs(round(ikmt$start_lon_decdeg[8],2))`$^\circ$W. A GoPro was attached to the paravane, faced aft, and filmed the net opening for the duration of the tow. `r sprintf('%04d', ikmt$end_time_hst[8])` IKMT tow 8 completed.
+
+`r sprintf('%04d', as.numeric(test$Time[40]))` Began CTD cast 40 at `r round(test$Lat[40],2)`$^\circ$N, `r abs(round(test$Lon[40],2))`$^\circ$W down to `r test$Depth[40]` m for eDNA water collection.
+
+`r sprintf('%04d', as.numeric(test$Time[41]))` Began CTD cast 41 at `r round(test$Lat[41],2)`$^\circ$N, `r abs(round(test$Lon[41],2))`$^\circ$W down to `r test$Depth[41]` m for eDNA water collection.
+
+`r sprintf('%04d', as.numeric(test$Time[42]))` Began CTD cast 42 at `r round(test$Lat[42],2)`$^\circ$N, `r abs(round(test$Lon[42],2))`$^\circ$W down to `r test$Depth[42]` m for eDNA water collection. This was an opportunistic CTD to collect water to filter through a compressed air pump used for RNA studies. 
+
+`r sprintf('%04d', as.numeric(test$Time.on.board[42]))` Finish extended station E day-time operations and began reset for station E night-time operations. 
+
+<!-- Extended Station E night -->
+`r sprintf('%04d', as.numeric(test$Time[43]))` Began extended station E night-time sampling at `r round(test$Lat[43],2)`$^\circ$N, `r abs(round(test$Lon[43],2))`$^\circ$W with CTD cast 43 to `r test$Depth[43]` m. 
+
+`r sprintf('%04d', ikmt$start_time_hst[9])` Began IKMT tow 9 down to `r round(ikmt$max_depth[9])` m at `r round(ikmt$start_lat_decdeg[9],2)`$^\circ$N, `r abs(round(ikmt$start_lon_decdeg[9],2))`$^\circ$W. We switched the order of the IKMT and MOCNESS for this last station so the deck crew could rinse the cable during MOCNESS haulback since it is the deepest tow of the two. `r sprintf('%04d', ikmt$end_time_hst[9])` IKMT tow 9, the last IKMT tow of the project, completed. 
+
+\setlength{\leftskip}{0in}
+
+`r strftime(test$Date_HST[44], format='%d %B')`
+\hangindent=1in \tabto{1in}
+`r sprintf('%04d', mocness$start_time_hst[10])` Began MOCNESS tow 10 down to 1300 m at `r round(mocness$start_lat_decdeg[10],2)`$^\circ$N, `r abs(round(mocness$start_lon_decdeg[10],2))`$^\circ$W. `r sprintf('%04d', mocness$end_time_hst[10])` MOCNESS tow 10 completed at `r round(mocness$end_lat_decdeg[10],2)`$^\circ$N, `r abs(round(mocness$end_lon_decdeg[10],2))`$^\circ$W, the final MOCNESS of the project. 
+
+\setlength{\leftskip}{1in}
+`r sprintf('%04d', as.numeric(test$Time[44]))` Began CTD cast 44 at `r round(test$Lat[44],2)`$^\circ$N, `r abs(round(test$Lon[44],2))`$^\circ$W down to `r test$Depth[44]` m for eDNA water collection. 
+
+`r sprintf('%04d', as.numeric(test$Time[45]))` Began CTD cast 45 at `r round(test$Lat[45],2)`$^\circ$N, `r abs(round(test$Lon[45],2))`$^\circ$W down to `r test$Depth[45]` m for eDNA water collection.
+
+`r sprintf('%04d', as.numeric(test$Time[46]))` Began CTD cast 46 at `r round(test$Lat[46],2)`$^\circ$N, `r abs(round(test$Lon[44],2))`$^\circ$W down to `r test$Depth[46]` m for eDNA water collection. This was an opportunistic CTD to collect water to filter through a compressed air pump used for RNA studies. This concluded the sampling for SE2204. Began transit back to Pearl Harbor. 
+
+\setlength{\leftskip}{0in}
+
+07-10 July
+\hangindent=1in \tabto{1in}
+Transited. 
+
+\setlength{\leftskip}{0in}
+
+10 July
+\hangindent=1in \tabto{1in}
+1200 Returned to Pearl Harbor. Ended active acoustics data collection. Disembarked `r staff$Name[1:15]`. 
+
+\setlength{\leftskip}{0in}
+
+**MISSIONS AND RESULTS:**
+
+A.  Conduct routine conductivity-temperature-depth (CTD) casts to a maximum 1000 m, continuous acoustic Doppler current profiler (ADCP) and thermosalinograph (TSG) measurements along the length of the project track to describe the physical environment in the ocean along the eastern edge of the North Pacific Subtropical Gyre (the eastern part of the Hawai‘i deep-set longline fishing grounds).  
+
+    1. The project track was adjusted from the planned 30--10$^\circ$N latitude and 140$^\circ$W longitude to 150$^\circ$W longitude to accommodate the 7 day reduction in DAS due to COVID delay. Additionally, extended stations had to be reduced from 7 to 5, with the stations on the outgoing and returning legs being cut. The project visited 5 extended stations where sampling took place over a 24 h period, and 13 base stations that were visited either during the daytime or nighttime and sampling lasted for 5 hours.
+
+     2. A total of 46 fully successful CTD casts were conducted (Table 1); 1 cast at each station (23 in total; 10 stations where both day and night sampling took place) to 1300 m and two additional casts at extended stations to around 750 and 250 m for water collection purposes only for eDNA analysis. One opportunistic cast was conducted at station A before station operations began to collect water for RNA analysis, and 2 additional opportunistic casts were performed at station E for methods comparison for eDNA methodology. During all casts, profiles of temperature, conductivity, and dissolved oxygen were collected on redundant sensors, and profiles of fluorescence were collected by both an open WET Labs and pumped Seapoint fluorometer (Fig. 2).
+
+     3. EK80 was successfully calibrated as part of gear trials on June 9--10, and ADCP and EK80 were turned on for the entirety of the project. There was initial interference between the 38 kHz and the EK80 on all frequencies but after adjustment of the 38 kHz on June 22, interference was resolved. 
+
+     4. TSG data were collected at a roughly 5-sec resolution throughout the survey.
+
+B.  Conduct regular CTD-mounted fluorometer measurements and water collection from CTD rosette-mounted Niskin bottles in the shallow scattering layer (approximately 0--200 m) at predetermined stations for extracted chlorophyll and nutrients, along with size-fractionation of the phytoplankton to assess the influence of the physical dynamics on the biological productivity along the project track.
+
+     1. A CTD-mounted Wetlabs ECO FLNTURTD fluorometer measured chlorophyll profiles to a depth of 1300 m during 23 CTD casts. Water samples were collected at 10 depths (surface, 20, 35, 50, 65, 80, 100, 125, 150, and 200 m) during these 23 CTDs for analysis of bulk and size fractionated chlorophyll and chlorophyll-_a_ (at 20, 2, and 0.2 $\mu$m size fractions), nutrient, and flow cytometry analysis (Table 1; Fig. 3). Additionally, water was collected for carbonate chemistry analysis for a "pH from Space" project. We know little about open-ocean ocean acidification and the collected samples will help fill that knowledge gap. 
+
+     2. All chlorophyll analyses were carried out on a Turner 10AU bench-top fluorometer while underway. These analyses show an increase in bulk total chlorophyll moving from north to south, along with a shift in size composition with fewer smaller (0.2 $\mu$m) and more larger (2 $\mu$m) phytoplankton moving south (Fig. 3). Water samples for nutrient analysis were stored in the ship's scientific freezer and flow cytometry samples were preserved with para-formaldehyde and stored in a liquid nitrogen dewar for post-cruise analysis.
+
+C.  At 5 stations (locations marked with blue symbols on Fig. 1), conduct water collection from CTD rosette-mounted Niskin bottles at 5 pre-determined depths for use in environmental DNA (eDNA) analysis. 
+
+    During day-time and night-time operations at each of the 5 extended stations, 2 CTD casts were conducted consecutively for collection of water for eDNA analysis, for a total of 20 casts. Each cast collected water from 3 depths for a total of 24 l of water each at 6 depths for each sampling cycle (day and night). The collection depths were determined by looking at a combination of the oxygen profile from the CTD taken at the beginning of station operations and the deep and shallow acoustic scattering layer recorded by the EK80 active acoustics system with targets above, below, and at the oxygen minimum and within and below the scattering layers (Fig. 4). 
+
+D.  Monitor the biological backscatter using the Simrad EK60 echosounder system in an effort to assess the relative density, distribution, and composition of micronekton along the project track and how that relates to physical dynamics. 
+
+     Bioacoustic data were collected continuously during the cruise resulting in an approximately 3500 nm long transect. Initially there was interference with the 38 kHz system during the transit to station A, but that was resolved when arriving on station A. Acoustic data were used during the cruise to determine sampling depths for eDNA and MOCNESS operations. Data will be analyzed post-cruise. 
+
+E.  Deploy bongo nets with wire-mounted SeaBird CTD in the shallow scattering layer (approximately 0--200 m) to assess the influence of physical dynamics on the biomass, distribution, and composition of mesozooplankton along the project track.
+
+    A total of 13 successful bongo tows were conducted at the base stations (Fig. 1) using a 200-$\mu$m mesh net. Because of the depth limitation of the available gear, we could not attach the CTD to the conducting cable as the same cable was used for the MOCNESS. Additionally, because the MOCNESS electronics plug was terminated onto the conducting cable, it was not feasible to switch out the CTD and MOCNESS termination every time we switched gears. Therefore, depth target was determined by ship speed, wire out, and wire angle. The depth of the tow was confirmed after the tow was completed using temperature-depth recorders (TDRs). Samples from the Bongo nets were preserved for bulk and size-fractionated biomass. One net was size-fractioned into 200, 500, 1000, 20000, and 5000 $\mu$m fractions and stored in the ship's scientific freezer for post-cruise drying and weighing. The other net was split in half using a Folsom splitter with one half preserved in 95% ethanol and one in 10% formalin for post-cruise genetic analysis (of the ethanol preserved fraction) and identification and measurements using ZooSCAN (formalin preserved fraction). Fish larger than 1 cm found in the samples were removed and stored in the ship's scientific freezer for genetic work post-cruise. 
+
+F.  At 5 stations (locations marked with blue symbols on Fig. 1), deploy a 1-m^2^ Multiple Opening/Closing Net and Environmental Sensing System (MOCNESS) down to 1000 m to assess the influence of physical dynamics on the biomass, distribution, and composition of mesozooplankton at discrete depths along the project track. 
+
+     1. A total of 10 (5 day-time and 5 night-time) successful MOCNESS tows were conducted at the extended stations A-E to a depth of 1300 m. Each tow had nine 200 $\mu$m mesh nets that were fired at 8 different depths plus the net that was open going down. The collection depths were determined by looking at a combination of the oxygen profile from the CTD taken at the beginning of station operations and the deep- and shallow acoustic scattering layer recorded by the EK80 active acoustics system with targets above, below, and at the oxygen minimum and within and below the scattering layers (Fig. 4). These depths were selected in collaboration with the eDNA team so the collection depths would be consistent for future data comparisons. 
+    
+    2. There was a problem with the depth sensor on the net during station B tows, but it was stable when firing the nets at each depth. Additionally, the battery voltage kept reading zero but with successful deck tests. After disassembling the net electronics, we found condensation inside the depth sensor housing. It was allowed to dry out and depth sensor worked as normal, but the voltage never read correctly again. 
+    
+     3. A small leak in the bottom seam of codend #4 was found at station E after the day-time tow and have likely been present since the beginning of the cruise.  Additionally, during the day-time tow at station B the net came up with net #7 open. This was the only instance that nets didn't close/fire and the MOCNESS performed above expectation and was a valuable addition to our sampling plan. A plan should be put in place to have consistent access to MOCNESS for future cruises. 
+      
+     4. The sample from each MOCNESS net was split in two using a Folsom splitter and one split was preserved in 10% formalin and the other split in 95% alcohol for post-cruise analyses of size and composition (formalin preserved fraction) as well as DNA analyses (ethanol preserved fraction). All fish larger than ~1 cm were removed and stored in the ship's freezer for genetic work post-cruise. 
+
+G.  Deploy towed equipment, including 2-m ring net and 6-ft Isaacs-Kidd Midwater Trawl (IKMT), in the shallow scattering layer (approximately 0--200 m) in and around features of interest (fronts, eddies, etc.) in an effort to locate areas with bigeye tuna eggs and larvae. 
+
+    1. For this effort a 2-m ring net with a 505-$\mu$m mesh net was yo-yo towed in the top 50 m of the water column at all base stations. A total of 13 ring net tows were successfully completed; 8 day-time tows and 5 night time tows. The net mesh size was not small enough to catch any eggs, but did capture larval fish. We focused on the top 50 m of the water colum after conversations with Barb Muhling at SWFSC regarding her success in catching bluefin tuna larvae in the Gulf of Mexico. 
+    
+     2. After initial coarse sorting onboard we found several tuna larvae in the trawl, but identification to species will have to be conducted post-cruise using DNA methods. These specimen will be valuable in determining spawning locations of tunas in Hawai‘i longline fishing grounds. 
+    
+     3. The 2-m ring net performed well and was able to catch larval tunas successfully. The large opening allows for higher volumes of water to be filtered and all tows were equipped with a flow meter so we can make quantitative estimates of volume filtered and capture rates. 
+
+H.  At 5 stations (locations marked with blue symbols on Fig 1) extended sampling with a Cobb trawl (and possibly 10-ft Isaacs-Kidd Midwater Trawl (IKMT) will take place to assess size and composition of micronekton and conduct stomach content analysis on select micronekton for use in size-based ecosystem models. 
+
+     1. The Cobb trawl was not operable at the time of sailing so we replaced the Cobb operations with the 10-ft IKMT. This is the largest net we have and the only gear capable of targeting micronekton successfully. While the IKMT performed successfully during the cruise operations, the catches were small. The amount of water the 10-ft IKMT can filter is far less than the Cobb trawl. There is a gap in our size-based sampling strategy left by the lack of Cobb trawling, and having an operational Cobb trawl is essential for studying micronekton, the forage of bigeye tuna. 
+    
+     2. During the cruise we had 9 successful IKMT tows. The day-time tow at station A was canceled to make up for time spent on spooling and fixing the CTD wire. Daytime tows in the top 200 m were not expected to have large catches and it was decided that it was better to forgo the day-time tow and make up the time to get back on track for the rest of the project. 
+    
+     3. The 10-ft IKMT has a graded mesh net with a flowmeter attached during each tow. Additionally, a GoPro camera was attached to the paravane during station E day-time tow. On the camera you can clearly see the net descending through a layer of salps and later ascending through that same layer during haul back. Combining the footage with the temperature depth recorders (TDRs) on the net, the salp layer was present between 81.7 and 93.4 m. Post-cruise analysis of active acoustic data during the tow will yield valuable insites on what acoustic signals are recorded for gelatinous plankton. 
+
+I.  Collect data on fine-scale zooplankton composition and vertical distribution using a CTD rosette-mounted Underwater Vision Profiler (UVP) in an effort to characterize the ichthyoplankton prey field. 
+
+     1. The UVP was present and working during all 46 CTD casts. The UVP was mounted on the inside of the CTD rosette on the bottom opposite of the fluorometer. The UVP has a light source (flash) so the placement was to avoid interference with the fluorometer. There was also a protective shield mounted on the rosette to shield the fluorometer and other CTD sensors from the UVP. 
+    
+     2. Post-cruise processing of data will yield identifications to order for organisms larger than 500 $\mu$m and will provide counts for anything larger than 200 $\mu$m. 
+
+J.  Deploy surface neuston net from boom during transits and for targeted stations in an effort to locate areas with bigeye tuna eggs and larvae, as well as acquire data on floating debris, plastic and otherwise.
+
+    An new underway neuston net brought on the cruise had never been field tested. The initial plan was to tow the net off the boom on the starboard side, but the boom was not onboard, so the neuston net was rigged from the aft crane or boat deck crane, depending on what side of the ship was the lee side. The net performed well during speeds up to ~6 knots, but at transit speeds of 9-10 knots it was not stable and ride up on its wings or flip over. After several versions of rigging the plan was abandoned and the net secured for the rest of the cruise. Valuable information was gained from the field tests and the net will be modified for our next cruise. 
+
+K.  Deploy six (6) ARGO floats along the ship track. 
+
+    Six Argo floats were deployed near pre-selected locations: three on the transit to station A and three between station A and C (Fig 1B, red diamonds). 
+
+$\vspace{8pt}$
+
+**SCIENTIFIC PERSONNEL:**
+
+```{r, echo=FALSE, fig.pos='H'}
+library(knitr)
+s <- kbl(staff, booktabs=T, label=NA) %>%
+  kable_styling(latex_options = c("striped", "HOLD_position"), font_size=12) %>% 
+  #kable_paper('striped', , font_size=10) %>%
+  pack_rows("SE-22-04 Participants", 1, 15) %>%
+  pack_rows("Gear Trial Participants", 16, 19) %>% 
+  add_footnote(c('Pacific Islands Fisheries Science Center', 'National Marine Fisheries Service', 'University of Hawaii', 'Cooperative Institute for Marine and Atmospheric Reserach', 'University of South Carolina'), notation='number')
+
+asis_output(str_replace_all(s, c("PIFSC1"="PIFSC$^{1}$", "NMFS2"="NMFS$^{2}$", "UH3"="UH$^{3}$", "CIMAR4"="CIMAR$^{4}$", "SC5"="SC$^{5}$")))
+```
+
+$\vspace{8pt}$
+
+\newpage 
+
+**TABLES**
+
+```{r, echo=FALSE, fig.pos='H', warning=FALSE}
+test$Station2[4] <- paste0('A night', 'a')
+test$Station2[6] <- paste0('A day', 'b')
+test$Station2[7] <- paste0('A day', 'c')
+test$Station2[8] <- paste0(1, 'd')
+
+t1 <- test %>% 
+  mutate(Cast=1:nrow(test), Lon=Lon*-1) %>% 
+  select(Cast, Station2, Date_HST, Lon, Lat, Depth) %>% 
+  rename(`Date & Time (HST)` = Date_HST, `Latitude (°N)`=Lat, `Longitude (°W)`=Lon, Station=Station2, `Depth (m)`=Depth) %>% 
+  kbl(booktabs=T, label='CTD operations', caption = 'CTD operations during SE-22-04.', longtable=T) %>%
+  kable_styling(latex_options = c("striped", "HOLD_position", "repeat_header"), font_size=12) %>% 
+  footnote(alphabet=c('Bottle #12 did not fire', 'Bottle #7 did not fire', 'Bottle #7 did not fire', 'Bottle #10 did not fire'))
+
+asis_output(str_replace_all(t1, c("1d"="1$^{d}$", "nighta"="night$^{a}$", "dayb"="day$^{b}$", "dayc"="day$^{c}$")))
+```
+
+\newpage
+\blandscape
+
+```{r, echo=FALSE, fig.pos='H', warning=FALSE}
+m <- readRDS('SE2204_MOCNESS_jwEdit.rds')
+row.names(m) <- NULL
+tmp <- m %>% 
+  mutate(Tow=1:nrow(m), start_datetime=paste(as.Date(start_date, '%m/%d/%y'), sprintf('%04d', start_time_hst))) %>% 
+  select(Tow, Station2, start_datetime, start_lon_decdeg, start_lat_decdeg, NetDepths, VolFiltered) %>% 
+  rename(`Date & Time (HST)`=start_datetime, `Lat (°N)`=start_lat_decdeg, `Long (°W)`=start_lon_decdeg, Station=Station2, `Net Opening Depths (m)`=NetDepths, `Volume Filtered by each net (m3)`=VolFiltered) %>% 
+  kbl(booktabs=T, label='MOCNESS tows', caption = 'Start time and locations for MOCNESS tows during SE-22-04 extended stations.') %>%
+  kable_styling(latex_options = c("striped", "HOLD_position"), font_size=10) %>% 
+  column_spec(c(3,4,5), width = c("7em", "3em", "3em"))
+
+asis_output(str_replace(tmp, "m3", "m$^{3}$"))
+```
+
+
+```{r, echo=FALSE, fig.pos='H', warning=FALSE}
+ikmt %>% 
+  mutate(Tow=1:nrow(ikmt), start_datetime=paste(as.Date(start_date, '%m/%d/%y'), sprintf('%04d', start_time_hst))) %>% 
+  select(Tow, Station2, start_datetime, start_lon_decdeg, start_lat_decdeg, max_depth) %>% 
+  rename(`Date & Time (HST)`=start_datetime, `Latitude (°N)`=start_lat_decdeg, `Longitude (°W)`=start_lon_decdeg, Station=Station2, `Max Depth (m)`=max_depth) %>% 
+  kbl(booktabs=T, label='IKMT tows', caption = 'Start time and locations for IKMT tows during SE-22-04 extended stations.') %>%
+  kable_styling(latex_options = c("striped", "HOLD_position"), font_size=12)
+```
+\elandscape
+
+```{r, echo=FALSE, fig.pos='H', warning=FALSE}
+bongo %>% 
+  mutate(Tow=1:nrow(bongo), start_datetime=paste(as.Date(start_date, '%m/%d/%y'), sprintf('%04d', start_time_hst))) %>% 
+  select(Tow, station, start_datetime, start_lon_decdeg, start_lat_decdeg, max_depth) %>% 
+  rename(`Date & Time (HST)`=start_datetime, `Latitude (°N)`=start_lat_decdeg, `Longitude (°W)`=start_lon_decdeg, Station=station, `Max Depth (m)`=max_depth) %>% 
+  kbl(booktabs=T, label='Bongo tows', caption = 'Start time and locations for Bongo tows during SE-22-04 base stations.') %>%
+  kable_styling(latex_options = c("striped", "HOLD_position"), font_size=12)
+```
+
+
+```{r, echo=FALSE, fig.pos='H', warning=FALSE}
+ring %>% 
+  mutate(Tow=1:nrow(ring), start_datetime=paste(as.Date(start_date, '%m/%d/%y'), sprintf('%04d', start_time_hst))) %>% 
+  select(Tow, station, start_datetime, start_lon_decdeg, start_lat_decdeg, max_depth) %>% 
+  rename(`Date & Time (HST)`=start_datetime, `Latitude (°N)`=start_lat_decdeg, `Longitude (°W)`=start_lon_decdeg, Station=station, `Max Depth (m)`=max_depth) %>% 
+  kbl(booktabs=T, label='2-m ring net tows', caption = 'Start time and locations for 2-m ring net tows during SE-22-04 base stations.') %>%
+  kable_styling(latex_options = c("striped", "HOLD_position"), font_size=12)
+```
+
+$\vspace{8pt}$
+
+
+\newpage
+
+**FIGURES**
+
+```{r echo=FALSE, warning=FALSE, messages=FALSE, fig.pos='H', fig.width=7, fig.cap="Project SE-22-04 planned (A) and actual (B) track line. Blue symbols mark extended stations, yellow symbols mark base stations, and red diamonds mark Argo drop locations.", fig.alt="Figure showing two maps side by side showing the original track line going down 150°W on the left and the actual track line going down 140°W on the right. Base and extended station locations are marked as are Argo drop locations."}
+
+# Read in waypoints
+all_wpts <- read.csv('CTD/CTD_log.csv')
+all_wpts_short <- all_wpts %>% 
+  select(LonDecimalDegree, LatDecimalDegree, StnType) %>% 
+  rename(lon=LonDecimalDegree, lat=LatDecimalDegree)
+idx <- data.frame(lon=orig$lon[1], lat=orig$lat[1], StnType=NA) %>% 
+  add_row(argo[7:9,1:2])
+idx[1,1] <- -157.7
+all_wpts_short <- add_row(idx, all_wpts_short) %>% 
+  add_row(idx[1,])
+
+# Make acctual track line plot
+plt1 <- ggplot() +
+  borders("world", 
+          xlim = c(-160, -145), 
+          ylim = c(18, 25),
+          fill="gray",colour="grey40", size=0.25) +
+  coord_map() +
+  geom_path(data=all_wpts_short[-48,], aes(lon, lat), color='gray30') +
+  geom_point(data=all_wpts, aes(LonDecimalDegree, LatDecimalDegree, color=StnType)) + 
+  scale_color_manual(values = c('base'='orange', 'extended'='steelblue'), name='Station') +
+  geom_point(data=argo[which(argo$type == 'acctual'),], aes(lon, lat), color='firebrick', shape=18, size=2, alpha=0.75) +
+  geom_text(data=all_wpts[which(all_wpts$StnType == 'extended')[c(2,8,14,20,26)],], aes(LonDecimalDegree, LatDecimalDegree, label=LETTERS[1:5]), hjust = 0, nudge_x = 0.85, size=3) +
+  scale_x_continuous(breaks=seq(-160,-145,by=5), labels=seq(160,145,by=-5), limits=c(-160,-145)) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  xlab('Longitude (°W)') +
+  ylab('Latitude (°N)') +
+  ylim(c(8,32)) 
+
+# Make planned trackline plot
+plt2 <- ggplot() +
+  borders("world", 
+          xlim = c(-160, -135), 
+          ylim = c(18, 25),
+          fill="gray",colour="grey40", size=0.25) +
+  coord_map() +
+  geom_path(data=orig, aes(lon, lat), color='gray30') +
+  geom_point(data=orig[which(orig$stn_type %in% c('extended', 'base')),], aes(lon, lat, color=stn_type)) + 
+  scale_color_manual(values = c('base'='orange', 'extended'='steelblue'), name='stn') +
+  geom_point(data=orig[which(orig$stn_type == 'argo'),], aes(lon, lat), color='firebrick', shape=18, size=2, alpha=0.75) +
+  geom_text(data=orig[which(orig$stn_type == 'extended'),], aes(lon, lat, label=stn), hjust = 0, nudge_x = 0.75, size=3) +
+  scale_x_continuous(breaks=seq(-160,-135,by=5), labels=seq(160,135,by=-5), limits=c(-160,-135)) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  xlab('Longitude (°W)') +
+  ylab('Latitude (°N)') +
+  ylim(c(8,32)) 
+
+plot_grid(plt2, plt1, ncol = 2, labels='AUTO',  label_size = 12, vjust=5)
+#gridExtra::grid.arrange(plt2, plt1, nrow=2, widths=c(1,1))  #widths=c(1.48,1)
+
+```
+
+
+```{r echo=FALSE, fig.cap="CTD data interpolated along the SE-22-04 track line. The rug at the top of each plot indicate the locations of the CTD sampling.", fig.alt="Figure showing five plots stacked on top of each other. All plots show a variable along the trackline from 30N to 10N between 0-1000 dba pressure. The plots show temperature, saliity, sigma theta, dissolved oxygen, and total chlorophyll-a from top to bottom.", fig.height=10, fig.pos='H', fig.width=8, warning=FALSE, message=FALSE}
+#--------------------------------------------
+# Extract ctd data from .cnv files
+#--------------------------------------------
+# preallocate the container to store the individual 
+ctdAll = list()
+
+## Loop the CNV file and create a list of casted CTD
+files = dir(path = "CTD/", pattern = "downOnly_loopEdit.cnv", full.names = TRUE )
+# Remove files for eDNA stations
+files <- files[c(1:13,15,21,27,33,39)]
+
+# Start loop
+for (i in 1:length(files)){
+  ctdAll[[i]]  = read.ctd(files[i]) %>%
+    ctdDecimate(p = 1) # align to the same standard pressure
+}
+
+# Draw profiles at multiple stations ctd
+dat <- data.frame()
+for (i in seq_along(ctdAll)) {
+  dat <- ctdAll[[i]]@data %>% 
+    as_tibble() %>% 
+    mutate(Station=ctdAll[[i]]@metadata$header[19], Station=substring(Station, 11)) %>% 
+    add_row(dat)
+}
+dat[which(dat$Station == '06' & dat$pressure <= 3),4:8] <- NA
+
+## Make color lat-depth plot like the ones above but with ggplot instead
+# Make tibble
+ctd.tb.all = dat %>% na.omit()
+
+# Make color palette
+# It's a slightly more muted version of 'jetcolors' from MATLAB, and a bit more vibrant than R's 'Spectral' 
+myCol <- rev(c('#EE1B27', '#F54C20', '#F2E004', '#60BB49', '#2EB5E8', '#3851A4'))
+myVir <- viridis::viridis(n=9)
+colVar <- list(myVir, myVir, myVir, c('#F7FBFF', '#08519C'))
+
+vars <- c('temperature', 'salinity', 'sigmaTheta', 'oxygen', 'fluorescence')
+varsUnit <- c('Temperature [C]', 'Salinity', 'Sigma Theta [kg/m3]', 'Dissolved Oxygen [mL/L]', 'Total Chlorophyll [mg/m3]')
+
+plots <- list()
+for (i in seq_along(vars)) {
+  idx <- which(names(ctd.tb.all)==vars[i])
+  # Interpolate data between station along the latitude gradient. This is essentially the same thing 'gradient.gridded' does further up in this script
+  temp.interp = akima::interp(x = ctd.tb.all$latitude, 
+                              y = ctd.tb.all$pressure, 
+                              z = unlist(ctd.tb.all[,idx]),
+                              duplicate = "mean", nx = 500, ny = 200)
+  
+  # Put it in a ggplot friendly format and limit it to the top 1,000 meters
+  # Choose which variable you want to plot
+  temp.interp = akima::interp2xyz(temp.interp) %>%
+    as.tibble() %>%
+    rename(latitude = x, pressure = y, variable = z) %>%
+    na.omit() %>%
+    filter(pressure <=1000 & pressure > 4)
+  
+  if(i < 5) {
+    temp <- ggplot(data = temp.interp, aes(x = latitude, y = pressure)) +
+      geom_raster(aes(fill = variable), interpolate = TRUE) +
+      geom_segment(data=data.frame(lat=unique(round(ctd.tb.all$latitude, 1))), aes(x = lat, y = 5, xend = lat, yend = 50)) +
+      #geom_contour(aes(z=variable), col='slategray', breaks=c(1,2)) + 
+      scale_fill_gradientn(colors=colVar[[i]]) +
+      scale_y_reverse(expand = c(0, 5), breaks=seq(0,1000,200), labels=seq(0,1000,200)) +
+      scale_x_continuous(expand = c(0.001, 0.001), breaks=seq(10,30,2)) +
+      theme_bw() +
+      theme(legend.key.height = unit(1.72, "lines"),
+            legend.title = element_text(size = 10, angle = 90),
+            legend.title.align = 0.5,
+            legend.direction = "vertical",
+            legend.justification = c(0,0.5),
+            axis.text = element_text(colour = 1, size = 10),
+            axis.title = element_text(colour = 1, size = 11),
+            panel.grid = element_blank(), 
+            axis.title.x = element_blank(), 
+            axis.text.x = element_blank()) +
+      guides(fill=guide_colorbar(title.position = 'right', title = varsUnit[i])) +
+      labs(x = "Latitude", y = "Pressure [dba]")
+  } else {
+    temp <- ggplot(data = temp.interp, aes(x = latitude, y = pressure)) +
+      geom_raster(aes(fill = variable), interpolate = TRUE) +
+      geom_segment(data=data.frame(lat=unique(round(ctd.tb.all$latitude, 1))), aes(x = lat, y = 5, xend = lat, yend = 50)) +
+      scale_fill_distiller(palette='Greens', direction=1) +
+      scale_y_reverse(expand = c(0, 0), breaks=seq(0,1000,200), labels=seq(0,1000,200), lim=c(1000,0)) +
+      scale_x_continuous(expand = c(0.001, 0.001), breaks=seq(10,30,2)) +
+      theme_bw() +
+      theme(legend.key.height = unit(1.65, "lines"),
+            legend.title = element_text(size = 10, angle = 90),
+            legend.title.align = 0.5,
+            legend.direction = "vertical",
+            legend.justification = c(0,0.5),
+            axis.text = element_text(colour = 1, size = 10),
+            axis.title = element_text(colour = 1, size = 11),
+            panel.grid = element_blank()) +
+      guides(fill=guide_colorbar(title.position = 'right', title = varsUnit[i])) +
+      labs(x = "Latitude", y = "Pressure [dba]")
+  }
+  
+  
+  plots[[i]] <- temp
+}
+
+plot_grid(plots[[1]], plots[[2]], plots[[3]], plots[[4]], plots[[5]], ncol=1, rel_heights = c(1,1,1,1,1.15), align = 'v')
+```
+
+```{r echo=FALSE, fig.cap="Total chlorophyll for size fractionated samples (a) 20 $\\mu$m, (b) 2 $\\mu$m, and (c) 0.2 $\\mu$m, (d) bulk chlorophyll, and (e) CTD measured fluorometry along the SE-22-04 track line. Note the different scales on all figures. The rug at the top of each plot indicate the location of each CTD along the trackline, and the depths where samples were collected are marked with dashed lines.", fig.alt="Figure shows five stacked plots showing total chlorophyll-a from the benchtop fluorometer with depth (0--200 m) along the trackline from 30N to 10N. The plots show results for the 20 micrometer filter, the 2 micrometer filter, the 0.2 micrometer filter, the bulk chlorophyll filter, and the CTD fluorometer, starting from the top. General trend moving north to south shows more large phytoplankton and less small phytoplankton.", fig.height=10, fig.pos='H', fig.width=8, warning=FALSE, message=FALSE}
+# Make section plot for fluorometry data
+chlAll <- read.csv('fluorometry_SE2204.csv')
+ctd <- read.csv('CTD/CTD_log.csv')
+
+# Get location data for the fluorometry samples
+chlAll <- left_join(chlAll, ctd[,c(1:3,6,9)], 'Station')
+chlAll <- na.omit(chlAll)
+
+filters <- c('20', '2', '0.2','bulk')
+
+chlPlots <- list()
+for (i in 1:5) {
+  if(i < 5) {
+    chl <- chlAll %>% filter(Filter==filters[i])
+  
+    # make a section
+    temp.interp = akima::interp(x = chl$LatDecimalDegree, 
+                                y = chl$Depth, 
+                                z = chl$Chlorophyll,
+                                duplicate = "mean", nx = 10, ny = 50)
+    
+    # Put it in a ggplot friendly format and limit it to the top 1,000 meters
+    # Choose which variable you want to plot
+    temp.interp = akima::interp2xyz(temp.interp) %>%
+      as.tibble() %>%
+      rename(latitude = x, pressure = y, variable = z) %>%
+      na.omit()
+    
+    temp <- ggplot(data = temp.interp, aes(x = latitude, y = pressure)) +
+      geom_raster(aes(fill = variable), interpolate = TRUE) +
+      geom_segment(data=data.frame(lat=unique(round(ctd.tb.all$latitude, 1))), aes(x = lat, y = 0, xend = lat, yend = 10)) +
+      geom_hline(yintercept = c(0,20,35,50,65,80,100,125,150,200), color='gray', linetype='dashed') +
+      annotate('text', label=LETTERS[i], x=10.5, y=25) +
+      annotate('text', label=paste('Filter size:', filters[i]), x=29.5, y=20, hjust=1) +
+      scale_fill_distiller(palette='Greens', direction=1) +
+      scale_y_reverse(expand = c(0, 0), breaks=seq(0,200,50), labels=seq(0,200,50), lim=c(200,0)) +
+      scale_x_continuous(lim=c(10,30), expand = c(0.001, 0.001), breaks=seq(10,30,2)) +
+      theme_bw() +
+      theme(legend.key.height = unit(1.72, "lines"),
+            legend.title = element_text(size = 10, angle = 90),
+            legend.title.align = 0.5,
+            legend.direction = "vertical",
+            legend.justification = c(0,0.5),
+            axis.text = element_text(colour = 1, size = 10),
+            axis.title = element_text(colour = 1, size = 11),
+            panel.grid = element_blank(), 
+            axis.title.x = element_blank(), 
+            axis.text.x = element_blank()) +
+      guides(fill=guide_colorbar(title.position = 'right', title = varsUnit[5])) +
+      labs(x = "Latitude", y = "Pressure [dba]") 
+    
+  } else {
+    idx <- which(names(ctd.tb.all)==vars[i])
+  # Interpolate data between station along the latitude gradient. This is essentially the same thing 'gradient.gridded' does further up in this script
+    temp.interp = akima::interp(x = ctd.tb.all$latitude, 
+                                y = ctd.tb.all$pressure, 
+                                z = unlist(ctd.tb.all[,idx]),
+                                duplicate = "mean", nx = 10, ny = 325)
+    
+    # Put it in a ggplot friendly format and limit it to the top 1,000 meters
+    # Choose which variable you want to plot
+    temp.interp = akima::interp2xyz(temp.interp) %>%
+      as.tibble() %>%
+      rename(latitude = x, pressure = y, variable = z) %>%
+      na.omit() %>%
+      filter(pressure <=200 & pressure > 4)
+    
+    temp <- ggplot(data = temp.interp, aes(x = latitude, y = pressure)) +
+      geom_raster(aes(fill = variable), interpolate = TRUE) +
+      geom_segment(data=data.frame(lat=unique(round(ctd.tb.all$latitude, 1))), aes(x = lat, y = 0, xend = lat, yend = 10)) +
+      geom_hline(yintercept = c(0,20,35,50,65,80,100,125,150,200), color='gray', linetype='dashed') +
+      annotate('text', label='CTD fluorometer', x=29.5, y=20, hjust=1) +
+      annotate('text', label=LETTERS[i], x=10.5, y=25) +
+      scale_fill_distiller(palette='Greens', direction=1) +
+      scale_y_reverse(expand=c(0, 0), breaks=seq(0,200,50), labels=seq(0,200,50), lim=c(200,0)) +
+      scale_x_continuous(lim=c(10,30), expand = c(0.001, 0.001), breaks=seq(10,30,2)) +
+      theme_bw() +
+      theme(legend.key.height = unit(1.65, "lines"),
+            legend.title = element_text(size = 10, angle = 90),
+            legend.title.align = 0.5,
+            legend.direction = "vertical",
+            legend.justification = c(0,0.5),
+            axis.text = element_text(colour = 1, size = 10),
+            axis.title = element_text(colour = 1, size = 11),
+            panel.grid = element_blank()) +
+      guides(fill=guide_colorbar(title.position = 'right', title = varsUnit[5])) +
+      labs(x = "Latitude", y = "Pressure [dba]")
+    
+  }
+  chlPlots[[i]] <- temp
+}
+
+plot_grid(chlPlots[[1]], chlPlots[[2]], chlPlots[[3]], chlPlots[[4]], chlPlots[[5]], ncol=1, rel_heights = c(1,1,1,1,1.15), align = 'v')
+
+```
+
+```{r echo=FALSE, warning=FALSE, message=FALSE, fig.pos='H', fig.cap="Active acoustics echogram from station B with dissolved oxygen profile from CTD cast overlaid in black. Red circles mark where water was collected for eDNA, and black boxes mark the water depths filtered by each MOCNESS net.", fig.alt="Figure showing an acoustic ecogram from the surface down to 1200 m. Overlaid on top are black squares where the different MOCNESS nets fished and red circles where water samples for eDNA were taken. There is a black line showing the oxygen concentration with depth as well."}
+# Grab the data
+img <- png::readPNG('SE2204_StB_DepthSelection_echogram.png')
+mocness <- read.csv('SE2204_MOCNESS_jwEdit.csv')
+ctd.tb <-ctdAll[[15]]@data %>% 
+  as_tibble() %>% 
+  filter(depth <= 1200)
+
+bottlesAll <- read.csv('CTD/bottles/BottlesFired.csv')
+bottles <- bottlesAll %>% filter(Cast=='SE-22-04_B_02')
+bottles <- filter(bottlesAll, Cast=='SE-22-04_B_03') %>% 
+  full_join(bottles)
+bottles$maxDepth <- plyr::round_any(bottles$maxDepth, 10)
+
+# alternative bottle data
+btlAll <- read.csv('~/Downloads/bottledata/SE2204_StationB_CTDcast23_bottles.csv')
+btl <- btlAll %>% filter(math=='(avg)') %>% select(DepSM, Sbeox0ML.L)
+
+# Mark label locations
+netMean <- data.frame(x=-1.5, y=rowMeans(data.frame(x=as.numeric(mocness[7, c(20:27)]), y=as.numeric(mocness[7, c(21:28)]))))
+
+ggplot(ctd.tb, aes(oxygen, depth)) + 
+    background_image(img) + geom_path(size=1) +
+    scale_y_reverse(expand = c(0, 0), labels=seq(0,1200, by=200), breaks=seq(0,1200, by=200)) +
+    scale_x_continuous(breaks=seq(0,5,by=1), labels=seq(0,5,by=1)) +
+    annotate('rect', ymin=as.numeric(mocness[7, c(20:27)]), ymax=as.numeric(mocness[7, c(21:28)]), xmin=-2, xmax=7, color='black', fill=NA, size=0.75) + 
+    geom_label(data=netMean, aes(x,y), label=paste('net',1:8), size=2.5, alpha=0.75) +
+    geom_point(data=btl, aes(6, DepSM), size=2, shape=21, color='white', fill='red') +
+    geom_label(data=data.frame(x=6.25, y=unique(plyr::round_any(btl$DepSM, 10))), aes(x,y), label=paste('eDNA', 1:6), size=2.5, alpha=0.75, hjust=0.1) +
+    xlab('Dissolved Oxygen [mL/L]') +
+    ylab('Depth [m]')
+  
+ggsave('MOCNESS_eDNA_acoustics.png', width=6)
+```
+
+\newpage
+` `  
+` `  
+` `  
+Submitted by: ___________________________________________  
+\tabto{1in} Johanna L. K. Wren, Ph.D.  
+\tabto{1in} Chief Scientist  
+` `  
+` `  
+` `  
+` `  
+` `  
+` `  
+Approved by: ___________________________________________
+\tabto{1in} Tia Brown  
+\tabto{1in} Acting Science Director  
+\tabto{1in} Pacific Islands Fisheries Science Center
+
+
+

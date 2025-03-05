@@ -1,0 +1,315 @@
+---
+title: "Waypoint and map for SE2204 cruise"
+author: "Johanna Wren"
+date: "April 29, 2022"
+output:
+  html_document:
+    toc: yes
+    df_print: paged
+  html_notebook:
+    code_folding: hide
+    theme: flatly
+    toc: yes
+    toc_float:
+      collapsed: no
+      tod_depth: 3
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = '~/Documents/Cruises/BEToceanography/SE2204 - Hot Spot/')
+```
+
+# Description
+This script calculates waypoints along the cruise track based on ship speed and sampling duration at various locations. 
+
+Outputs are a simple map with waypoints and a table with the timing at each waypoint. 
+
+# Prepare workspace
+```{r message=FALSE}
+# Clear workspace
+rm(list=ls())
+
+# Set working directory
+mainDir <- '~/Documents/Cruises/BEToceanography/SE2204 - Hot Spot/'
+
+# Load libraries
+library(geosphere)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(kableExtra)
+```
+
+# Input track and other points of interest
+```{r}
+# define locations and track lines  21.317604, -157.967737
+track1 <- data.frame(Lon=c(202.0323, 220, 220, 204, 202.0323)-360, Lat=c(21.3176, 30, 10, 19, 21.3176))
+track2 <- data.frame(Lon=c(202.0323, 210, 210, 204, 202.0323)-360, Lat=c(21.3176, 30, 10, 19, 21.3176))
+track3 <- data.frame(Lon=c(205.2941, 210, 210, 202.0323)-360, Lat=c(24.6731833, 30, 10, 21.3176))
+track4 <- data.frame(Lon=c(210, 210, 202.0323)-360, Lat=c(14.323, 10, 21.3176))
+
+
+# Adding ARGO float drop locations
+# These are provided by Elizabeth Steffen at PMEL
+argo <- data.frame(lon=c(-155.95, -153.61, -151.7, -150, -150, -150), lat=c(23.5, 26, 28, 27, 24, 21))
+```
+
+# Pre-set which track, ship speed, etc
+Change the parameters here for a different:
+
+ - track
+ 
+ - ship speed on each leg
+ 
+ - start date
+ 
+ - sampling duration at each station type
+```{r}
+track <- track4
+speed1 <- 8.5
+speed2 <- 9.3
+speed3 <- 9
+#startDate <- as.POSIXct('2022-06-21 17:20')
+startDate <- as.POSIXct('2022-07-04 14:30')
+sampTime_am <- 6
+sampTime_pm <- 18
+baseStn <- 5
+extStn <- 23
+argoStn <- 1
+```
+
+# Calculate time and distance for different station scenarios
+```{r}
+# Distances to 10N
+distsM10 <- distGeo(track)[1:4]
+```
+
+# Parameters
+The below is for a Start date of `r startDate`, with sampling starting at `r sampTime_am` and `r sampTime_pm` hours each day. 
+
+Ship speed is: 
+
+1) `r speed1` knots heading NE
+
+2) `r speed2` knots heading S
+
+3) `r speed3` knots heading NW
+
+# Leg 1
+This is the outbound leg leaving Pearl Harbor heading northeast to 30N and around 140W. This leg is mostly inside the gyre so we are only doing one extended station on this leg that will serve as our 'in gyre' or 'control' station. 
+
+## Calculate timing and waypoints
+Since there is only one station this bit is straight forward. I have added the ARGO deployment sites here since those require at least a slow down of the ships cruising speed to deploy the floats. 
+```{r}
+# Calculate bearing of track line
+leg1_bearing <- bearing(track2[1,], track2[2,])
+
+# Calculate where the halfway point is located along the track based on bearing
+idx <- distsM10[1]*seq(0,1, by=1/5)
+#idx[4] <- idx[4]+77868 # this is to move the 'middle' station forward so the timing getting there is better
+leg1_qtr <- destPoint(track[1,], leg1_bearing, idx)
+
+# Make data frame with starting and waypoint locations starting date, and sampling duration.
+leg1_wpts <- data.frame(lon=leg1_qtr[,1], 
+                        lat=leg1_qtr[,2], 
+                        samp_hour=c(NA,NA,NA, NA, NA, NA), 
+                        samp_dur=c(0, argoStn, argoStn, argoStn, argoStn, extStn), 
+                        dist_to_here_NM=c(0, NA, NA, NA, NA, NA),
+                        dateA=c(startDate, NA, NA, NA, NA, NA),
+                        dateS=c(startDate, NA, NA, NA, NA, NA),
+                        dateD=c(startDate, NA, NA, NA, NA, NA))
+rownames(leg1_wpts) <- NULL
+leg1_wpts <- leg1_wpts[c(1,6),]  # this removes ARGO sites until I know where they should be
+
+# Loop through each waypoint and calculate distance to that point, arrival date, sampling start date, and departure date for each station. 
+for (i in 1:(nrow(leg1_wpts)-1)) {
+  # Distance to next sampling site
+  leg1_wpts$dist_to_here_NM[i+1] <- round(distGeo(leg1_wpts[i, 1:2], leg1_wpts[(i+1),1:2])/1852)
+  # Date
+  da2 <- (leg1_wpts$dist_to_here_NM[i+1]/speed1*60*60) + leg1_wpts$dateD[i]
+  # Date and time of arrival at station
+  leg1_wpts$dateA[i+1] <- da2
+  # Date and time when sampling starts 
+  if (leg1_wpts$samp_dur[i+1] < 20) {
+    leg1_wpts$dateS[i+1] <- leg1_wpts$dateA[i+1]
+  } else {
+    leg1_wpts$dateS[i+1] <- ymd_h(ifelse(da2 <= ymd_h(paste0('2022-',month(da2), '-', day(da2), ' ', sampTime_am), tz = 'HST'), paste0('2022-',month(da2), '-', day(da2), ' ', sampTime_am), 
+                                       ifelse(da2 > ymd_h(paste0('2022-',month(da2), '-', day(da2), ' ', sampTime_pm), tz = 'HST'), paste0('2022-',month(da2), '-', day(da2)+1, ' ', sampTime_am), paste0('2022-',month(da2), '-', day(da2), ' ', sampTime_pm))), tz='HST')
+  }
+  
+  # Date and time when we are estimated to depart from the station
+  leg1_wpts$dateD[i+1] <- leg1_wpts$dateS[i+1]+(leg1_wpts$samp_dur[i+1]*60*60)
+  # Hour sampling is scheduled to start
+  leg1_wpts$samp_hour[i+1] <- hour(leg1_wpts$dateD[i+1] - (leg1_wpts$samp_dur[i+1]*60*60))
+}
+```
+
+## Check the output
+```{r}
+# leg1_wpts %>%
+#   kbl() %>%
+#   kable_minimal()
+
+leg1_wpts
+```
+# Leg 2
+This code calculates waypoints based on time between stations rather than fixed locations. 
+
+```{r}
+# LEG 2 Lat and lon of each waypoint along track (sampling 8am and 8pm)
+leg2_bearing <- bearing(track[2,], track[3,])
+leg2_qtr <- destPoint(track[2,], leg2_bearing, (distsM10[2]*c(0.25,0.50,0.75,1)))
+leg2_wpts <- leg1_wpts[nrow(leg1_wpts),]
+
+for (i in 6:25) {
+  print(i)
+  yesterday <- leg2_wpts[i,1:2]
+  smpl_dur_ystrd <- leg2_wpts$samp_dur[i]
+  steam_to_here <- ifelse(12-smpl_dur_ystrd < 0, 12-smpl_dur_ystrd+24, 12-smpl_dur_ystrd)
+
+  today <- destPoint(yesterday, leg2_bearing, d=(steam_to_here*speed2*1852))
+  
+  dist_ystrd_today <- distGeo(p1=yesterday, p2=today)/1852
+
+  if (distGeo(p1=today, p2=leg2_qtr[1,]) < 50000 ) {
+    print('At one quarter point')
+    smpl_dur_today <- extStn 
+    #flag <- 2
+  } else if (distGeo(p1=today, p2=leg2_qtr[2,]) < 60000 ) {
+    print('At halfway point')
+    smpl_dur_today <- extStn 
+  } else if (distGeo(p1=today, p2=leg2_qtr[3,]) < 60000 ) {
+    print('At three quarter point')
+    smpl_dur_today <-extStn 
+  } else if (distGeo(p1=today, p2=leg2_qtr[4,]) < 60000 ) {
+    print('At end point')
+    smpl_dur_today <-extStn 
+  } else {
+    smpl_dur_today <- baseStn
+  }
+ 
+  dateA_today <- leg2_wpts$dateD[i]+(steam_to_here*60*60)
+  dateD_today <- dateA_today+(smpl_dur_today*60*60)
+  
+  leg2_wpts <- rbind(leg2_wpts, data.frame(today, samp_hour=hour(dateA_today), samp_dur=smpl_dur_today, dist_to_here_NM=dist_ystrd_today, dateA=dateA_today, dateS=dateA_today, dateD=dateD_today))
+  
+  if (today[2] < 10) { break }
+}
+
+
+if (leg2_wpts[nrow(leg2_wpts), 2] < 9.5) {
+  leg2_wpts <- leg2_wpts[-nrow(leg2_wpts),]
+}
+```
+
+## Check the data
+```{r}
+# leg2_wpts %>%
+#   kbl() %>%
+#   kable_minimal()
+
+leg2_wpts
+```
+
+# Leg 3
+Leg 3 spans from 10N to Pearl Harbor, and with this reduced sampling it's a straight shot home. 
+
+```{r}
+# Calculate the bearing
+leg3_bearing <- bearing(track[3,], track[4,])
+
+# Calculate where the halfway point is located along the track based on bearing
+leg3_qtr <- destPoint(track[3,], leg3_bearing, c(speed3*c(13.3, 39)*60*60))
+
+# Make data frame with starting and waypoint locations starting date, and sampling duration.
+leg3_wpts <- leg2_wpts[nrow(leg2_wpts),]
+leg3_wpts$lat <- round(leg3_wpts$lat)
+leg3_wpts <-  rbind(leg3_wpts, NA)
+leg3_wpts[2,1:2] <- track[4,1:2]
+rownames(leg3_wpts) <- NULL
+
+# And timing and distance to Pearl Harbor
+leg3_wpts$dist_to_here_NM[2] <- round(distGeo(leg3_wpts[1,1:2], leg3_wpts[2,1:2])/1852)
+leg3_wpts$dateS[2] <- (leg3_wpts$dist_to_here_NM[2]/speed3*60*60) + leg3_wpts$dateD[1]
+leg3_wpts$dateA[2] <- leg3_wpts$dateS[2]
+```
+
+## Check the data
+```{r}
+# leg3_wpts %>%
+#   kbl() %>%
+#   kable_minimal()
+
+leg3_wpts
+```
+# Put it all together and plot
+## All way points
+```{r}
+# Bind the way points from all three legs together
+all_wpts <- rbind(leg1_wpts, leg2_wpts[-1,], leg3_wpts[-1,])
+rownames(all_wpts) <- NULL
+# Add station descriptions
+all_wpts$stn_type <- ifelse(all_wpts$samp_dur > 10, 'extended', ifelse(all_wpts$samp_dur == 5, 'base', ifelse(all_wpts$samp_dur == 1, 'argo','none')))
+all_wpts$stn <- ''
+# Label the extended stations
+all_wpts$stn[which(all_wpts$stn_type == 'extended')] <- LETTERS[1:5]
+# Change some labels to more intutiive ones
+all_wpts <- all_wpts %>% 
+  rename('datetime_arrival'=dateA, 'datetime_samp_start'=dateS, 'datetime_departure'=dateD) %>% 
+  mutate(lon=round(lon, 2), lat=round(lat, 2))
+# Calculate time 'wasted' between arrival at station and sampling starting
+all_wpts$time_btwn_arrival_samp = all_wpts$datetime_samp_start-all_wpts$datetime_arrival
+units(all_wpts$time_btwn_arrival_samp) <- 'hours'
+all_wpts$time_btwn_arrival_samp <- round(all_wpts$time_btwn_arrival_samp, 1)
+```
+
+```{r}
+kbl(all_wpts) %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+```
+
+## Make a plot
+```{r, fig.height=8, fig.cap="SE2204 trackline. Arrows denote direction, blue symbols are extended stations and yellow symbols are base stations. Circles are daytime sampling stations and squares are nighttime sampling staions. Red diamonds are proposed ARGO deployment sites."}
+
+plt1 <- ggplot() +
+  borders("world", 
+          xlim = c(-160, -140), 
+          ylim = c(18, 25),
+          fill="gray",colour="grey40", size=0.25) +
+  coord_map() +
+  geom_path(data=all_wpts, aes(lon, lat)) +
+  geom_point(data=all_wpts[which(all_wpts$stn_type == 'base'),], aes(lon, lat, shape=factor(samp_hour)), color='#E69f00', size=2.5) + 
+  geom_point(data=all_wpts[which(all_wpts$stn_type == 'extended'),], aes(lon, lat, shape=factor(samp_hour)), color='#56B4E9', size=4) +
+  geom_point(data=argo, aes(lon, lat), shape=18, color='firebrick', size=3, alpha=0.75) +
+  scale_shape_manual(values=c('8' = 19, '20'= 15)) + 
+  geom_text(data=all_wpts[which(all_wpts$stn_type == 'extended'),], aes(lon, lat, label=stn), hjust = 0, nudge_x = 0.75) +
+  geom_text(data=all_wpts[which(all_wpts$stn %in% c('A', 'E')),], aes(lon, lat, label=format(datetime_samp_start, '%d %b %Y')), nudge_y = c(1,-1), fontface = "italic") +
+  geom_segment(lineend = "round", linejoin = "bevel", size=0.5, aes(x = c(-157, -148, -153), y = c(23.7, 27, 13), xend = c(-153, -148, -157), yend = c(28, 13, 18.5)), color='gray', arrow = arrow(length = unit(0.25, "cm"))) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  xlab('Longitude') +
+  ylab('Latitude') +
+  xlim(c(-160,-137)) +
+  ylim(c(8,32)) + 
+  ggtitle(paste('Depart', format(startDate, '%d %b %Y %H:%M')), subtitle=paste('NS transect speed', speed2, 'knots'))
+
+plt1
+```
+
+
+# Save the data
+# I'm using a naming convention here with the longitude we are targeting since there were many itterations of this along the way, and the date of departure, since again, that kept shifting. 
+```{r}
+#Set file names
+tblName <- paste0('SE2204_wpt_timing_', abs(track$Lon[2]), '_20JUN_6.csv')
+pltName <-paste0('SE2204_track_wpt_timing_', abs(track$Lon[2]), '_20JUN_.png')
+
+# Save the way points
+write.csv(all_wpts, tblName, row.names=F)
+  
+# save the map
+ggsave(filename=pltName, plot=plt1, width=5, height=6, dpi=200, units='in')
+
+```
+
