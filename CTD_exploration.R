@@ -9,6 +9,7 @@ library(dplyr)
 library(ggplot2)
 library(here)
 library(lubridate)
+library(tidyr)
 
 # Set working directory
 myDir <- paste(here(), 'CTD', 'CTD_processed', sep='/')
@@ -38,4 +39,17 @@ ggplot(ctd, aes(x=Oxygen_cleaned, y=DepSM)) +
 idx <- which(ctd$Oxygen_cleaned == min(ctd$Oxygen_cleaned, na.rm = T))
 O2min <- ctd[idx,'DepSM']
 O2min
+
+# make a multipanel plot with multiple variables from one station
+# put data into "long" format
+ctd_long <- ctd %>% 
+  select(DateTime, DepSM, T090C, FlECO.AFL, Sigma.E00, Sal00, Oxygen_cleaned) %>% 
+  gather(varName, value, T090C:Oxygen_cleaned)
+
+ggplot(ctd_long, aes(value, DepSM, color=varName)) + 
+  geom_path() +
+  facet_wrap(.~varName, scales = 'free_x') + 
+  scale_y_reverse()
+
+# make a multi-panel plot with one variable from all stations
 
