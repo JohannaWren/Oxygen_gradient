@@ -15,7 +15,7 @@ myDir <- paste(here(), 'CTD', 'CTD_processed', sep='/')
 setwd(myDir)
 
 # Read is the data
-ctd <- read.csv('dSE-22-04_02_01.asc')
+ctd <- read.csv('dSE-22-04_E_01.asc')
 # check data
 head(ctd)
 str(ctd)
@@ -37,4 +37,5 @@ ggplot(ctd, aes(x=Oxygen_cleaned, y=DepSM)) +
 # Find the depth of the oxygen minimum
 idx <- which(ctd$Oxygen_cleaned == min(ctd$Oxygen_cleaned, na.rm = T))
 O2min <- ctd[idx,'DepSM']
+O2min
 
