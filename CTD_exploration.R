@@ -74,7 +74,10 @@ ctdAll %>%
   filter(! .id %in% idx) %>% 
   ggplot(aes(x=Oxygen_cleaned, y=DepSM, color=as.factor(.id))) + 
     geom_path() +
-    scale_y_reverse() + facet_wrap(.~.id)
+    scale_y_reverse() + facet_wrap(.~.id) +
+    theme_bw() +
+    theme(panel.grid.major = element_blank())
 
+ggsave('SingleVarAllStn.png', width=11, height = 8, dpi = 300, units = 'in')
 
 
