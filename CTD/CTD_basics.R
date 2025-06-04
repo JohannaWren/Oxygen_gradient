@@ -15,7 +15,7 @@ require(tidyverse)
 library(here)
 
 # Set working directory
-mainDir <- paste(here(), 'CTD', 'CTD_processed', sep='/')
+mainDir <- paste(here(), 'Converted Data', sep='/')
 
 #--------------------------------------------
 # Extract ctd data from .cnv files
@@ -25,16 +25,16 @@ ctd = list()
 
 ## Loop the CNV file and create a list of casted CTD
 setwd(mainDir)
-files = dir(path = ".", pattern = "downOnly_loopEdit.cnv", full.names = TRUE )
+files = dir(path = ".", pattern = "dSE.+cnv", full.names = TRUE )
 # Remove files for eDNA stations
-files <- files[-(c(9,11:12,14,15,17,18,20,21,23,24,26:27)+1)]
+#files <- files[-(c(9,11:12,14,15,17,18,20,21,23,24,26:27)+1)]
 files
 
 # Start loop
 for (i in 1:length(files)){
-  ctd[[i]]  = read.ctd(files[i])%>%
+  ctd[[i]]  = read.ctd(files[i])#%>%
     #ctdTrim(method = "downcast")%>% # this doesn't seem to work very well on our data so I saved only the downcast in Seabird
-    ctdDecimate(p = 1) # align to the same standard pressure
+    #ctdDecimate(p = 1) # align to the same standard pressure
 }
 
 ### Make a section of CTD cast from the List
