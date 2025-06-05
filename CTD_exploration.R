@@ -98,14 +98,33 @@ ggsave('O2DepthProfiles_AllStns.png', width=11, height = 8, dpi = 300, units = '
 > test2$DateTime <- test2$DateTime - (60*60*10)
 > test2
 
-#
+#Thermocline Profiles 
 ctdAll %>% 
   filter(! .id %in% idx) %>% 
-  ggplot(aes(x=, y=DepSM, color=as.factor(.id))) + 
+  ggplot(aes(x=T090C, y=DepSM, color=as.factor(.id))) + 
   geom_path() +
-  scale_y_reverse() + facet_wrap(.~.id) +
+  scale_y_reverse() + facet_wrap(.~.id, scales = 'free_y') +
   theme_bw() +
-  theme(panel.grid.major = element_blank()) +
-  geom_hline(data = o2_min, aes(yintercept = DepSM), color='black')
+  theme(panel.grid.major = element_blank())
 
-ggsave('O2DepthProfiles_AllStns.png', width=11, height = 8, dpi = 300, units = 'in')
+ggsave('Thermocline_AllStns.png', width=11, height = 8, dpi = 300, units = 'in')
+
+# Halocline Profiles
+ctdAll %>% 
+  filter(! .id %in% idx) %>% 
+  ggplot(aes(x=Sal00, y=DepSM, color=as.factor(.id))) + 
+  geom_path() +
+  scale_y_reverse() + facet_wrap(.~.id, scales = 'free_y') +
+  theme_bw() +
+  theme(panel.grid.major = element_blank())
+
+# Pycnocline Profiles 
+ctdAll %>% 
+  filter(! .id %in% idx) %>% 
+  ggplot(aes(x=Sigma.E00, y=DepSM, color=as.factor(.id))) + 
+  geom_path() +
+  scale_y_reverse() + facet_wrap(.~.id, scales = 'free_y') +
+  theme_bw() +
+  theme(panel.grid.major = element_blank())
+
+ggsave('Pycnocline_AllStns.png', width=11, height = 8, dpi = 300, units = 'in')
