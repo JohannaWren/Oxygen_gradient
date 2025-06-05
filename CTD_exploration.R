@@ -17,8 +17,6 @@ myDir <- paste(here(),'CTD_processed_headers', sep='/') # Emma's file path
 #myDir <- paste(here(), 'CTD', 'CTD_processed', sep='/')  # Johanna's File path
 setwd(myDir)
 
-StnID <- c()
-
 # Read is the data
 # Single file
 #ctd <- read.csv('dSE-22-04_E_01.asc')
@@ -34,9 +32,6 @@ for (i in seq_along(files)) {
   # ctd_list[[i]]$Oxygen_cleaned <- ctd_list[[i]]$Sbox0Mm.Kg
   # ctd_list[[i]]$Oxygen_cleaned[which(ctd_list[[i]]$Oxygen_cleaned < 0)] <- NA
 }
-# make index of eDNA casts to exclude
-idx <- c(14, 16, 17, 20, 23, 26, 29, 32, 35, 38, 41, 42, 44, 46)
-
 # check data
 head(ctd_list[[10]])
 str(ctd_list[[10]])
@@ -49,9 +44,30 @@ ctdAll$DateTime <- as.POSIXct(paste(ctdAll$mm.dd.yyyy, ctdAll$hh.mm.ss), format=
 ctdAll$Oxygen_cleaned <- ctdAll$Sbox0Mm.Kg
 ctdAll$Oxygen_cleaned[which(ctdAll$Oxygen_cleaned < 0)] <- NA
 
+# read in station list from file
+stns <- read.csv('../SE2204_CTDlocations.csv')  # Change this to fit the directory your file is in
+head(stns)
+# Match the station code in stns$Station with the file names
+# I'm doing this in a loop becuase it's easier for me to think that way 
+p <- vector()
+for (i in seq_along(files)) {
+  p[i] <- grep(stns$Station[i], files)
+}
+# Add the file names and index number to the stns data.frame
+stnInfo <- data.frame(stns, FileName=files[p], Index=p)
+head(stnInfo)
+# Then you can sort out the eDNA casts (this replaces the code that we wrote before)
+# I chose to use the type of sampling done at the station instead of depth since that is a better descriptor of the sampling
+idx <- stnInfo$Index[which(stnInfo$Sampling != stnInfo$Sampling[2])]
+# Make a little table with labels you want and the index that we can use for plotting
+id.labs <- stnInfo$Station2
+names(id.labs) <- stnInfo$Index
+
 # make index of eDNA casts to exclude
-test <- ctdAll %>% group_by(.id) %>% slice(which.max(DepSM)) %>% select(.id, DepSM) %>% filter(DepSM<1000)
-idx <- test$.id
+#idx <- c(14, 16, 17, 20, 23, 26, 29, 32, 35, 38, 41, 42, 44, 46)
+# # make index of eDNA casts to exclude
+# test <- ctdAll %>% group_by(.id) %>% slice(which.max(DepSM)) %>% select(.id, DepSM) %>% filter(DepSM<1000)
+# idx <- test$.id
 
 # make a depth profile
 # this plots all of the profiles on one plot
@@ -78,7 +94,7 @@ ggplot(ctd_long, aes(value, DepSM, color=varName)) +
 o2_min <- ctdAll %>% 
   filter(! .id %in% idx) %>% 
   group_by(.id) %>% 
-  slice(which.min(Oxygen_cleaned)) %>% select(.id, DepSM)   #summarize(min(Oxygen_cleaned, na.rm = T))
+  slice(which.min(Oxygen_cleaned)) %>% select(.id, DepSM)
 
 #y_min <- ctdAll[which(ctdAll$Oxygen_cleaned == min(ctdAll$Oxygen_cleaned, na.rm=T)), 'DepSM']
 # make a multi-panel plot with one variable from all stations
@@ -86,17 +102,18 @@ ctdAll %>%
   filter(! .id %in% idx) %>% 
   ggplot(aes(x=Oxygen_cleaned, y=DepSM, color=as.factor(.id))) + 
     geom_path() +
-    scale_y_reverse() + facet_wrap(.~.id) +
+    scale_y_reverse() + 
+    facet_wrap(.~.id, labeller=labeller(.id=id.labs)) +
     theme_bw() +
     theme(panel.grid.major = element_blank()) +
     geom_hline(data = o2_min, aes(yintercept = DepSM), color='black')
 
 ggsave('O2DepthProfiles_AllStns.png', width=11, height = 8, dpi = 300, units = 'in')
 
-# Pull Id's for station matching
-> test2 <- ctdAll %>% group_by(.id) %>% slice(which.min(DateTime)) %>% select(DateTime) %>% data.frame()
-> test2$DateTime <- test2$DateTime - (60*60*10)
-> test2
+# # Pull Id's for station matching
+# test2 <- ctdAll %>% group_by(.id) %>% slice(which.min(DateTime)) %>% select(DateTime) %>% data.frame()
+# test2$DateTime <- test2$DateTime - (60*60*10)
+# test2
 
 #Thermocline Profiles 
 ctdAll %>% 
