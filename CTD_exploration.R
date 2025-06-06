@@ -56,6 +56,7 @@ p <- vector()
 for (i in seq_along(files)) {
   p[i] <- grep(paste0('dSE-22-04_', stns$Station[i]), files)
 }
+
 # Add the file names and index number to the stns data.frame
 stnInfo <- data.frame(stns, FileName=files[p], FileNum=p)
 head(stnInfo)
@@ -113,11 +114,18 @@ ctdAll %>%
     geom_path() +
     scale_y_reverse() + 
     facet_wrap(.~Cast, labeller=labeller(Cast=id.labs)) +
+    #theme_bw() +
+    #theme(panel.grid.major = element_blank()) +
     theme_bw() +
-    theme(panel.grid.major = element_blank()) +
-    geom_hline(data = o2_min, aes(yintercept = DepSM), color='black') +
+    theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) +
+    geom_hline(data = o2_min, aes(yintercept = DepSM), linetype= 'dashed', color='red') +
+    #geom_hline(yintercept = 500, linetype = "dashed", color = "gray")
     xlab('Oxygen [umol/kg]') + ylab('Depth [m]') +
-    ggtitle('Oxygen depth profile SE2204')
+    ggtitle('Oxygen Depth Profiles SE2204')
 
 ggsave('O2DepthProfiles_AllStns.png', width=11, height = 8, dpi = 300, units = 'in')
 
@@ -128,31 +136,56 @@ ggsave('O2DepthProfiles_AllStns.png', width=11, height = 8, dpi = 300, units = '
 
 #Thermocline Profiles 
 ctdAll %>% 
-  filter(! .id %in% idx) %>% 
-  ggplot(aes(x=T090C, y=DepSM, color=as.factor(.id))) + 
+  filter(! Cast %in% idx) %>% 
+  ggplot(aes(x=T090C, y=DepSM)) + 
   geom_path() +
-  scale_y_reverse() + facet_wrap(.~.id, scales = 'free_y') +
+  scale_y_reverse() + 
+  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x') +
   theme_bw() +
-  theme(panel.grid.major = element_blank())
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) +
+  xlab('Temperature [°C]')+ ylab('Depth [m]') +
+  ggtitle('Temperature Depth Profiles SE2204')
 
-ggsave('Thermocline_AllStns.png', width=11, height = 8, dpi = 300, units = 'in')
+ggsave('TempDepthProfiles_AllStns.png', width=11, height = 8, dpi = 300, units = 'in')
 
 # Halocline Profiles
 ctdAll %>% 
-  filter(! .id %in% idx) %>% 
-  ggplot(aes(x=Sal00, y=DepSM, color=as.factor(.id))) + 
+  filter(! Cast %in% idx) %>% 
+  ggplot(aes(x=Sal00, y=DepSM)) + 
   geom_path() +
-  scale_y_reverse() + facet_wrap(.~.id, scales = 'free_y') +
+  scale_y_reverse() + 
+  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x') +
   theme_bw() +
-  theme(panel.grid.major = element_blank())
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) +
+  xlab('Salinity [PSU]')+ ylab('Depth [m]') +
+  ggtitle('Salinity Depth Profiles SE2204')
 
 # Pycnocline Profiles 
 ctdAll %>% 
-  filter(! .id %in% idx) %>% 
-  ggplot(aes(x=Sigma.E00, y=DepSM, color=as.factor(.id))) + 
+  filter(! Cast %in% idx) %>% 
+  ggplot(aes(x=Sigma.E00, y=DepSM)) + 
   geom_path() +
-  scale_y_reverse() + facet_wrap(.~.id, scales = 'free_y') +
+  scale_y_reverse() + 
+  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x') +
   theme_bw() +
-  theme(panel.grid.major = element_blank())
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) +
+  labs(x = expression('σ'[θ])) + 
+  ylab('Depth [m]') +
+  ggtitle('Salinity Depth Profiles SE2204')
 
-ggsave('Pycnocline_AllStns.png', width=11, height = 8, dpi = 300, units = 'in')
+ggsave('SalinityDepthProfiles_AllStns.png', width=11, height = 8, dpi = 300, units = 'in')
+
+
+
