@@ -109,13 +109,15 @@ o2_min <- ctdAll %>%
 # make a multi-panel plot with one variable from all stations
 ctdAll %>% 
   filter(! Cast %in% idx) %>% 
-  ggplot(aes(x=Oxygen_cleaned, y=DepSM, color=as.factor(Cast))) + 
+  ggplot(aes(x=Oxygen_cleaned, y=DepSM)) + 
     geom_path() +
     scale_y_reverse() + 
     facet_wrap(.~Cast, labeller=labeller(Cast=id.labs)) +
     theme_bw() +
     theme(panel.grid.major = element_blank()) +
-    geom_hline(data = o2_min, aes(yintercept = DepSM), color='black')
+    geom_hline(data = o2_min, aes(yintercept = DepSM), color='black') +
+    xlab('Oxygen [umol/kg]') + ylab('Depth [m]') +
+    ggtitle('Oxygen depth profile SE2204')
 
 ggsave('O2DepthProfiles_AllStns.png', width=11, height = 8, dpi = 300, units = 'in')
 
