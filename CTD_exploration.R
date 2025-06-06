@@ -37,7 +37,9 @@ head(ctd_list[[10]])
 str(ctd_list[[10]])
 
 # Turn list into data.frame
-ctdAll <- rbindlist(ctd_list, use.names = T, idcol = T)
+ctdAll <- rbindlist(ctd_list, use.names = T, idcol = T) %>% 
+  rename(FileNum=.id)
+
 # Make Datetime column
 ctdAll$DateTime <- as.POSIXct(paste(ctdAll$mm.dd.yyyy, ctdAll$hh.mm.ss), format='%m/%d/%Y %H:%M:%S')
 # remove missing oxygen data
@@ -46,22 +48,29 @@ ctdAll$Oxygen_cleaned[which(ctdAll$Oxygen_cleaned < 0)] <- NA
 
 # read in station list from file
 stns <- read.csv('../SE2204_CTDlocations.csv')  # Change this to fit the directory your file is in
+stns$Cast <- 1:nrow(stns)
 head(stns)
 # Match the station code in stns$Station with the file names
 # I'm doing this in a loop becuase it's easier for me to think that way 
 p <- vector()
 for (i in seq_along(files)) {
-  p[i] <- grep(stns$Station[i], files)
+  p[i] <- grep(paste0('dSE-22-04_', stns$Station[i]), files)
 }
 # Add the file names and index number to the stns data.frame
-stnInfo <- data.frame(stns, FileName=files[p], Index=p)
+stnInfo <- data.frame(stns, FileName=files[p], FileNum=p)
 head(stnInfo)
 # Then you can sort out the eDNA casts (this replaces the code that we wrote before)
 # I chose to use the type of sampling done at the station instead of depth since that is a better descriptor of the sampling
-idx <- stnInfo$Index[which(stnInfo$Sampling != stnInfo$Sampling[2])]
+idx <- stnInfo$Cast[which(stnInfo$Sampling != stnInfo$Sampling[2])]
+
+# Add new index row for station ID
+for (x in 1:46) { 
+  ctdAll[which(ctdAll$FileNum == x), 'Cast'] <- stnInfo$Cast[which(stnInfo$FileNum == x)] 
+}
+
 # Make a little table with labels you want and the index that we can use for plotting
 id.labs <- stnInfo$Station2
-names(id.labs) <- stnInfo$Index
+names(id.labs) <- stnInfo$Cast
 
 # make index of eDNA casts to exclude
 #idx <- c(14, 16, 17, 20, 23, 26, 29, 32, 35, 38, 41, 42, 44, 46)
@@ -92,18 +101,18 @@ ggplot(ctd_long, aes(value, DepSM, color=varName)) +
   scale_y_reverse()
 
 o2_min <- ctdAll %>% 
-  filter(! .id %in% idx) %>% 
-  group_by(.id) %>% 
-  slice(which.min(Oxygen_cleaned)) %>% select(.id, DepSM)
+  filter(! Cast %in% idx) %>% 
+  group_by(Cast) %>% 
+  slice(which.min(Oxygen_cleaned)) %>% select(Cast, DepSM)
 
 #y_min <- ctdAll[which(ctdAll$Oxygen_cleaned == min(ctdAll$Oxygen_cleaned, na.rm=T)), 'DepSM']
 # make a multi-panel plot with one variable from all stations
 ctdAll %>% 
-  filter(! .id %in% idx) %>% 
-  ggplot(aes(x=Oxygen_cleaned, y=DepSM, color=as.factor(.id))) + 
+  filter(! Cast %in% idx) %>% 
+  ggplot(aes(x=Oxygen_cleaned, y=DepSM, color=as.factor(Cast))) + 
     geom_path() +
     scale_y_reverse() + 
-    facet_wrap(.~.id, labeller=labeller(.id=id.labs)) +
+    facet_wrap(.~Cast, labeller=labeller(Cast=id.labs)) +
     theme_bw() +
     theme(panel.grid.major = element_blank()) +
     geom_hline(data = o2_min, aes(yintercept = DepSM), color='black')
