@@ -51,7 +51,7 @@ stns <- read.csv('../SE2204_CTDlocations.csv')  # Change this to fit the directo
 stns$Cast <- 1:nrow(stns)
 head(stns)
 # Match the station code in stns$Station with the file names
-# I'm doing this in a loop becuase it's easier for me to think that way 
+# I'm doing this in a loop because it's easier for me to think that way 
 p <- vector()
 for (i in seq_along(files)) {
   p[i] <- grep(paste0('dSE-22-04_', stns$Station[i]), files)
@@ -127,7 +127,7 @@ ctdAll %>%
     xlab('Oxygen [umol/kg]') + ylab('Depth [m]') +
     ggtitle('Oxygen Depth Profiles SE2204')
 
-ggsave('O2DepthProfiles_AllStns.png', width=11, height = 8, dpi = 300, units = 'in')
+ggsave('O2DepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
 
 # # Pull Id's for station matching
 # test2 <- ctdAll %>% group_by(.id) %>% slice(which.min(DateTime)) %>% select(DateTime) %>% data.frame()
@@ -150,7 +150,7 @@ ctdAll %>%
   xlab('Temperature [°C]')+ ylab('Depth [m]') +
   ggtitle('Temperature Depth Profiles SE2204')
 
-ggsave('TempDepthProfiles_AllStns.png', width=11, height = 8, dpi = 300, units = 'in')
+ggsave('TempDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
 
 # Halocline Profiles
 ctdAll %>% 
@@ -167,6 +167,8 @@ ctdAll %>%
         panel.background = element_blank()) +
   xlab('Salinity [PSU]')+ ylab('Depth [m]') +
   ggtitle('Salinity Depth Profiles SE2204')
+
+ggsave('SalinityDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
 
 # Pycnocline Profiles 
 ctdAll %>% 
@@ -185,7 +187,48 @@ ctdAll %>%
   ylab('Depth [m]') +
   ggtitle('Salinity Depth Profiles SE2204')
 
-ggsave('SalinityDepthProfiles_AllStns.png', width=11, height = 8, dpi = 300, units = 'in')
+ggsave('DensityDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
 
+# Fluorescence Profiles 
+ctdAll %>% 
+  filter(! Cast %in% idx) %>% 
+  ggplot(aes(x=FlECO.AFL, y=DepSM)) + 
+  geom_path() +
+  scale_y_reverse() + 
+  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs)) +
+  theme_bw() +
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) +
+  xlab('[ug/L]') + 
+  ylab('Depth [m]') +
+  ggtitle('Fluorescence Depth Profiles SE2204')
+  
+
+ggsave('FluorDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
+
+
+# nutrients
+library(readxl)
+nutMeta <- read.csv('../SE2204_nutrient_metadata (1).csv')
+nutDat <- read_xls('../SE2204_Nutrient_Data.xls', skip=12)
+nutDat <- data.frame(nutDat[-1,])
+# Read in Nutrient Data
+# 10 samples at different depths per station except for NUT_028 Station 1 (9 samples total)
+nut <- read.csv('../SE2204_nutrient_metadata.csv')
+nut$Cast2 <- 1:nrow(nut)
+stnInfo2 <- data.frame(nut)
+head(stnInfo2)
+
+nut$Depth2 <- as.numeric(substr(nut$Depth, 1, nchar(nut$Depth)-1))
+head(nut)
+
+#nut_group <- ceiling(seq_along(nut[,1]) / 10)
+ggplot(nut, aes(x=Silicate, y=Depth2)) +
+  geom_path() +
+  scale_y_reverse() +
+  facet_wrap(.~Station)
 
 
