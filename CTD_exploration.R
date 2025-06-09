@@ -185,7 +185,7 @@ ctdAll %>%
         panel.background = element_blank()) +
   labs(x = expression('σ'[θ])) + 
   ylab('Depth [m]') +
-  ggtitle('Salinity Depth Profiles SE2204')
+  ggtitle('Density Depth Profiles SE2204')
 
 ggsave('DensityDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
 
@@ -202,7 +202,7 @@ ctdAll %>%
         panel.grid.minor = element_blank(),
         panel.border = element_blank(),
         panel.background = element_blank()) +
-  xlab('[ug/L]') + 
+  xlab('Fluorescence [ug/L]') + 
   ylab('Depth [m]') +
   ggtitle('Fluorescence Depth Profiles SE2204')
   
@@ -211,10 +211,12 @@ ggsave('FluorDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units 
 
 
 # nutrients
+# Merging nutrient files and cleaning the starting rows 
 library(readxl)
 nutMeta <- read.csv('../SE2204_nutrient_metadata (1).csv')
 nutDat <- read_xls('../SE2204_Nutrient_Data.xls', skip=12)
 nutDat <- data.frame(nutDat[-1,])
+
 # Read in Nutrient Data
 # 10 samples at different depths per station except for NUT_028 Station 1 (9 samples total)
 nut <- read.csv('../SE2204_nutrient_metadata.csv')
@@ -226,9 +228,102 @@ nut$Depth2 <- as.numeric(substr(nut$Depth, 1, nchar(nut$Depth)-1))
 head(nut)
 
 #nut_group <- ceiling(seq_along(nut[,1]) / 10)
+
+# Silicate 
 ggplot(nut, aes(x=Silicate, y=Depth2)) +
   geom_path() +
   scale_y_reverse() +
-  facet_wrap(.~Station)
+  facet_wrap(.~Station, scales= 'free_x') +
+  theme_bw() +
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) +
+  xlab('Silicate [umol/L]') + 
+  ylab('Depth [m]') +
+  ggtitle('Silicate Depth Profiles SE2204')
 
 
+ggsave('SilicateDepthProfiles_AllStns.pdf', width=11, height = 8) 
+
+# Phosphate
+ggplot(nut, aes(x= Phosphate, y=Depth2)) +
+  geom_point() +
+  scale_y_reverse() +
+  facet_wrap(.~Station) +
+  theme_bw() +
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) +
+  xlab('Phosphate [umol/L]') + 
+  ylab('Depth [m]') +
+  ggtitle('Phosphate Depth Profiles SE2204')
+
+
+ggsave('PhosphateDepthProfiles_AllStns.pdf', width=11, height = 8)
+
+
+#Nitrite/Nitarte 
+ggplot(nut, aes(x= Nitrate...Nitrite, y=Depth2)) +
+  geom_point() +
+  scale_y_reverse() +
+  facet_wrap(.~Station, scales='free_x') +
+  theme_bw() +
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) +
+  xlab('Nitrate/Nitrite [umol/L]') + 
+  ylab('Depth [m]') +
+  ggtitle('Nitrate/Nitrite Depth Profiles SE2204')
+
+
+ggsave('NitrogenDepthProfiles_AllStns.pdf', width=11, height = 8)
+
+
+# Ammonia 
+ggplot(nut, aes(x= Ammonia, y=Depth2)) +
+  geom_point() +
+  scale_y_reverse() +
+  facet_wrap(.~Station, scales='free_x') +
+  theme_bw() +
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) +
+  xlab('Ammonia [umol/L]') + 
+  ylab('Depth [m]') +
+  ggtitle('Ammonia Depth Profiles SE2204')
+
+
+ggsave('AmmoniaDepthProfiles_AllStns.pdf', width=11, height = 8)
+
+
+# Oxygen Vs. Temperature
+ctdAll %>% 
+  filter(! Cast %in% idx) %>% #, DepSM == 100) %>%
+  ggplot(aes(x=Latitude, y=Oxygen_cleaned, color = Cast)) + 
+  geom_point(alpha = 1/10) +
+  stat_smooth(method = "lm", formula = y ~ x, geom = "smooth") +
+  scale_color_viridis_c() +
+  theme_minimal() +
+  xlab('Latitude [°N]') + 
+  ylab('Oxygen [umol/kg]') +
+  ggtitle('Oxygen vs. Temperature Profiles SE2204')
+
+ggsave('O2vsTemp_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
+
+
+for (l in unique(ctdAll$Cast)) {
+  idc <- which(ctdAll$Cast == l & ctdAll$Latitude < 0) 
+  print(summary(ctdAll[idc,c('Latitude', 'Cast')]))
+  i
+  
+  
+}
+ctdAll[which(ctdAll$Latitude < 0), 'Cast']
