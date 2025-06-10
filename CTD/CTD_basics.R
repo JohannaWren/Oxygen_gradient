@@ -15,7 +15,7 @@ require(tidyverse)
 library(here)
 
 # Set working directory
-mainDir <- paste(here(), 'Converted Data', sep='/')
+mainDir <- paste(here(), 'CTD/CTD_processed/SE2204_CTD_processed_down_cnv/', sep='/')
 
 #--------------------------------------------
 # Extract ctd data from .cnv files
@@ -30,12 +30,35 @@ files = dir(path = ".", pattern = "dSE.+cnv", full.names = TRUE )
 #files <- files[-(c(9,11:12,14,15,17,18,20,21,23,24,26:27)+1)]
 files
 
+# read in station list from file
+stns <- read.csv('../../SE2204_CTDlocations.csv')  # Change this to fit the directory your file is in
+stns$Cast <- 1:nrow(stns)
+head(stns)
+# Match the station code in stns$Station with the file names
+# I'm doing this in a loop because it's easier for me to think that way 
+p <- vector()
+for (i in seq_along(files)) {
+  p[i] <- grep(paste0('dSE-22-04_', stns$Station[i]), files)
+}
+
+# Add the file names and index number to the stns data.frame
+stnInfo <- data.frame(stns, FileName=files[p], FileNum=p)
+head(stnInfo)
+# Remove all casts that have eDNA sampling only
+stnInfo <-  stnInfo[which(stnInfo$Sampling == stnInfo$Sampling[2]),]
+
+# Now we can use the stnInfo file to only use the filenames of the stations we want to load in the data
+filesStn <- stnInfo$FileName
+filesStn
+
 # Start loop
-for (i in 1:length(files)){
-  ctd[[i]]  = read.ctd(files[i])#%>%
+for (i in seq_along(filesStn)){
+  ctd[[i]]  = read.ctd(filesStn[i]) #%>%
     #ctdTrim(method = "downcast")%>% # this doesn't seem to work very well on our data so I saved only the downcast in Seabird
     #ctdDecimate(p = 1) # align to the same standard pressure
 }
+# Removing the file with missing data until we can figure out the file itself
+ctd[[8]] <- NULL
 
 ### Make a section of CTD cast from the List
 # A section allows you to plot multiple stations along a lon/lat line
@@ -47,7 +70,7 @@ par(mfrow = c(1,2))
 section %>% 
   plot(which = "map", showStations = TRUE, showStart = TRUE)
 section %>% 
-  plot(which = "fluorescence", xtype = "latitude", ztype = "image", eos = "gsw")
+  plot(which = "oxygen", xtype = "latitude", ztype = "image", eos = "gsw")
 
 # For a smoother plot, gridding it is the way to go. You can also subset the section here
 ###subset and grid section
@@ -55,9 +78,9 @@ section.gridded = section %>%
   #subset(latitude >= 10) %>%
   sectionGrid(p = seq(0,1300,1))
 
-# Remove some spurious values that are intruduced when gridded
-section.gridded@data$station[[6]]@data$salinity[1:6] <- NA
-section.gridded@data$station[[6]]@data$fluorescence[1:6] <- NA
+# # Remove some spurious values that are intruduced when gridded
+# section.gridded@data$station[[6]]@data$salinity[1:6] <- NA
+# section.gridded@data$station[[6]]@data$fluorescence[1:6] <- NA
 
 ## plot the gridded section
 # This makes a four part plot. It doesn't scale well when enlarged, something happens to the color guide
