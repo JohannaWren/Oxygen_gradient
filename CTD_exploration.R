@@ -17,21 +17,14 @@ myDir <- paste(here(),'CTD_processed_headers', sep='/') # Emma's file path
 #myDir <- paste(here(), 'CTD', 'CTD_processed', sep='/')  # Johanna's File path
 setwd(myDir)
 
-# Read is the data
-# Single file
-#ctd <- read.csv('dSE-22-04_E_01.asc')
 # Read in files in a loop
 files = dir(path = ".", pattern = ".asc", full.names = TRUE)
 ctd_list <- list()
 # read in files in loop
 for (i in seq_along(files)) {
   ctd_list[[i]] <- read.csv(files[i])
-  # # Make Datetime column
-  # ctd_list[[i]]$DateTime <- as.POSIXct(paste(ctd_list[[i]]$mm.dd.yyyy, ctd_list[[i]]$hh.mm.ss), format='%m/%d/%Y %H:%M:%S') 
-  # # remove missing oxygen data 
-  # ctd_list[[i]]$Oxygen_cleaned <- ctd_list[[i]]$Sbox0Mm.Kg
-  # ctd_list[[i]]$Oxygen_cleaned[which(ctd_list[[i]]$Oxygen_cleaned < 0)] <- NA
 }
+
 # check data
 head(ctd_list[[10]])
 str(ctd_list[[10]])
@@ -60,12 +53,16 @@ for (i in seq_along(files)) {
 # Add the file names and index number to the stns data.frame
 stnInfo <- data.frame(stns, FileName=files[p], FileNum=p)
 head(stnInfo)
-# Then you can sort out the eDNA casts (this replaces the code that we wrote before)
-# I chose to use the type of sampling done at the station instead of depth since that is a better descriptor of the sampling
-idx <- stnInfo$Cast[which(stnInfo$Sampling != stnInfo$Sampling[2])]
+# Remove all casts that have eDNA sampling only
+stnInfo <-  stnInfo[which(stnInfo$Sampling == stnInfo$Sampling[2]),]
+# # Then you can sort out the eDNA casts (this replaces the code that we wrote before)
+# # I chose to use the type of sampling done at the station instead of depth since that is a better descriptor of the sampling
+# Filter out all eDNA and opportunistic stations from ctdAll
+ctdAll <- ctdAll %>% 
+  filter(FileNum %in% stnInfo$FileNum)
 
 # Add new index row for station ID
-for (x in 1:46) { 
+for (x in unique(stnInfo$FileNum)) { 
   ctdAll[which(ctdAll$FileNum == x), 'Cast'] <- stnInfo$Cast[which(stnInfo$FileNum == x)] 
 }
 
@@ -73,11 +70,18 @@ for (x in 1:46) {
 id.labs <- stnInfo$Station2
 names(id.labs) <- stnInfo$Cast
 
-# make index of eDNA casts to exclude
-#idx <- c(14, 16, 17, 20, 23, 26, 29, 32, 35, 38, 41, 42, 44, 46)
-# # make index of eDNA casts to exclude
-# test <- ctdAll %>% group_by(.id) %>% slice(which.max(DepSM)) %>% select(.id, DepSM) %>% filter(DepSM<1000)
-# idx <- test$.id
+# Replace the missing value codes for Latitude with average latitude for that cast
+ctdAll$newLat <- ctdAll$Latitude
+for (l in unique(ctdAll$Cast)) {
+  idl <- which(ctdAll$Cast == l)
+  idc <- which(ctdAll$Cast == l & ctdAll$Latitude < 0) 
+  print(summary(ctdAll[idc,c('Latitude', 'Cast')]))
+  ctdAll$newLat[idc] <- mean(ctdAll$Latitude[idl], na.rm = T)
+}
+head(ctdAll)
+
+# check to see if there are still NA's in the file. Zero means no NAs
+length(which(is.na(ctdAll$newLat)))
 
 # make a depth profile
 # this plots all of the profiles on one plot
@@ -85,37 +89,28 @@ ggplot(ctdAll, aes(x=Oxygen_cleaned, y=DepSM)) +
   geom_path() +
   scale_y_reverse()
 
-# Find the depth of the oxygen minimum
-#idy <- which(ctdAll$Oxygen_cleaned == min(ctd$Oxygen_cleaned, na.rm = T))
-#O2min <- ctdAll[idy,'DepSM']
-#O2min
+# # make a multi-panel plot with multiple variables from one station
+# # put data into "long" format
+# ctd_long <- ctd %>% 
+#   select(DateTime, DepSM, T090C, FlECO.AFL, Sigma.E00, Sal00, Oxygen_cleaned) %>% 
+#   gather(varName, value, T090C:Oxygen_cleaned)
+# 
+# ggplot(ctd_long, aes(value, DepSM, color=varName)) + 
+#   geom_path() +
+#   facet_wrap(.~varName, scales = 'free_x') + 
+#   scale_y_reverse()
 
-# make a multipanel plot with multiple variables from one station
-# put data into "long" format
-ctd_long <- ctd %>% 
-  select(DateTime, DepSM, T090C, FlECO.AFL, Sigma.E00, Sal00, Oxygen_cleaned) %>% 
-  gather(varName, value, T090C:Oxygen_cleaned)
 
-ggplot(ctd_long, aes(value, DepSM, color=varName)) + 
-  geom_path() +
-  facet_wrap(.~varName, scales = 'free_x') + 
-  scale_y_reverse()
-
+# Plot Oxycline
 o2_min <- ctdAll %>% 
-  filter(! Cast %in% idx) %>% 
   group_by(Cast) %>% 
   slice(which.min(Oxygen_cleaned)) %>% select(Cast, DepSM)
 
-#y_min <- ctdAll[which(ctdAll$Oxygen_cleaned == min(ctdAll$Oxygen_cleaned, na.rm=T)), 'DepSM']
-# make a multi-panel plot with one variable from all stations
 ctdAll %>% 
-  filter(! Cast %in% idx) %>% 
   ggplot(aes(x=Oxygen_cleaned, y=DepSM)) + 
     geom_path() +
     scale_y_reverse() + 
     facet_wrap(.~Cast, labeller=labeller(Cast=id.labs)) +
-    #theme_bw() +
-    #theme(panel.grid.major = element_blank()) +
     theme_bw() +
     theme(axis.line = element_line(colour = "black"),
         panel.grid.major = element_blank(),
@@ -129,14 +124,9 @@ ctdAll %>%
 
 ggsave('O2DepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
 
-# # Pull Id's for station matching
-# test2 <- ctdAll %>% group_by(.id) %>% slice(which.min(DateTime)) %>% select(DateTime) %>% data.frame()
-# test2$DateTime <- test2$DateTime - (60*60*10)
-# test2
 
 #Thermocline Profiles 
 ctdAll %>% 
-  filter(! Cast %in% idx) %>% 
   ggplot(aes(x=T090C, y=DepSM)) + 
   geom_path() +
   scale_y_reverse() + 
@@ -154,7 +144,6 @@ ggsave('TempDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units =
 
 # Halocline Profiles
 ctdAll %>% 
-  filter(! Cast %in% idx) %>% 
   ggplot(aes(x=Sal00, y=DepSM)) + 
   geom_path() +
   scale_y_reverse() + 
@@ -172,7 +161,6 @@ ggsave('SalinityDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, uni
 
 # Pycnocline Profiles 
 ctdAll %>% 
-  filter(! Cast %in% idx) %>% 
   ggplot(aes(x=Sigma.E00, y=DepSM)) + 
   geom_path() +
   scale_y_reverse() + 
@@ -191,7 +179,6 @@ ggsave('DensityDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, unit
 
 # Fluorescence Profiles 
 ctdAll %>% 
-  filter(! Cast %in% idx) %>% 
   ggplot(aes(x=FlECO.AFL, y=DepSM)) + 
   geom_path() +
   scale_y_reverse() + 
@@ -210,30 +197,37 @@ ctdAll %>%
 ggsave('FluorDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
 
 
-# nutrients
-# Merging nutrient files and cleaning the starting rows 
-library(readxl)
-nutMeta <- read.csv('../SE2204_nutrient_metadata (1).csv')
-nutDat <- read_xls('../SE2204_Nutrient_Data.xls', skip=12)
-nutDat <- data.frame(nutDat[-1,])
+
+
+
+
+
+# NUTRIENTS
+
+# Merging nutrient files and cleaning the starting rows (check SE2204_Nutrient-Vis.R)
+#library(readxl)
+#nutMeta <- read.csv('../SE2204_nutrient_metadata (1).csv')
+#nutDat <- read_xls('../SE2204_Nutrient_Data.xls', skip=12)
+#nutDat <- data.frame(nutDat[-1,])
 
 # Read in Nutrient Data
 # 10 samples at different depths per station except for NUT_028 Station 1 (9 samples total)
 nut <- read.csv('../SE2204_nutrient_metadata.csv')
-nut$Cast2 <- 1:nrow(nut)
-stnInfo2 <- data.frame(nut)
-head(stnInfo2)
+# Adding Cast column that is the same as the CTD cast numbers. 
+nut <- nut %>% 
+  left_join(stnInfo[,c('Station2', 'Cast')], by=c('Station'='Station2'))
+head(nut)
 
+# Remove the m from nutrient file depths and create a new column with numeric depth only
 nut$Depth2 <- as.numeric(substr(nut$Depth, 1, nchar(nut$Depth)-1))
 head(nut)
 
-#nut_group <- ceiling(seq_along(nut[,1]) / 10)
-
+# Plotting
 # Silicate 
 ggplot(nut, aes(x=Silicate, y=Depth2)) +
   geom_path() +
   scale_y_reverse() +
-  facet_wrap(.~Station, scales= 'free_x') +
+  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales= 'free_x') +
   theme_bw() +
   theme(axis.line = element_line(colour = "black"),
         panel.grid.major = element_blank(),
@@ -248,10 +242,10 @@ ggplot(nut, aes(x=Silicate, y=Depth2)) +
 ggsave('SilicateDepthProfiles_AllStns.pdf', width=11, height = 8) 
 
 # Phosphate
-ggplot(nut, aes(x= Phosphate, y=Depth2)) +
+ggplot(nut, aes(x=Phosphate, y=Depth2)) +
   geom_point() +
   scale_y_reverse() +
-  facet_wrap(.~Station) +
+  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs)) +
   theme_bw() +
   theme(axis.line = element_line(colour = "black"),
         panel.grid.major = element_blank(),
@@ -265,12 +259,29 @@ ggplot(nut, aes(x= Phosphate, y=Depth2)) +
 
 ggsave('PhosphateDepthProfiles_AllStns.pdf', width=11, height = 8)
 
+# Phosphate Pt. 2
+ggplot(nut, aes(x=Phosphate, y=Depth2)) +
+  geom_point() +
+  scale_y_reverse() +
+  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x') +
+  theme_bw() +
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) +
+  xlab('Phosphate [umol/L]') + 
+  ylab('Depth [m]') +
+  ggtitle('Phosphate Depth Profiles SE2204')
+
+
+ggsave('PhosphateXDepthProfiles_AllStns.pdf', width=11, height = 8)
 
 #Nitrite/Nitarte 
 ggplot(nut, aes(x= Nitrate...Nitrite, y=Depth2)) +
   geom_point() +
   scale_y_reverse() +
-  facet_wrap(.~Station, scales='free_x') +
+  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x') +
   theme_bw() +
   theme(axis.line = element_line(colour = "black"),
         panel.grid.major = element_blank(),
@@ -289,7 +300,7 @@ ggsave('NitrogenDepthProfiles_AllStns.pdf', width=11, height = 8)
 ggplot(nut, aes(x= Ammonia, y=Depth2)) +
   geom_point() +
   scale_y_reverse() +
-  facet_wrap(.~Station, scales='free_x') +
+  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x') +
   theme_bw() +
   theme(axis.line = element_line(colour = "black"),
         panel.grid.major = element_blank(),
@@ -306,8 +317,7 @@ ggsave('AmmoniaDepthProfiles_AllStns.pdf', width=11, height = 8)
 
 # Oxygen Vs. Temperature
 ctdAll %>% 
-  filter(! Cast %in% idx) %>% #, DepSM == 100) %>%
-  ggplot(aes(x=Latitude, y=Oxygen_cleaned, color = Cast)) + 
+  ggplot(aes(x=newLat, y=Oxygen_cleaned, color = Cast)) + 
   geom_point(alpha = 1/10) +
   stat_smooth(method = "lm", formula = y ~ x, geom = "smooth") +
   scale_color_viridis_c() +
@@ -319,11 +329,5 @@ ctdAll %>%
 ggsave('O2vsTemp_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
 
 
-for (l in unique(ctdAll$Cast)) {
-  idc <- which(ctdAll$Cast == l & ctdAll$Latitude < 0) 
-  print(summary(ctdAll[idc,c('Latitude', 'Cast')]))
-  i
-  
-  
-}
-ctdAll[which(ctdAll$Latitude < 0), 'Cast']
+
+
