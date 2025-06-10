@@ -329,5 +329,39 @@ ctdAll %>%
 ggsave('O2vsTemp_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
 
 
+# ---------- Code to plot multiple profiles in one plot -------------
+oxy <- read.csv('GLORYS_oxygen_SE2204.csv')
 
+ggplot() + 
+  geom_path(data=ctdAll, aes(y=DepSM, y=Oxygen_cleaned), color='blue') +
+  geom_path(data=oxy, aes(y=Depth.y, x=Oxygen), color='red') +
+  scale_y_reverse() + 
+  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x') +
+  theme_bw() +
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) 
+  
+
+
+
+
+### Changing date time and working with GLORYS oxygen data ####
+library(ncdf4)
+nc <- nc_open('~/Downloads/cmems_mod_glo_bgc-bio_anfc_0.25deg_P1D-m_1749590619002.nc')
+depth <- ncvar_get(nc, varid='depth')
+depth <- data.frame(DepthNr=1:37, Depth=depth)
+
+# combine CTD metadata with oxygen data
+stnInfo$DateTime <- as.Date(stnInfo$Date, '%m/%d/%y %H:%M')
+oxyLong$DateTime <- as.Date(substr(oxyLong$Date, 2, 11), '%Y.%m.%d')
+test <- oxyLong %>% 
+  left_join(stnInfo[,c(1,8, 10, 13)], by=c('Station', 'DateTime'))
+test <- na.omit(test)
+
+# Add depths to the oxygen dataframe
+test <- test %>% 
+  left_join(depth, by=c('Depth'='DepthNr'))
 
