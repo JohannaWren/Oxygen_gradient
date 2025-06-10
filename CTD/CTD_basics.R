@@ -50,6 +50,7 @@ stnInfo <-  stnInfo[which(stnInfo$Sampling == stnInfo$Sampling[2]),]
 # Now we can use the stnInfo file to only use the filenames of the stations we want to load in the data
 filesStn <- stnInfo$FileName
 filesStn
+files <- filesStn
 
 # Start loop
 for (i in seq_along(filesStn)){
@@ -57,8 +58,8 @@ for (i in seq_along(filesStn)){
     #ctdTrim(method = "downcast")%>% # this doesn't seem to work very well on our data so I saved only the downcast in Seabird
     #ctdDecimate(p = 1) # align to the same standard pressure
 }
-# Removing the file with missing data until we can figure out the file itself
-ctd[[8]] <- NULL
+# # Removing the file with missing data until we can figure out the file itself
+# ctd[[8]] <- NULL
 
 ### Make a section of CTD cast from the List
 # A section allows you to plot multiple stations along a lon/lat line
@@ -112,7 +113,7 @@ ctdAll <- ctd
 
 #--------------------------------------------
 ## Draw profles of one CTD cast
-ctd <- ctdAll[[11]]
+ctd <- ctdAll[[1]]
 
 # Make tibble
 ctd.tb = ctd@data %>%
@@ -153,7 +154,7 @@ salinity = ggplot(data = ctd.tb, aes(x = salinity, y = pressure))+
 oxygen = ggplot(data = ctd.tb, aes(x = oxygen, y = pressure))+
   geom_path(col = "red")+
   scale_y_reverse()+
-  scale_x_continuous(position = "top", breaks = seq(0,5,1))+
+  scale_x_continuous(position = "top", breaks = seq(0,200,50))+
   theme_bw()+
   theme(axis.text = element_text(colour = "black", size = 10),
         axis.title = element_text(colour = "black", size = 12),
@@ -183,22 +184,22 @@ dat <- data.frame()
 for (i in seq_along(ctdAll)) {
   dat <- ctdAll[[i]]@data %>% 
     as_tibble() %>% 
-    mutate(Station=substring(files[i],12,13)) %>% 
+    mutate(Station=substring(files[i],13,14)) %>% 
     add_row(dat)
 }
-dat[which(dat$Station == '06' & dat$pressure <= 3),4:8] <- NA   # this removes spurious values from the top three meters of station 6
+#dat[which(dat$Station == '06' & dat$pressure <= 3),4:8] <- NA   # this removes spurious values from the top three meters of station 6
 # I'm planning ot use ggplot for this so I'm converting from wide to long format
-datN <- dat[,c(12, 10, 4, 1:3, 5, 9)]   # remove unwanted data columns
+datN <- dat[,c(15, 9, 8, 11, 4, 7, 10, 12, 13)]   # remove unwanted data columns
 datN <- gather(datN, key='Variable', value = 'value', -Station:-depth)
 
 # This adds the latitude of each station as an alternative station name. I find it useful for plotting
 idx <- data.frame()
 for (i in seq_along(files)) { 
   lat <- round(mean(ctdAll[[i]]@data$latitude, na.rm=T),1)
-  idx <- rbind(idx, cbind(substring(files[i],12,13), lat)) 
+  idx <- rbind(idx, cbind(substring(files[i],13,14), lat)) 
 }
 colnames(idx) <- c('Station', 'Latitude')
-idx <- idx[c(-10:-11, -13),]
+#idx <- idx[c(-10:-11, -13),]
 idx$Latitude <- paste0(idx$Latitude,'°')
 # Join the latitude column with the CTD dataset
 dat2 <- left_join(datN, idx)
@@ -209,7 +210,7 @@ dat2 %>%
   filter(Variable == 'oxygen') %>% 
   ggplot(aes(value, depth, group=Station)) + 
   geom_path() + 
-  scale_x_continuous(breaks=c(1,3,5)) +
+  scale_x_continuous(breaks=c(0,100,200)) +
   scale_y_reverse() + 
   theme_bw() + 
   theme(panel.grid = element_blank(), strip.background = element_blank()) +
@@ -297,73 +298,73 @@ ggsave('testPlots.png', width=10, height=8, units='in')
 
 
 
-# Make the plot
-
-
-
-###########
-# Add data to image
-png('testPlot.png', width=10, height = 8, res=300, unit='in')
-plot(xlim=c(-0.01,0.04), ylim=c(-1200,0), ctd.tb$pressure*-1, type='n', main="", xlab="Temperature and Oxygen", ylab="Pressure", axes=F)
-axis(side=3)
-lim <- par()
-rasterImage(img, xleft=-5, xright=30, ybottom=-1200, ytop=0)
-grid()
-lines(y=ctd.tb$pressure*-1, x=ctd.tb$fluorescence, lwd=1, col='green')
-par(new=T)
-plot(y=ctd.tb$pressure*-1, x=ctd.tb$temperature, lwd=2, col='red', type='l', axes=F, xlab = "", ylab = "", xlim=c(0,26))
-lines(y=ctd.tb$pressure*-1, x=ctd.tb$oxygen, lwd=2, col='blue')
-axis(side = 1)      # Add second axis
-mtext("Fluorescence", side = 3, line = 3) 
-box()
-axis(side=2)
-dev.off()
-
-png('testPlot.png', width=10, height = 8, res=300, unit='in')
-plot(xlim=c(0,26), ylim=c(-1200, 0), ctd.tb$pressure*-1, type='n', main="", xlab="Temperature & Oxygen", ylab="Depth")
-lim <- par()
-rasterImage(img, xleft=0, xright=26, ybottom=-1200, ytop=0)
-grid()
-lines(y=ctd.tb$pressure*-1, x=ctd.tb$temperature, lwd=2, col='red')
-lines(y=ctd.tb$pressure*-1, x=ctd.tb$oxygen, lwd=2, col='blue')
-dev.off()
-
-
-plot(xlim=c(0,26), ylim=c(-1200, 0), ctd.tb$pressure*-1, type='n', main="", xlab="Temperature & Oxygen", ylab="Depth")
-lim <- par()
-rasterImage(img, xleft=0, xright=26, ybottom=-1200, ytop=0)
-grid()
-lines(y=ctd.tb$pressure*-1, x=ctd.tb$temperature, lwd=2, col='red')
-lines(y=ctd.tb$pressure*-1, x=ctd.tb$oxygen, lwd=2, col='blue')
-
-
-######
-#Check bottle depths
-files = dir(path = "bottles/", pattern = "bottlesFired.cnv", full.names = TRUE )
-y <- data.frame()
-for (i in 1:length(files)) {
-  ctd <- read.ctd(files[i]) %>% na.omit()
-  ctd.tb <- as.tibble(ctd@data) %>% mutate(Station=substring(files[i],19,22), DateTime=as.POSIXct('2000-01-01')+timeQ)
-  for (j in 1:12) { 
-    xmax <- ctd.tb %>% 
-      filter(bottlesFired == j) %>% 
-      select(timeQ, depth, latitude, longitude, temperature, salinity, oxygen) %>% 
-      filter(depth == max(depth)) %>% 
-      filter(timeQ == min(timeQ)) %>%
-      filter(row_number()==1) %>%
-      mutate(DateTimeGMT=as.POSIXct('2000-01-01', tz='GMT') + timeQ, DateTimeHST=with_tz(DateTimeGMT, 'HST'))
-    if (nrow(xmax) <1) { break}
-    xmax$station <- substring(files[i],19,22)
-    y=rbind(y, cbind(bottle=j, xmax)) 
-  }
-}
-y
-write.csv(y, 'bottlesFired_forOA.csv', quote=F, row.names = F)
-
-###
-# And ggplot
-library(grid)
-ggplot(data=ctd.tb, aes(temperature, pressure*-1)) + 
-  annotation_custom(rasterGrob(img, width = unit(1,"npc"), 
-                               height = unit(1,"npc")), 0, 26, -1200, 0) + 
-  geom_line()
+# # Make the plot
+# 
+# 
+# 
+# ###########
+# # Add data to image
+# png('testPlot.png', width=10, height = 8, res=300, unit='in')
+# plot(xlim=c(-0.01,0.04), ylim=c(-1200,0), ctd.tb$pressure*-1, type='n', main="", xlab="Temperature and Oxygen", ylab="Pressure", axes=F)
+# axis(side=3)
+# lim <- par()
+# rasterImage(img, xleft=-5, xright=30, ybottom=-1200, ytop=0)
+# grid()
+# lines(y=ctd.tb$pressure*-1, x=ctd.tb$fluorescence, lwd=1, col='green')
+# par(new=T)
+# plot(y=ctd.tb$pressure*-1, x=ctd.tb$temperature, lwd=2, col='red', type='l', axes=F, xlab = "", ylab = "", xlim=c(0,26))
+# lines(y=ctd.tb$pressure*-1, x=ctd.tb$oxygen, lwd=2, col='blue')
+# axis(side = 1)      # Add second axis
+# mtext("Fluorescence", side = 3, line = 3) 
+# box()
+# axis(side=2)
+# dev.off()
+# 
+# png('testPlot.png', width=10, height = 8, res=300, unit='in')
+# plot(xlim=c(0,26), ylim=c(-1200, 0), ctd.tb$pressure*-1, type='n', main="", xlab="Temperature & Oxygen", ylab="Depth")
+# lim <- par()
+# rasterImage(img, xleft=0, xright=26, ybottom=-1200, ytop=0)
+# grid()
+# lines(y=ctd.tb$pressure*-1, x=ctd.tb$temperature, lwd=2, col='red')
+# lines(y=ctd.tb$pressure*-1, x=ctd.tb$oxygen, lwd=2, col='blue')
+# dev.off()
+# 
+# 
+# plot(xlim=c(0,26), ylim=c(-1200, 0), ctd.tb$pressure*-1, type='n', main="", xlab="Temperature & Oxygen", ylab="Depth")
+# lim <- par()
+# rasterImage(img, xleft=0, xright=26, ybottom=-1200, ytop=0)
+# grid()
+# lines(y=ctd.tb$pressure*-1, x=ctd.tb$temperature, lwd=2, col='red')
+# lines(y=ctd.tb$pressure*-1, x=ctd.tb$oxygen, lwd=2, col='blue')
+# 
+# 
+# ######
+# #Check bottle depths
+# files = dir(path = "bottles/", pattern = "bottlesFired.cnv", full.names = TRUE )
+# y <- data.frame()
+# for (i in 1:length(files)) {
+#   ctd <- read.ctd(files[i]) %>% na.omit()
+#   ctd.tb <- as.tibble(ctd@data) %>% mutate(Station=substring(files[i],19,22), DateTime=as.POSIXct('2000-01-01')+timeQ)
+#   for (j in 1:12) { 
+#     xmax <- ctd.tb %>% 
+#       filter(bottlesFired == j) %>% 
+#       select(timeQ, depth, latitude, longitude, temperature, salinity, oxygen) %>% 
+#       filter(depth == max(depth)) %>% 
+#       filter(timeQ == min(timeQ)) %>%
+#       filter(row_number()==1) %>%
+#       mutate(DateTimeGMT=as.POSIXct('2000-01-01', tz='GMT') + timeQ, DateTimeHST=with_tz(DateTimeGMT, 'HST'))
+#     if (nrow(xmax) <1) { break}
+#     xmax$station <- substring(files[i],19,22)
+#     y=rbind(y, cbind(bottle=j, xmax)) 
+#   }
+# }
+# y
+# write.csv(y, 'bottlesFired_forOA.csv', quote=F, row.names = F)
+# 
+# ###
+# # And ggplot
+# library(grid)
+# ggplot(data=ctd.tb, aes(temperature, pressure*-1)) + 
+#   annotation_custom(rasterGrob(img, width = unit(1,"npc"), 
+#                                height = unit(1,"npc")), 0, 26, -1200, 0) + 
+#   geom_line()
