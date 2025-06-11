@@ -652,11 +652,20 @@ finalT
 idx <- ls() %>% grep(pattern='oxyCor')
 ls()[idx]
 ls()[idx][-(1:4)]
-> idxCor <- ls()[idx][-(1:4)]
-> idxCor
+idxCor <- ls()[idx][-(1:4)]
+idxCor
 
-
-
+corTable <- matrix(nrow = length(idxCor), ncol = 2)
+i=1
+for (listname in idxCor) {
+  x <- get(listname)$estimate
+  statn <- as.numeric(substr(listname, 7, nchar(listname)))
+  corTable[i,1] <- statn
+  corTable[i,2] <- x
+  i <- i+1
+}
+corTable <- as.data.frame(corTable)
+names(corTable) <- c('Cast', 'r')
 
 
 
