@@ -112,7 +112,9 @@ head(zoops)
 # Clean up zooplankton data
 zoops <- zoops %>% 
   filter(net_cast_number <= 13) %>% 
-  select(net_cast_number, size_fraction, net_dry_weight)
+  select(net_cast_number, size_fraction, net_dry_weight) %>% 
+  group_by(net_cast_number, size_fraction) %>% 
+  summarise(net_dry_weight=sum(net_dry_weight))
 
 zoopTrend <- lm(size_fraction ~ net_dry_weight, data=zoops)
 
