@@ -78,9 +78,8 @@ ggplot(phyto, aes(x = Cast, y = Chlorophyll)) +
      geom_point(alpha = 0.6, color ="darkgreen") +
      scale_y_reverse() +
      theme(axis.text.x = element_text(angle = 45, hjust = 1))+
-     labs(title = "Chlorophyll concentration (bubble size)",
-                   x = "Cast",
-                   y = "Depth (m)") +
+      xlab('Cast') + ylab('Depth [m])') +
+    ggtitle('Chlorophyll Concentration (bubble size) SE2204') +
      theme_minimal() +
      # facet_wrap(Size~., ncol=1)
      theme(axis.text.x = element_text(angle = 45, hjust = 1))
@@ -90,9 +89,7 @@ ggplot(phyto, aes(x = Cast, y = Chlorophyll)) +
     ggplot(aes(x = as.factor(Cast), y = Depth, size = Chlorophyll)) +
    geom_point(alpha = 0.6, color ="darkgreen") +
      scale_y_reverse() +
-     labs(title = "Chlorophyll concentration (bubble size)",
-                   x = "Cast",
-                  y = "Depth (m)") +
+   xlab('Cast') + ylab('Depth [m])') +
      theme_minimal() +
      theme(axis.text.x = element_text(angle = 45, hjust = 1))
  a20 = 
@@ -101,9 +98,7 @@ ggplot(phyto, aes(x = Cast, y = Chlorophyll)) +
      ggplot(aes(x = as.factor(Cast), y = Depth, size = Chlorophyll)) +
      geom_point(alpha = 0.6, color ="darkgreen") +
      scale_y_reverse() +
-     labs(title = "Chlorophyll concentration (bubble size)",
-                   x = "Cast",
-                   y = "Depth (m)") +
+   xlab('Cast') + ylab('Depth [m])') +
      theme_minimal()+
      theme(axis.text.x = element_text(angle = 45, hjust = 1))
  cowplot::plot_grid(a.02, a.20, a20, nrow = 1)
