@@ -13,8 +13,8 @@ library(tidyr)
 library(data.table)
 
 # Set working directory
-myDir <- paste(here(),'CTD_processed_headers', sep='/') # Emma's file path
-#myDir <- paste(here(), 'CTD', 'CTD_processed', sep='/')  # Johanna's File path
+#myDir <- paste(here(),'CTD_processed_headers', sep='/') # Emma's file path
+myDir <- paste(here(), 'CTD', 'CTD_processed', sep='/')  # Johanna's File path
 setwd(myDir)
 
 # Read in files in a loop
@@ -333,7 +333,7 @@ ggsave('O2vsTemp_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
 oxy <- read.csv('GLORYS_oxygen_SE2204.csv')
 
 ggplot() + 
-  geom_path(data=ctdAll, aes(y=DepSM, y=Oxygen_cleaned), color='blue') +
+  geom_path(data=ctdAll, aes(y=DepSM, x=Oxygen_cleaned), color='blue') +
   geom_path(data=oxy, aes(y=Depth.y, x=Oxygen), color='red') +
   scale_y_reverse() + 
   facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x') +
@@ -343,7 +343,25 @@ ggplot() +
         panel.grid.minor = element_blank(),
         panel.border = element_blank(),
         panel.background = element_blank()) 
-  
+
+
+# Correlations between Glorys and CTD data by station
+# List all the cast numbers
+unique(ctdAll$Cast)
+# make a variable for the station you want to compare with CTD data
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 43) %>% 
+  select(DepSM, Oxygen_cleaned) %>% 
+  data.frame()
+# Then a matching one with glorys data
+cst2glo <- oxy %>% 
+  filter(Cast == 43) %>% 
+  select(Depth.y, Oxygen) 
+# Interpolate glorys data over the depths in the CTD data
+test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
+# Calculate the correlation between glorys and CTD (output is r, not R^2)
+oxyCor <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor
 
 
 
