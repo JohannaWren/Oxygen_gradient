@@ -13,8 +13,8 @@ library(tidyr)
 library(data.table)
 
 # Set working directory
-#myDir <- paste(here(),'CTD_processed_headers', sep='/') # Emma's file path
-myDir <- paste(here(), 'CTD', 'CTD_processed', sep='/')  # Johanna's File path
+myDir <- paste(here(),'CTD_processed_headers', sep='/') # Emma's file path
+# myDir <- paste(here(), 'CTD', 'CTD_processed', sep='/')  # Johanna's File path
 setwd(myDir)
 
 # Read in files in a loop
@@ -330,7 +330,7 @@ ggsave('O2vsTemp_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
 
 
 # ---------- Code to plot multiple profiles in one plot -------------
-oxy <- read.csv('GLORYS_oxygen_SE2204.csv')
+oxy <- read.csv('../GLORYS_oxygen_SE2204.csv')
 
 ggplot() + 
   geom_path(data=ctdAll, aes(y=DepSM, x=Oxygen_cleaned), color='blue') +
@@ -348,24 +348,319 @@ ggplot() +
 # Correlations between Glorys and CTD data by station
 # List all the cast numbers
 unique(ctdAll$Cast)
+
 # make a variable for the station you want to compare with CTD data
-cst2ctd <- ctdAll %>% 
-  filter(Cast == 43) %>% 
+  cst2ctd <- ctdAll %>% 
+  filter(Cast == 8) %>% 
   select(DepSM, Oxygen_cleaned) %>% 
   data.frame()
 # Then a matching one with glorys data
 cst2glo <- oxy %>% 
-  filter(Cast == 43) %>% 
+  filter(Cast == 8) %>% 
   select(Depth.y, Oxygen) 
 # Interpolate glorys data over the depths in the CTD data
 test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
 # Calculate the correlation between glorys and CTD (output is r, not R^2)
-oxyCor <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
-oxyCor
+oxyCor8 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor8
+
+# make a variable for the station you want to compare with CTD data
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 9) %>% 
+  select(DepSM, Oxygen_cleaned) %>% 
+  data.frame()
+# Then a matching one with glorys data
+cst2glo <- oxy %>% 
+  filter(Cast == 9) %>% 
+  select(Depth.y, Oxygen) 
+# Interpolate glorys data over the depths in the CTD data
+test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
+# Calculate the correlation between glorys and CTD (output is r, not R^2)
+oxyCor9 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor9
+
+# make a variable for the station you want to compare with CTD data
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 10) %>% 
+  select(DepSM, Oxygen_cleaned) %>% 
+  data.frame()
+# Then a matching one with glorys data
+cst2glo <- oxy %>% 
+  filter(Cast == 10) %>% 
+  select(Depth.y, Oxygen) 
+# Interpolate glorys data over the depths in the CTD data
+test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
+# Calculate the correlation between glorys and CTD (output is r, not R^2)
+oxyCor10 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor10
+
+# make a variable for the station you want to compare with CTD data
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 17) %>% 
+  select(DepSM, Oxygen_cleaned) %>% 
+  data.frame()
+# Then a matching one with glorys data
+cst2glo <- oxy %>% 
+  filter(Cast == 17) %>% 
+  select(Depth.y, Oxygen) 
+# Interpolate glorys data over the depths in the CTD data
+test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
+# Calculate the correlation between glorys and CTD (output is r, not R^2)
+oxyCor17 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor17
+
+# make a variable for the station you want to compare with CTD data
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 18) %>% 
+  select(DepSM, Oxygen_cleaned) %>% 
+  data.frame()
+# Then a matching one with glorys data
+cst2glo <- oxy %>% 
+  filter(Cast == 18) %>% 
+  select(Depth.y, Oxygen) 
+# Interpolate glorys data over the depths in the CTD data
+test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
+# Calculate the correlation between glorys and CTD (output is r, not R^2)
+oxyCor18 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor18
+
+# make a variable for the station you want to compare with CTD data
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 19) %>% 
+  select(DepSM, Oxygen_cleaned) %>% 
+  data.frame()
+# Then a matching one with glorys data
+cst2glo <- oxy %>% 
+  filter(Cast == 19) %>% 
+  select(Depth.y, Oxygen) 
+# Interpolate glorys data over the depths in the CTD data
+test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
+# Calculate the correlation between glorys and CTD (output is r, not R^2)
+oxyCor19 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor19
+
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 26) %>% 
+  select(DepSM, Oxygen_cleaned) %>% 
+  data.frame()
+cst2glo <- oxy %>% 
+  filter(Cast == 26) %>% 
+  select(Depth.y, Oxygen) 
+
+test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
+oxyCor26 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor26
+
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 27) %>% 
+  select(DepSM, Oxygen_cleaned) %>% 
+  data.frame()
+cst2glo <- oxy %>% 
+  filter(Cast == 27) %>% 
+  select(Depth.y, Oxygen) 
+
+test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
+oxyCor27 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor27
+
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 28) %>% 
+  select(DepSM, Oxygen_cleaned) %>% 
+  data.frame()
+cst2glo <- oxy %>% 
+  filter(Cast == 28) %>% 
+  select(Depth.y, Oxygen) 
+
+test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
+oxyCor28 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor28
+
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 35) %>% 
+  select(DepSM, Oxygen_cleaned) %>% 
+  data.frame()
+cst2glo <- oxy %>% 
+  filter(Cast == 35) %>% 
+  select(Depth.y, Oxygen) 
+
+test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
+oxyCor35 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor35
+
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 36) %>% 
+  select(DepSM, Oxygen_cleaned) %>% 
+  data.frame()
+cst2glo <- oxy %>% 
+  filter(Cast == 36) %>% 
+  select(Depth.y, Oxygen) 
+
+test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
+oxyCor36 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor36
+
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 37) %>% 
+  select(DepSM, Oxygen_cleaned) %>% 
+  data.frame()
+cst2glo <- oxy %>% 
+  filter(Cast == 37) %>% 
+  select(Depth.y, Oxygen) 
+
+test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
+oxyCor37 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor37
+
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 38) %>% 
+  select(DepSM, Oxygen_cleaned) %>% 
+  data.frame()
+cst2glo <- oxy %>% 
+  filter(Cast == 38) %>% 
+  select(Depth.y, Oxygen) 
+
+test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
+oxyCor38 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor38
+
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 2) %>% 
+  select(DepSM, Oxygen_cleaned) %>% 
+  data.frame()
+cst2glo <- oxy %>% 
+  filter(Cast == 2) %>% 
+  select(Depth.y, Oxygen) 
+
+test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
+oxyCor_2 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor_2
+
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 5) %>% 
+  select(DepSM, Oxygen_cleaned) %>% 
+  data.frame()
+cst2glo <- oxy %>% 
+  filter(Cast == 5) %>% 
+  select(Depth.y, Oxygen) 
+
+test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
+oxyCor5 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor5
+
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 11) %>% 
+  select(DepSM, Oxygen_cleaned) %>% 
+  data.frame()
+cst2glo <- oxy %>% 
+  filter(Cast == 11) %>% 
+  select(Depth.y, Oxygen) 
+
+test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
+oxyCor11 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor11
+
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 14) %>% 
+  select(DepSM, Oxygen_cleaned) %>% 
+  data.frame()
+cst2glo <- oxy %>% 
+  filter(Cast == 14) %>% 
+  select(Depth.y, Oxygen) 
+
+test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
+oxyCor14 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor14
+
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 20) %>% 
+  select(DepSM, Oxygen_cleaned) %>% 
+  data.frame()
+cst2glo <- oxy %>% 
+  filter(Cast == 20) %>% 
+  select(Depth.y, Oxygen) 
+
+test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
+oxyCor20 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor20
+
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 23) %>% 
+  select(DepSM, Oxygen_cleaned) %>% 
+  data.frame()
+cst2glo <- oxy %>% 
+  filter(Cast == 23) %>% 
+  select(Depth.y, Oxygen) 
+
+test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
+oxyCor23 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor23
+
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 29) %>% 
+  select(DepSM, Oxygen_cleaned) %>% 
+  data.frame()
+cst2glo <- oxy %>% 
+  filter(Cast == 29) %>% 
+  select(Depth.y, Oxygen) 
+
+test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
+oxyCor29 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor29
+
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 32) %>% 
+  select(DepSM, Oxygen_cleaned) %>% 
+  data.frame()
+cst2glo <- oxy %>% 
+  filter(Cast == 32) %>% 
+  select(Depth.y, Oxygen) 
+
+test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
+oxyCor32 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor32
+
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 39) %>% 
+  select(DepSM, Oxygen_cleaned) %>% 
+  data.frame()
+cst2glo <- oxy %>% 
+  filter(Cast == 39) %>% 
+  select(Depth.y, Oxygen) 
+
+test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
+oxyCor39 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor39
+
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 43) %>% 
+  select(DepSM, Oxygen_cleaned) %>% 
+  data.frame()
+cst2glo <- oxy %>% 
+  filter(Cast == 43) %>% 
+  select(Depth.y, Oxygen) 
+
+test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
+oxyCor43 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor43
+
+corrT = matrix(c(10., oxyCor10$estimate, 11.,  oxyCor11$estimate), ncol=2, byrow=TRUE)
+colnames(corrT) = c('Cast Number', 'r')
+rownames(corrT) <- c('10', '14')
+finalT = as.table(corrT)
+finalT
+
+idx <- ls() %>% grep(pattern='oxyCor')
+ls()[idx]
+ls()[idx][-(1:4)]
+> idxCor <- ls()[idx][-(1:4)]
+> idxCor
 
 
 
 
+
+
+# ------------ For Reference--------------------------------------------------
 ### Changing date time and working with GLORYS oxygen data ####
 library(ncdf4)
 nc <- nc_open('~/Downloads/cmems_mod_glo_bgc-bio_anfc_0.25deg_P1D-m_1749590619002.nc')
