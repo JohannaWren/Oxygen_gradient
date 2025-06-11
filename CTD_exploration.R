@@ -532,8 +532,8 @@ cst2glo <- oxy %>%
   select(Depth.y, Oxygen) 
 
 test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
-oxyCor_2 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
-oxyCor_2
+oxyCor2 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
+oxyCor2
 
 cst2ctd <- ctdAll %>% 
   filter(Cast == 5) %>% 
@@ -643,30 +643,30 @@ test <- approx(cst2glo$Depth.y, cst2glo$Oxygen, xout=cst2ctd$DepSM)
 oxyCor43 <- cor.test(x=test$y, y=cst2ctd$Oxygen_cleaned)
 oxyCor43
 
-corrT = matrix(c(10., oxyCor10$estimate, 11.,  oxyCor11$estimate), ncol=2, byrow=TRUE)
-colnames(corrT) = c('Cast Number', 'r')
-rownames(corrT) <- c('10', '14')
-finalT = as.table(corrT)
-finalT
+# corrT = matrix(c(10., oxyCor10$estimate, 11.,  oxyCor11$estimate), ncol=2, byrow=TRUE)
+# colnames(corrT) = c('Cast Number', 'r')
+# rownames(corrT) <- c('10', '14')
+# finalT = as.table(corrT)
+# finalT
 
 idx <- ls() %>% grep(pattern='oxyCor')
 ls()[idx]
-ls()[idx][-(1:4)]
-idxCor <- ls()[idx][-(1:4)]
+ls()[idx][-c(1:2,26)]
+idxCor <- ls()[idx][-c(1:2,26)]
 idxCor
 
 corTable <- matrix(nrow = length(idxCor), ncol = 2)
 i=1
 for (listname in idxCor) {
-  x <- get(listname)$estimate
+  x <- get(listname)$estimate^2
   statn <- as.numeric(substr(listname, 7, nchar(listname)))
   corTable[i,1] <- statn
   corTable[i,2] <- x
   i <- i+1
 }
 corTable <- as.data.frame(corTable)
-names(corTable) <- c('Cast', 'r')
-
+names(corTable) <- c('Cast', 'R2')
+corTable
 
 
 # ------------ For Reference--------------------------------------------------
