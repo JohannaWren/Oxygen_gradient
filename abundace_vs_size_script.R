@@ -149,7 +149,10 @@ zoops %>%
     parse = TRUE,
     size = 3) +
   facet_wrap(.~net_cast_number) +
-  theme_minimal()
+  xlab('Size') + ylab('Abundance (dry weight [g])') +
+  ggtitle('Size vs. Abundance for Zooplankton SE2204') +
+  theme_minimal() 
+ggsave('SizeAbunPanel_RegLine.pdf', width=11, height = 8, dpi = 300, units = 'in')
 
 zoopsSub <- zoops[which(zoops$net_cast_number== 1),]
 zoopsLm <- lm(net_dry_weight ~ size_fraction, data=zoopsSub)
