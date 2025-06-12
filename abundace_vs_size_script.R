@@ -146,10 +146,30 @@ zoops %>%
     parse = TRUE,
     size = 3) +
   facet_wrap(.~net_cast_number) +
+  # scale_x_log10() +
+  # scale_y_log10() +
   xlab('Size') + ylab('Abundance (dry weight [g])') +
   ggtitle('Size vs. Abundance for Zooplankton SE2204') +
   theme_minimal() 
+
 ggsave('SizeAbunPanel_RegLine.pdf', width=11, height = 8, dpi = 300, units = 'in')
+
+# Log Scale x and y
+zoops %>% 
+  ggplot(aes(x=size_fraction, y=net_dry_weight)) + 
+  geom_point() +
+  geom_smooth(method='lm', se=F, linewidth = 0.75, colour = '#00A572', alpha = 0.2) +
+  stat_poly_eq(
+    aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
+    formula = y ~ x,
+    parse = TRUE,
+    size = 3) +
+  facet_wrap(.~net_cast_number) +
+  scale_x_log10() +
+  scale_y_log10() +
+  xlab('Size') + ylab('Abundance (dry weight [g])') +
+  ggtitle('Size vs. Abundance for Zooplankton SE2204') +
+  theme_minimal() 
 
 zoopsSub <- zoops[which(zoops$net_cast_number== 1),]
 zoopsLm <- lm(net_dry_weight ~ size_fraction, data=zoopsSub)
