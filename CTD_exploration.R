@@ -199,17 +199,15 @@ ggsave('FluorDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units 
 
 
 
-
-
-
-# NUTRIENTS
+#----------------------------- NUTRIENTS ---------------------------------------
 
 # Merging nutrient files and cleaning the starting rows (check SE2204_Nutrient-Vis.R)
 #library(readxl)
 #nutMeta <- read.csv('../SE2204_nutrient_metadata (1).csv')
 #nutDat <- read_xls('../SE2204_Nutrient_Data.xls', skip=12)
 #nutDat <- data.frame(nutDat[-1,])
-
+library(akima)
+library(viridis)
 # Read in Nutrient Data
 # 10 samples at different depths per station except for NUT_028 Station 1 (9 samples total)
 nut <- read.csv('../SE2204_nutrient_metadata.csv')
@@ -222,8 +220,134 @@ head(nut)
 nut$Depth2 <- as.numeric(substr(nut$Depth, 1, nchar(nut$Depth)-1))
 head(nut)
 
+# Interpolations for Nutrients along Latitude 
+nut_data <- nut %>%
+  mutate(
+    Depth2 = as.numeric(Depth2),
+    Latitude = as.numeric(Latitude),
+    Phosphate = as.numeric(Phosphate)
+  ) %>%
+  filter(!is.na(Phosphate), !is.na(Latitude), !is.na(Depth2))
+
+interp_result <- with(nut_data,
+                interp(x = Latitude, y = Depth2, z = Phosphate,
+                duplicate = "mean", linear = TRUE))
+
+interp_df <- expand.grid(Latitude = interp_result$x,Depth2 = interp_result$y)
+interp_df$Phosphate <- as.vector(interp_result$z)
+
+int.phos = 
+  ggplot(interp_df, aes(x = Latitude, y = Depth2, z = Phosphate)) +
+  geom_contour_filled() +
+  scale_y_reverse() +
+  scale_fill_viridis_d() +
+  labs(
+    title = "Interpolated Phosphate Concentration",
+    x = "Latitude",
+    y = "Depth (m)",
+    fill = "Phosphate"
+  ) +
+  theme_minimal()
+int.phos
+
+nut_sili <- nut %>%
+  mutate(
+    Depth2 = as.numeric(Depth2),
+    Latitude = as.numeric(Latitude),
+    Silicate = as.numeric(Silicate)
+  ) %>%
+  filter(!is.na(Silicate), !is.na(Latitude), !is.na(Depth2))
+
+interp_result <- with(nut_sili,
+                      interp(x = Latitude, y = Depth2, z = Silicate,
+                             duplicate = "mean", linear = TRUE))  
+interp_df <- expand.grid(Latitude = interp_result$x,Depth2 = interp_result$y)
+interp_df$Silicate <- as.vector(interp_result$z)
+
+int.sili = 
+  ggplot(interp_df, aes(x = Latitude, y = Depth2, z = Silicate)) +
+  geom_contour_filled() +
+  scale_y_reverse() +
+  scale_fill_viridis_d() +
+  labs(
+    title = "Interpolated Silicate Concentration",
+    x = "Latitude",
+    y = "Depth (m)",
+    fill = "Silicate"
+  ) +
+  theme_minimal()
+int.sili
+
+nut_nit <- nut %>%
+  mutate(
+    Depth2 = as.numeric(Depth2),
+    Latitude = as.numeric(Latitude),
+    Nitrate...Nitrite = as.numeric(Nitrate...Nitrite)
+  ) %>%
+  filter(!is.na(Nitrate...Nitrite), !is.na(Latitude), !is.na(Depth2))
+
+interp_result <- with(nut_nit,
+                      interp(x = Latitude, y = Depth2, z = Nitrate...Nitrite,
+                             duplicate = "mean", linear = TRUE))  
+interp_df <- expand.grid(Latitude = interp_result$x,Depth2 = interp_result$y)
+interp_df$Nitrate...Nitrite <- as.vector(interp_result$z)
+
+int.nit = 
+  ggplot(interp_df, aes(x = Latitude, y = Depth2, z = Nitrate...Nitrite)) +
+  geom_contour_filled() +
+  scale_y_reverse() +
+  scale_fill_viridis_d() +
+  labs(
+    title = "Interpolated Nitrate..Nitrite Concentration",
+    x = "Latitude",
+    y = "Depth (m)",
+    fill = "Nitrate..Nitrite"
+  ) +
+  theme_minimal()
+int.nit
+
+nut_am <- nut %>%
+  mutate(
+    Depth2 = as.numeric(Depth2),
+    Latitude = as.numeric(Latitude),
+    Ammonia = as.numeric(Ammonia)
+  ) %>%
+  filter(!is.na(Ammonia), !is.na(Latitude), !is.na(Depth2))
+
+interp_result <- with(nut_am,
+                      interp(x = Latitude, y = Depth2, z = Ammonia,
+                             duplicate = "mean", linear = TRUE))  
+interp_df <- expand.grid(Latitude = interp_result$x,Depth2 = interp_result$y)
+interp_df$Ammonia <- as.vector(interp_result$z)
+
+int.am =
+  ggplot(interp_df, aes(x = Latitude, y = Depth2, z = Ammonia)) +
+  geom_contour_filled() +
+  scale_y_reverse() +
+  scale_fill_viridis_d() +
+  labs(
+    title = "Interpolated Ammonia Concentration",
+    x = "Latitude",
+    y = "Depth (m)",
+    fill = "Ammonia" ) +
+  theme_minimal()
+int.am
+
+cowplot::plot_grid(int.phos, int.sili, int.nit, int.am, nrow = 4)
+
 # Plotting
 # Silicate 
+ggplot(nut, aes(x = Latitude, y = Depth2, color = Phosphate)) +
+  geom_point(size = 3) +
+  scale_y_reverse() + 
+  scale_color_viridis_d() + 
+  labs(
+    title = "Phosphate Concentration Along Latitude",
+    x = "Latitude",
+    y = "Depth (m)",
+    color = "Phosphate" ) +
+  theme_minimal()
+
 ggplot(nut, aes(x=Silicate, y=Depth2)) +
   geom_path() +
   scale_y_reverse() +
