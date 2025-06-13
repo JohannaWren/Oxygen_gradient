@@ -462,7 +462,7 @@ ctdAll %>%
   geom_point(alpha = 1/10) +
   stat_smooth(method = "lm", formula = y ~ x, geom = "smooth") +
   # scale_color_viridis_c() +
-  scale_colour_paletteer_c(`"palr::ice_pal"`) +
+  scale_colour_paletteer_c(`"grDevices::Harmonic"`) +
   theme_minimal() +
   xlab('Latitude [°N]') + 
   ylab('Oxygen [umol/kg]') +
