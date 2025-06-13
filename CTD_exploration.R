@@ -923,6 +923,27 @@ head(oxyClimLong)
 write.csv(oxyClimLong, 'SE2204_CTD_processed_down_cnv/GLORYS_Climatology_JunJul_SE2204.csv', quote = F, row.names = F)
 
 ### MONTHLY GLORYS DATA COMPARISON WITH CTD DATA
+# Subset data to June and July 2022 only for all depths (couldn't figure out how to do this in one go so doing one month at a time)
+oxyM1 <- terra::subset(oxyT, time(oxyT) == as.Date('2022-06-01'))
+oxyM2 <- terra::subset(oxyT, time(oxyT) == as.Date('2022-07-01'))
+# combine into one SpatRaster
+oxyM <- c(oxyM1,oxyM2)
+# Extract values for each cast location for all depths and times
+oxyCastM <- terra::extract(oxyM, stnInfo[,4:5], xy=T) %>% 
+  gather(key='DepthIdx', value='Oxygen', 2:101) %>% 
+  mutate(DateIdx = str_sub(DepthIdx, -3, -1), 
+         Depth=as.numeric(str_sub(DepthIdx, 10,-5)), 
+         Month=if_else(DateIdx == '349', 6, 7)) %>% 
+  rename(LonG=x, LatG=y)
+head(oxyCastM)
+# Merge the monthly GLORYS data with the cast metadata. Had to do this by ID (1-23)
+oxyMonthLong <- stnInfo %>% mutate(ID=1:n()) %>% select(c(1,8,10,13,4,5,14)) %>% 
+  right_join(oxyCastM, by='ID')
+head(oxyMonthLong)
+  
+
+
+
 
 
 
