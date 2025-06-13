@@ -481,6 +481,8 @@ ggsave('O2vsT_linearR.png', width=10, height = 5.625, dpi = 300)
 
 # ----------------------------- GLORYS ---------------------------------------
 clim <- read.csv('../GLORYS_Climatology_JunJul_SE2204.csv')
+clim <- clim %>% 
+  filter((MonthB == 'June' & Month == 6) | (MonthB == 'July' & Month == 7))
 head(clim)
 
 ggplot() + 
