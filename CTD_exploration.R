@@ -122,7 +122,8 @@ ctdAll %>%
     xlab('Oxygen [umol/kg]') + ylab('Depth [m]') +
     ggtitle('Oxygen Depth Profiles SE2204')
 
-ggsave('O2DepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
+ggsave('O2DepthProfiles_AllStns_min.pdf', width=11, height = 8, dpi = 300, units = 'in')
+ggsave('O2DepthProfiles_AllStns_min.png', width=10, height = 5.625, dpi = 300)
 
 
 #Thermocline Profiles 
@@ -141,6 +142,7 @@ ctdAll %>%
   ggtitle('Temperature Depth Profiles SE2204')
 
 ggsave('TempDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
+ggsave('TempDepthProfiles_AllStns.png', width=10, height = 5.625, dpi = 300)
 
 # Halocline Profiles
 ctdAll %>% 
@@ -158,6 +160,7 @@ ctdAll %>%
   ggtitle('Salinity Depth Profiles SE2204')
 
 ggsave('SalinityDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
+ggsave('SalinityDepthProfiles_AllStns.png', width=10, height = 5.625, dpi = 300)
 
 # Pycnocline Profiles 
 ctdAll %>% 
@@ -176,6 +179,7 @@ ctdAll %>%
   ggtitle('Density Depth Profiles SE2204')
 
 ggsave('DensityDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
+ggsave('DensityDepthProfiles_AllStns.png', width=10, height = 5.625, dpi = 300)
 
 # Fluorescence Profiles 
 ctdAll %>% 
@@ -195,6 +199,7 @@ ctdAll %>%
   
 
 ggsave('FluorDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
+ggsave('FluorDepthProfiles_AllStns.png', width=10, height = 5.625, dpi = 300)
 
 
 
@@ -249,6 +254,7 @@ int.phos =
   ) +
   theme_minimal()
 int.phos
+ggsave('PhosInterp.png', width=10, height = 5.625, dpi = 300)
 
 nut_sili <- nut %>%
   mutate(
@@ -277,6 +283,7 @@ int.sili =
   ) +
   theme_minimal()
 int.sili
+ggsave('SiliInterp.png', width=10, height = 5.625, dpi = 300)
 
 nut_nit <- nut %>%
   mutate(
@@ -305,6 +312,8 @@ int.nit =
   ) +
   theme_minimal()
 int.nit
+ggsave('NInterp.png', width=10, height = 5.625, dpi = 300)
+
 
 nut_am <- nut %>%
   mutate(
@@ -332,8 +341,10 @@ int.am =
     fill = "Ammonia" ) +
   theme_minimal()
 int.am
+ggsave('AmmoniaInterp.png', width=10, height = 5.625, dpi = 300)
 
 cowplot::plot_grid(int.phos, int.sili, int.nit, int.am, nrow = 4)
+
 
 # Plotting
 # Silicate 
@@ -346,7 +357,9 @@ ggplot(nut, aes(x = Latitude, y = Depth2, color = Phosphate)) +
     x = "Latitude",
     y = "Depth (m)",
     color = "Phosphate" ) +
-  theme_minimal()
+  theme_minimal() +
+  theme(legend.key.size = unit(0.05, 'cm'))
+ggsave('PhosphateLat_bubble.png', width=10, height = 5.625, dpi = 300)
 
 ggplot(nut, aes(x=Silicate, y=Depth2)) +
   geom_path() +
@@ -362,8 +375,8 @@ ggplot(nut, aes(x=Silicate, y=Depth2)) +
   ylab('Depth [m]') +
   ggtitle('Silicate Depth Profiles SE2204')
 
-
 ggsave('SilicateDepthProfiles_AllStns.pdf', width=11, height = 8) 
+ggsave('SilicateDepthProfiles_line.png', width=10, height = 5.625, dpi = 300)
 
 # Phosphate
 ggplot(nut, aes(x=Phosphate, y=Depth2)) +
@@ -380,8 +393,8 @@ ggplot(nut, aes(x=Phosphate, y=Depth2)) +
   ylab('Depth [m]') +
   ggtitle('Phosphate Depth Profiles SE2204')
 
-
 ggsave('PhosphateDepthProfiles_AllStns.pdf', width=11, height = 8)
+ggsave('PhosphateDepthProfile_scatter.png', width=10, height = 5.625, dpi = 300)
 
 # Phosphate Pt. 2
 ggplot(nut, aes(x=Phosphate, y=Depth2)) +
@@ -400,6 +413,7 @@ ggplot(nut, aes(x=Phosphate, y=Depth2)) +
 
 
 ggsave('PhosphateXDepthProfiles_AllStns.pdf', width=11, height = 8)
+ggsave('PhosphateDepthProfile_scatterfreex.png', width=10, height = 5.625, dpi = 300)
 
 #Nitrite/Nitarte 
 ggplot(nut, aes(x= Nitrate...Nitrite, y=Depth2)) +
@@ -418,7 +432,7 @@ ggplot(nut, aes(x= Nitrate...Nitrite, y=Depth2)) +
 
 
 ggsave('NitrogenDepthProfiles_AllStns.pdf', width=11, height = 8)
-
+ggsave('NDepthProfile_scatter.png', width=10, height = 5.625, dpi = 300)
 
 # Ammonia 
 ggplot(nut, aes(x= Ammonia, y=Depth2)) +
@@ -437,30 +451,38 @@ ggplot(nut, aes(x= Ammonia, y=Depth2)) +
 
 
 ggsave('AmmoniaDepthProfiles_AllStns.pdf', width=11, height = 8)
-
+ggsave('AmmoniaDepthProfile_scatter.png', width=10, height = 5.625, dpi = 300)
 
 # Oxygen Vs. Temperature
+# install.packages("paletteer")
+library(paletteer)
+
 ctdAll %>% 
   ggplot(aes(x=newLat, y=Oxygen_cleaned, color = Cast)) + 
   geom_point(alpha = 1/10) +
   stat_smooth(method = "lm", formula = y ~ x, geom = "smooth") +
-  scale_color_viridis_c() +
+  # scale_color_viridis_c() +
+  scale_colour_paletteer_c(`"palr::ice_pal"`) +
   theme_minimal() +
   xlab('Latitude [°N]') + 
   ylab('Oxygen [umol/kg]') +
   ggtitle('Oxygen vs. Temperature Profiles SE2204')
 
 ggsave('O2vsTemp_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
-
+ggsave('O2vsT_linearR.png', width=10, height = 5.625, dpi = 300)
 
 # ---------- Code to plot multiple profiles in one plot -------------
 oxy <- read.csv('../GLORYS_oxygen_SE2204.csv')
 
 ggplot() + 
-  geom_path(data=ctdAll, aes(y=DepSM, x=Oxygen_cleaned), color='blue') +
-  geom_path(data=oxy, aes(y=Depth.y, x=Oxygen), color='red') +
+  geom_path(data=ctdAll, aes(y=DepSM, x=Oxygen_cleaned, color='CTD')) +
+  geom_path(data=oxy, aes(y=Depth.y, x=Oxygen, color='Discrete')) +
   scale_y_reverse() + 
   facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x') +
+  scale_color_manual(
+    name = "Data Source",  # Legend title
+    values = c("CTD" = "blue", "Discrete" = "red")) +
+  labs(color = "Data Source") +
   theme_bw() +
   theme(axis.line = element_line(colour = "black"),
         panel.grid.major = element_blank(),
@@ -468,6 +490,7 @@ ggplot() +
         panel.border = element_blank(),
         panel.background = element_blank()) 
 
+ggsave('O2GLORYS_CTD.png', width=10, height = 5.625, dpi = 300)
 
 # Correlations between Glorys and CTD data by station
 # List all the cast numbers
