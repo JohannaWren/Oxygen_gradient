@@ -793,21 +793,44 @@ names(corTable) <- c('Cast', 'R2')
 corTable
 
 
-# ------------ For Reference--------------------------------------------------
-### Changing date time and working with GLORYS oxygen data ####
+# ------------ For Reference-----------------------------------------------#
+###### Working with GLORYS .nc files to match with CTD depth profiles ######
+#--------------------------------------------------------------------------#
+# Get the depths from the GLORYS .nc file and replace them with the depth index when reading in the data
 library(ncdf4)
-nc <- nc_open('~/Downloads/cmems_mod_glo_bgc-bio_anfc_0.25deg_P1D-m_1749590619002.nc')
+nc <- nc_open('~/Downloads/cmems_mod_glo_bgc_my_0.25deg_P1D-m_1749767284346.nc')
 depth <- ncvar_get(nc, varid='depth')
-depth <- data.frame(DepthNr=1:37, Depth=depth)
+nc_close(nc)
 
+# read in the GLORYS .nc file
+library(raster)
+# remove the file names for the files we don't need. We can use the stnInfo file to only use the filenames of the stations we want to load in the data
+files <- stnInfo$FileName
+# Preallocate list
+o2 <- list()
+# Turn GLORYS nc into long format data frame
+# Read in GLORYS data for all dates in a loop over depth
+for (i in seq_along(depth)) {
+  oxy <- brick('~/Downloads/cmems_mod_glo_bgc_my_0.25deg_P1D-m_1749767284346.nc', varname='o2', level=i)
+  # extract the glorys data from the cruise locations and add station number and locations to the data and save in a list
+  o2[[i]] <- cbind(cbind(Depth=depth[i], stnInfo[,c(1,4,5)]), as.data.frame(raster::extract(oxy, stnInfo[,c('Lon', 'Lat')])))
+}
+# Turn the list into a dataframe and rename the id column to Depth
+oxy <- rbindlist(o2, use.names = T, idcol = F)
+head(oxy)
+tail(oxy)
+
+# Turn the dataframe from wide to long format so it's consistent with the CTD data
+oxyLong <- gather(oxy, key='Date', value = 'Oxygen', -Depth:-Lat)
+# Make a DateTime column to match with CTD data by removing the X in front of the date in the Date columne here (former colunm neading)
+oxyLong$DateTime <- as.Date(substr(oxyLong$Date, 2, 11), '%Y.%m.%d')
+head(oxyLong)
 # combine CTD metadata with oxygen data
 stnInfo$DateTime <- as.Date(stnInfo$Date, '%m/%d/%y %H:%M')
 oxyLong$DateTime <- as.Date(substr(oxyLong$Date, 2, 11), '%Y.%m.%d')
 test <- oxyLong %>% 
   left_join(stnInfo[,c(1,8, 10, 13)], by=c('Station', 'DateTime'))
 test <- na.omit(test)
-
-# Add depths to the oxygen dataframe
-test <- test %>% 
-  left_join(depth, by=c('Depth'='DepthNr'))
+head(test)
+oxyLong <- test
 
