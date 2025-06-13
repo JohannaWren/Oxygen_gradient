@@ -479,23 +479,26 @@ ggsave('O2vsT_linearR.png', width=10, height = 5.625, dpi = 300)
 
 
 
-# ---------- Code to plot multiple profiles in one plot -------------
+# ----------------------------- GLORYS ---------------------------------------
 clim <- read.csv('../GLORYS_Climatology_JunJul_SE2204.csv')
+head(clim)
+
 ggplot() + 
   geom_path(data=ctdAll, aes(y=DepSM, x=Oxygen_cleaned, color='CTD')) +
-  geom_path(data=oxy, aes(y=Depth, x=Oxygen, color='Discrete')) +
+  geom_path(data=clim, aes(y=Depth, x=Oxygen, color='GLORYS')) +
+  scale_y_reverse() +
   facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x') +
   scale_color_manual(
     name = "Data Source",  # Legend title
-    values = c("CTD" = "blue", "Discrete" = "red")) +
+    values = c("CTD" = "blue", "GLORYS" = "red")) +
   labs(color = "Data Source") +
   theme_bw() +
   theme(axis.line = element_line(colour = "black"),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.border = element_blank(),
-        panel.background = element_blank())
-
+        panel.background = element_blank()) +
+  ggtitle('Climatology GLORYS Comparison')
 
 
 oxy <- read.csv('../GLORYS_oxygen_SE2204.csv')
@@ -503,18 +506,20 @@ oxy <- read.csv('../GLORYS_oxygen_SE2204.csv')
 
 ggplot() + 
   geom_path(data=ctdAll, aes(y=DepSM, x=Oxygen_cleaned, color='CTD')) +
-  geom_path(data=oxy, aes(y=Depth, x=Oxygen, color='Discrete')) +
+  geom_path(data=oxy, aes(y=Depth, x=Oxygen, color='GLORYS')) +
+  scale_y_reverse() +
   facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x') +
   scale_color_manual(
     name = "Data Source",  # Legend title
-    values = c("CTD" = "blue", "Discrete" = "red")) +
+    values = c("CTD" = "blue", "GLORYS" = "red")) +
   labs(color = "Data Source") +
   theme_bw() +
   theme(axis.line = element_line(colour = "black"),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.border = element_blank(),
-        panel.background = element_blank()) 
+        panel.background = element_blank()) +
+  ggtitle('Daily GLORYS Comparison')
 
 ggsave('O2GLORYS_CTD.png', width=10, height = 5.625, dpi = 300)
 
