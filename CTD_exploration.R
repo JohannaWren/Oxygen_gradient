@@ -848,21 +848,79 @@ names(corTable) <- c('Cast', 'R2')
 corTable
 
 
-# ------------ For Reference--------------------------------------------------
-### Changing date time and working with GLORYS oxygen data ####
+# ------------ For Reference-----------------------------------------------#
+###### Working with GLORYS .nc files to match with CTD depth profiles ######
+#--------------------------------------------------------------------------#
+#### DAILY GLORYS DATA COMPARISON WITH CTD DATA
+# Get the depths from the GLORYS .nc file and replace them with the depth index when reading in the data
 library(ncdf4)
-nc <- nc_open('~/Downloads/cmems_mod_glo_bgc-bio_anfc_0.25deg_P1D-m_1749590619002.nc')
+nc <- nc_open('~/Downloads/cmems_mod_glo_bgc_my_0.25deg_P1D-m_1749767284346.nc')
 depth <- ncvar_get(nc, varid='depth')
-depth <- data.frame(DepthNr=1:37, Depth=depth)
+nc_close(nc)
 
+# read in the GLORYS .nc file
+library(raster)
+# remove the file names for the files we don't need. We can use the stnInfo file to only use the filenames of the stations we want to load in the data
+files <- stnInfo$FileName
+# Preallocate list
+o2 <- list()
+# Turn GLORYS nc into long format data frame
+# Read in GLORYS data for all dates in a loop over depth
+for (i in seq_along(depth)) {
+  oxy <- brick('~/Downloads/cmems_mod_glo_bgc_my_0.25deg_P1D-m_1749767284346.nc', varname='o2', level=i)
+  # extract the glorys data from the cruise locations and add station number and locations to the data and save in a list
+  o2[[i]] <- cbind(cbind(Depth=depth[i], stnInfo[,c(1,4,5)]), as.data.frame(raster::extract(oxy, stnInfo[,c('Lon', 'Lat')])))
+}
+# Turn the list into a dataframe and rename the id column to Depth
+oxy <- rbindlist(o2, use.names = T, idcol = F)
+head(oxy)
+tail(oxy)
+
+# Turn the dataframe from wide to long format so it's consistent with the CTD data
+oxyLong <- gather(oxy, key='Date', value = 'Oxygen', -Depth:-Lat)
+# Make a DateTime column to match with CTD data by removing the X in front of the date in the Date columne here (former colunm neading)
+oxyLong$DateTime <- as.Date(substr(oxyLong$Date, 2, 11), '%Y.%m.%d')
+head(oxyLong)
 # combine CTD metadata with oxygen data
-stnInfo$DateTime <- as.Date(stnInfo$Date, '%m/%d/%y %H:%M')
+time <- as.Date(stnInfo$Date, '%m/%d/%y %H:%M')
 oxyLong$DateTime <- as.Date(substr(oxyLong$Date, 2, 11), '%Y.%m.%d')
 test <- oxyLong %>% 
   left_join(stnInfo[,c(1,8, 10, 13)], by=c('Station', 'DateTime'))
 test <- na.omit(test)
+head(test)
+oxyLong <- test
+write.csv(test, 'SE2204_CTD_processed_down_cnv/GLORYS_oxygen_SE2204.csv', quote = F, row.names = F)
 
-# Add depths to the oxygen dataframe
-test <- test %>% 
-  left_join(depth, by=c('Depth'='DepthNr'))
+### CLIMATOLOGICAL GLORYS COMPARISON WITH CTD DATA
+library(terra)
+# Read in the .nc file as a SpatRast object
+oxyT <- rast('~/Downloads/cmems_mod_glo_bgc_my_0.25deg_P1M-m_1749767610042.nc')
+# get all unique depths
+d <- unique(depth(oxyT))
+# Make empty lists to store data
+oxyClim <- list()
+oxyCastClim <- list()
+for (i in seq_along(d)) {
+  # Subset data to one depth only
+  oxyD <- terra::subset(oxyT, depth(oxyT) == d[i])
+  # Calculate the mean (climatolory) by month for all years for the one depth
+  oxyClim[[i]] <- tapp(oxyD, 'month', 'mean')
+  oxyCastClim[[i]] <- terra::extract(oxyClim[[i]], stnInfo[,4:5], xy=T) %>% 
+    select(x,y, m_6, m_7) %>% 
+    bind_cols(stnInfo[,c(1,8,10,13)], Depth=d[i])  
+}
+oxyClim67 <- rbindlist(oxyCastClim, use.names = T, idcol = F) %>% 
+  select(7,5,6,1,2,8,9,3,4) %>% 
+  rename(Lon=x, Lat=y, June=m_6, July=m_7)
+head(oxyClim67)
+
+oxyClimLong <- gather(oxyClim67, key='MonthB', value='Oxygen', -Cast:-Depth) %>% 
+  mutate(Month=month(DateTime))
+head(oxyClimLong)
+
+write.csv(oxyClimLong, 'SE2204_CTD_processed_down_cnv/GLORYS_Climatology_JunJul_SE2204.csv', quote = F, row.names = F)
+
+### MONTHLY GLORYS DATA COMPARISON WITH CTD DATA
+
+
 
