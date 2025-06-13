@@ -38,6 +38,8 @@ phyto %>%
   xlab('Temperature [°C]')+ ylab('Depth [m]') +
   ggtitle('Temperature Depth Profiles SE2204')
 
+ggsave('PhytoT_scatter.png', width=10, height = 5.625, dpi = 300)
+
 # Bar chart for one depth 
 selected_depth <- 0
 df_filtered <- subset(phyto, Depth == selected_depth)
@@ -46,6 +48,8 @@ ggplot(df_filtered, aes(x = Cast, y=Chlorophyll)) +
   scale_x_continuous(breaks = unique(phyto$Cast)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   geom_bar(stat = "identity", fill = "darkgreen")
+
+ggsave('ChlCast_bar.png', width=10, height = 5.625, dpi = 300)
 
 # Bar chart for all depths
 ggplot(phyto, aes(x = Depth, y = Chlorophyll)) +
@@ -57,7 +61,9 @@ ggplot(phyto, aes(x = Depth, y = Chlorophyll)) +
        y = "Chlorophyll (mg/m^3)") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 90, vjust=0.5))
-  
+
+ggsave('ChlCast_Depth_bar.png', width=10, height = 5.625, dpi = 300)
+
 
 ggplot(phyto, aes(x = Cast, y = Chlorophyll)) +
   geom_bar(stat = "identity", fill = "darkgreen") +
@@ -69,6 +75,7 @@ ggplot(phyto, aes(x = Cast, y = Chlorophyll)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   theme_minimal()
 
+ggsave('ChlDepth_Cast_bar.png', width=10, height = 5.625, dpi = 300)
 
  # Bubble Figure
   a.02 = 
@@ -83,6 +90,9 @@ ggplot(phyto, aes(x = Cast, y = Chlorophyll)) +
      theme_minimal() +
      # facet_wrap(Size~., ncol=1)
      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+  a.02
+  ggsave('Chl.02_cast_bubble.png', width=10, height = 5.625, dpi = 300)
+  
  a.20 = 
      phyto %>% 
     filter(Size==0.2) %>% 
@@ -92,6 +102,8 @@ ggplot(phyto, aes(x = Cast, y = Chlorophyll)) +
    xlab('Cast') + ylab('Depth [m])') +
      theme_minimal() +
      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ ggsave('Chl.20_cast_bubble.png', width=10, height = 5.625, dpi = 300)
+ 
  a20 = 
      phyto %>% 
      filter(Size==0.2) %>% 
@@ -101,9 +113,17 @@ ggplot(phyto, aes(x = Cast, y = Chlorophyll)) +
    xlab('Cast') + ylab('Depth [m])') +
      theme_minimal()+
      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ ggsave('Chl20_cast_bubble.png', width=10, height = 5.625, dpi = 300)
+ 
  cowplot::plot_grid(a.02, a.20, a20, nrow = 1)
  
  ggsave('ChlBubblePlot_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
+ ggsave('ChlBubblePlot_AllStns.png', width=10, height = 5.625, dpi = 300, units = 'in')
+ 
+ 
+ 
+ 
+ 
  
 # --------------------------------- ZOOPLANKTON -------------------------------
 zoops <- read_xlsx(paste(here(), 'Biomass filter weights.xlsx', sep='/'), sheet = 1)
@@ -129,11 +149,15 @@ ggplot(zoops, aes( x =net_cast_number, y =size_fraction, size =net_dry_weight)) 
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
+ggsave('Zoop_bubble.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+
 # LM for all Casts
 ggplot(zoops, aes(x=size_fraction, y=net_dry_weight, group=as.factor(net_cast_number), color=as.factor(net_cast_number))) +
   scale_color_viridis_d() +
   geom_point() + 
   geom_smooth(method='lm', se=F)
+ggsave('Zoop_LM.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 # Panels for all casts and their linear regression lines/equation
 zoops %>% 
@@ -153,6 +177,7 @@ zoops %>%
   theme_minimal() 
 
 ggsave('SizeAbunPanel_RegLine.pdf', width=11, height = 8, dpi = 300, units = 'in')
+ggsave('ZoopSizeAbun_linearR.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 # Log Scale x and y
 zoops %>% 
@@ -170,6 +195,7 @@ zoops %>%
   xlab('Size') + ylab('Abundance (dry weight [g])') +
   ggtitle('Size vs. Abundance for Zooplankton SE2204') +
   theme_minimal() 
+ggsave('ZoopSizeAbun_linearR_log10.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 zoopsSub <- zoops[which(zoops$net_cast_number== 1),]
 zoopsLm <- lm(net_dry_weight ~ size_fraction, data=zoopsSub)
