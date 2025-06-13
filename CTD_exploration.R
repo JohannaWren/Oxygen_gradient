@@ -482,8 +482,6 @@ ggsave('O2vsT_linearR.png', width=10, height = 5.625, dpi = 300)
 # ----------------------------- GLORYS ---------------------------------------
 # Read in CLIMATOLOGY GLORYS Data 
 clim <- read.csv('../GLORYS_Climatology_JunJul_SE2204.csv')
-clim <- clim %>% 
-  filter((MonthB == 'June' & Month == 6) | (MonthB == 'July' & Month == 7))
 head(clim)
 
 # Plot of CTD vs Climatology GLORYS Data 
@@ -516,6 +514,7 @@ ggplot() +
 
 # Read in DAILY GLORYS Data 
 oxy <- read.csv('../GLORYS_oxygen_SE2204.csv')
+head(oxy)
 
 # Plot of CTD vs Daily GLORYS Data 
 ggplot() + 
@@ -976,8 +975,10 @@ oxyClim67 <- rbindlist(oxyCastClim, use.names = T, idcol = F) %>%
   rename(Lon=x, Lat=y, June=m_6, July=m_7)
 head(oxyClim67)
 
-oxyClimLong <- gather(oxyClim67, key='MonthB', value='Oxygen', -Cast:-Depth) %>% 
-  mutate(Month=month(DateTime))
+# Put into long format and remove GLORYS data for months when there was no sampling
+oxyClimLong <- gather(oxyClim67, key='MonthB', value='Oxygen', -Cast:-Depth) %>%  # put in long format
+  mutate(Month=month(DateTime)) %>%  # add a month column
+  filter((MonthB == 'June' & Month == 6) | (MonthB == 'July' & Month == 7))  # Remove GLORYS data for months that don't coincide with sampling times
 head(oxyClimLong)
 
 write.csv(oxyClimLong, 'SE2204_CTD_processed_down_cnv/GLORYS_Climatology_JunJul_SE2204.csv', quote = F, row.names = F)
@@ -997,10 +998,16 @@ oxyCastM <- terra::extract(oxyM, stnInfo[,4:5], xy=T) %>%
   rename(LonG=x, LatG=y)
 head(oxyCastM)
 # Merge the monthly GLORYS data with the cast metadata. Had to do this by ID (1-23)
-oxyMonthLong <- stnInfo %>% mutate(ID=1:n()) %>% select(c(1,8,10,13,4,5,14)) %>% 
-  right_join(oxyCastM, by='ID')
+oxyMonthLong <- stnInfo %>% 
+  mutate(ID=1:n(), Month=month(DateTime)) %>% 
+  select(c(1,8,10,13,4,5,14,15)) %>% 
+  right_join(oxyCastM, by=c('ID', 'Month')) %>% 
+  na.omit() %>% 
+  select(3,1,2,5,6,4,8,14,12)
 head(oxyMonthLong)
-  
+# Save file
+write.csv(oxyClimLong, 'SE2204_CTD_processed_down_cnv/GLORYS_Monthly_JunJul_SE2204.csv', quote = F, row.names = F)
+
 
 
 
