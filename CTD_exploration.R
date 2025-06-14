@@ -1006,7 +1006,7 @@ oxyMonthLong <- stnInfo %>%
   select(3,1,2,5,6,4,8,14,12)
 head(oxyMonthLong)
 # Save file
-write.csv(oxyClimLong, 'SE2204_CTD_processed_down_cnv/GLORYS_Monthly_JunJul_SE2204.csv', quote = F, row.names = F)
+write.csv(oxyMonthLong, 'SE2204_CTD_processed_down_cnv/GLORYS_Monthly_JunJul_SE2204.csv', quote = F, row.names = F)
 
 
 
