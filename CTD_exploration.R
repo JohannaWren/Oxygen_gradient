@@ -502,14 +502,32 @@ ggplot() +
         panel.background = element_blank()) +
   ggtitle('Climatology Oxygen: GLORYS Model and SE2204 CTD Observations')
 
+ggsave('O2Climatology_GLORYS.png', width=10, height = 5.625, dpi = 300)
 
 
 
 #Read in MONTHLY GLORYS Data
+oxymonth <- read.csv("../GLORYS_Monthly_JunJul_SE2204.csv")
 
 #Plot of CTD vs Monthly GLORYS Data 
+ggplot() + 
+  geom_path(data=ctdAll, aes(y=DepSM, x=Oxygen_cleaned, color='CTD')) +
+  geom_path(data=oxymonth, aes(y=Depth, x=Oxygen, color='GLORYS')) +
+  scale_y_reverse() +
+  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x') +
+  scale_color_manual(
+    name = "Data Source",  # Legend title
+    values = c("CTD" = "blue", "GLORYS" = "red")) +
+  labs(color = "Data Source") +
+  theme_bw() +
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) +
+  ggtitle('Monthly Oxygen: GLORYS Model and SE2204 CTD Observations')
 
-
+ggsave('O2Monthly_GLORYS.png', width=10, height = 5.625, dpi = 300)
 
 
 # Read in DAILY GLORYS Data 
@@ -575,11 +593,11 @@ for (i in seq_along(castIdx)) {
   climCorList[[i]] <- PearsonCorr(ctdAll, clim, castIdx[i])
 }
 
-# monthCorList <- list()
-# castIdx <- unique(ctdAll$Cast)
-# for (i in seq_along(castIdx)) {
-#   climCorList[[i]] <- PearsonCorr(ctdAll, clim, castIdx[i])
-# }
+monthCorList <- list()
+castIdx <- unique(ctdAll$Cast)
+for (i in seq_along(castIdx)) {
+climCorList[[i]] <- PearsonCorr(ctdAll, clim, castIdx[i])
+}
 
 #Making a table for correlations between CTD and GLORYS
 corTable <- matrix(nrow = length(castIdx), ncol = 4)
@@ -1006,7 +1024,7 @@ oxyMonthLong <- stnInfo %>%
   select(3,1,2,5,6,4,8,14,12)
 head(oxyMonthLong)
 # Save file
-write.csv(oxyMonthLong, 'SE2204_CTD_processed_down_cnv/GLORYS_Monthly_JunJul_SE2204.csv', quote = F, row.names = F)
+write.csv(oxyClimLong, 'SE2204_CTD_processed_down_cnv/GLORYS_Monthly_JunJul_SE2204.csv', quote = F, row.names = F)
 
 
 
