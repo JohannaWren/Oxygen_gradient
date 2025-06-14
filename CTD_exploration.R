@@ -75,7 +75,7 @@ ctdAll$newLat <- ctdAll$Latitude
 for (l in unique(ctdAll$Cast)) {
   idl <- which(ctdAll$Cast == l)
   idc <- which(ctdAll$Cast == l & ctdAll$Latitude < 0) 
-  print(summary(ctdAll[idc,c('Latitude', 'Cast')]))
+  #print(summary(ctdAll[idc,c('Latitude', 'Cast')]))
   ctdAll$newLat[idc] <- mean(ctdAll$Latitude[idl], na.rm = T)
 }
 head(ctdAll)
@@ -100,27 +100,62 @@ ggplot(ctdAll, aes(x=Oxygen_cleaned, y=DepSM)) +
 #   facet_wrap(.~varName, scales = 'free_x') + 
 #   scale_y_reverse()
 
-
-# Plot Oxycline
-o2_min <- ctdAll %>% 
-  group_by(Cast) %>% 
-  slice(which.min(Oxygen_cleaned)) %>% select(Cast, DepSM)
-
-ctdAll %>% 
-  ggplot(aes(x=Oxygen_cleaned, y=DepSM)) + 
+depthProfile <- function(CTDdata, PlotVar, VarName, figTitle) {
+  # Calculate depth of oxygen minimum
+  o2_min <- CTDdata %>% 
+    group_by(Cast) %>% 
+    slice(which.min(get(PlotVar))) %>% 
+    select(Cast, DepSM)
+  # Make depth profile with line showing oxygen minimum
+  p <- CTDdata %>%
+    ggplot(aes(x=get(PlotVar), y=DepSM)) +
     geom_path() +
-    scale_y_reverse() + 
+    scale_y_reverse() +
     facet_wrap(.~Cast, labeller=labeller(Cast=id.labs)) +
     theme_bw() +
     theme(axis.line = element_line(colour = "black"),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.border = element_blank(),
-        panel.background = element_blank()) +
+          panel.grid.major = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank(),
+          panel.background = element_blank()) +
     geom_hline(data = o2_min, aes(yintercept = DepSM), linetype= 'dashed', color='red') +
     #geom_hline(yintercept = 500, linetype = "dashed", color = "gray")
-    xlab('Oxygen [umol/kg]') + ylab('Depth [m]') +
-    ggtitle('Oxygen Depth Profiles SE2204')
+    xlab(VarName) + ylab('Depth [m]') +
+    ggtitle(figTitle)
+  return(p)
+}
+
+# Make oxygen profile with oxygen min marked with line
+oxyProfile <- depthProfile(ctdAll, 'Oxygen_cleaned', 'Oxygen [umol/kg]', 'Oxygen depth profile for SE2204')
+ggsave(plot=oxyProfile, filename='O2DepthProfiles_AllStns_min.pdf', width=11, height = 8, dpi = 300, units = 'in')
+ggsave(plot=oxyProfile, filename='O2DepthProfiles_AllStns_min.png', width=10, height = 5.625, dpi = 300)
+
+# Make temperature profile with oxygen min marked with line
+oxyProfile <- depthProfile(ctdAll, "T090C", 'Oxygen [umol/kg]', 'Oxygen depth profile for SE2204')
+ggsave(plot=oxyProfile, filename='O2DepthProfiles_AllStns_min.pdf', width=11, height = 8, dpi = 300, units = 'in')
+ggsave(plot=oxyProfile, filename='O2DepthProfiles_AllStns_min.png', width=10, height = 5.625, dpi = 300)
+
+
+# # Plot Oxycline
+# o2_min <- ctdAll %>% 
+#   group_by(Cast) %>% 
+#   slice(which.min(Oxygen_cleaned)) %>% select(Cast, DepSM)
+# 
+# ctdAll %>% 
+#   ggplot(aes(x=Oxygen_cleaned, y=DepSM)) + 
+#     geom_path() +
+#     scale_y_reverse() + 
+#     facet_wrap(.~Cast, labeller=labeller(Cast=id.labs)) +
+#     theme_bw() +
+#     theme(axis.line = element_line(colour = "black"),
+#         panel.grid.major = element_blank(),
+#         panel.grid.minor = element_blank(),
+#         panel.border = element_blank(),
+#         panel.background = element_blank()) +
+#     geom_hline(data = o2_min, aes(yintercept = DepSM), linetype= 'dashed', color='red') +
+#     #geom_hline(yintercept = 500, linetype = "dashed", color = "gray")
+#     xlab('Oxygen [umol/kg]') + ylab('Depth [m]') +
+#     ggtitle('Oxygen Depth Profiles SE2204')
 
 ggsave('O2DepthProfiles_AllStns_min.pdf', width=11, height = 8, dpi = 300, units = 'in')
 ggsave('O2DepthProfiles_AllStns_min.png', width=10, height = 5.625, dpi = 300)
