@@ -3,9 +3,6 @@ title: "Waypoint and map for SE2204 cruise"
 author: "Johanna Wren"
 date: "April 29, 2022"
 output:
-  html_document:
-    toc: yes
-    df_print: paged
   html_notebook:
     code_folding: hide
     theme: flatly
@@ -13,6 +10,9 @@ output:
     toc_float:
       collapsed: no
       tod_depth: 3
+  html_document:
+    toc: yes
+    df_print: paged
 ---
 
 ```{r setup, include=FALSE}
