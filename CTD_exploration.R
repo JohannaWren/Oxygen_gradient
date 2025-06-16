@@ -580,7 +580,7 @@ PearsonCorr <- function(CTDdata, Gdata, CastNr) {
   return(oxyCor)
 }
 
-#Defining lists for Daily & Climatology GLORYS data
+#Defining lists for Daily, Monthly, and Climatology GLORYS data
 oxyCorList <- list()
 castIdx <- unique(ctdAll$Cast)
 for (i in seq_along(castIdx)) {
@@ -596,7 +596,7 @@ for (i in seq_along(castIdx)) {
 monthCorList <- list()
 castIdx <- unique(ctdAll$Cast)
 for (i in seq_along(castIdx)) {
-climCorList[[i]] <- PearsonCorr(ctdAll, clim, castIdx[i])
+monthCorList[[i]] <- PearsonCorr(ctdAll, oxymonth, castIdx[i])
 }
 
 #Making a table for correlations between CTD and GLORYS
@@ -604,10 +604,11 @@ corTable <- matrix(nrow = length(castIdx), ncol = 4)
 for (j in 1:length(oxyCorList)) {
   x <- oxyCorList[[j]]$estimate^2
   y <- climCorList[[j]]$estimate^2
-  # z <- monthCorList[[j]]$estimate^2
+  z <- monthCorList[[j]]$estimate^2
   corTable[j,1] <- castIdx[j]
   corTable[j,2] <- x
   corTable[j,3] <- y
+  corTable[j,4] <- z
 }
 corTable <- as.data.frame(corTable)
 names(corTable) <- c('Cast', 'Daily_Rsq', 'Clim_Rsq', 'Monthly_Rsq')
