@@ -18,8 +18,10 @@ head(phyto)
 
 # Clean up the phytoplankton data and make sure and turn filter into sizes
 phyto <- phyto %>% 
-  filter(Filter != 'bulk') %>% 
+  #filter(Filter != 'bulk') %>% 
   mutate(Size=as.numeric(Filter))
+# Turning a character (bulk) into a number produces an NA. To put the size in there instead we run the below line. Bulk filters are 0.7um pore ize
+phyto$Size[is.na(phyto$Size)] <-  0.7
 head(phyto)
 # Make file for nice station plotting
 id.labs <- phyto$Station
@@ -137,10 +139,21 @@ ggsave('ChlDepth_Cast_bar.png', width=10, height = 5.625, dpi = 300)
  
  
  # scatter plot
- phyto %>% filter(Depth == 0) %>% 
-ggplot() +
-  geom_point(aes(Size, Chlorophyll, group=Cast, color=as.factor(Cast))) +
-  theme_bw()
+phyto %>% filter(Depth == 80) %>% 
+  ggplot(aes(x=Size, y=Chlorophyll)) + 
+   geom_point() +
+   geom_smooth(method='lm', se=F, linewidth = 0.75, colour = 'darkgreen', alpha = 0.2) +
+   stat_poly_eq(
+     aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
+     formula = y ~ x,
+     parse = TRUE,
+     size = 3) +
+   facet_wrap(.~Cast, nrow = 3) +
+   scale_x_log10() +
+   scale_y_log10() +
+   xlab(expression('Size ('*mu*'g)')) + ylab(expression('Chlorophyll ('*mu*'g/L)')) +
+   ggtitle('Size vs. Abundance for phytoplankton SE2204') +
+   theme_bw() + theme(panel.grid = element_blank()) 
   
  
  
