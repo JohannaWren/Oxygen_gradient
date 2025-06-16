@@ -1,7 +1,7 @@
-# Skelleton script for making abundance size plots
+# Skeleton script for making abundance size plots
 
 # load libraries
-install.packages("ggpmisc")  # Only if not installed
+#install.packages("ggpmisc")  # Only if not installed
 library(ggpmisc)
 library(dplyr)
 library(readxl)
@@ -12,7 +12,8 @@ library(tidyr)
 library(data.table)
 
 # load the data
-phyto <- read.csv(paste(here(), 'fluorometry_SE2204.csv', sep='/'))
+#phyto <- read.csv(paste(here(), 'fluorometry_SE2204.csv', sep='/'))  # Emma's
+phyto <- read.csv(paste(here(), 'Data/fluorometry_SE2204.csv', sep='/'))  # Johanna's
 head(phyto)
 
 # Clean up the phytoplankton data and make sure and turn filter into sizes
@@ -20,7 +21,9 @@ phyto <- phyto %>%
   filter(Filter != 'bulk') %>% 
   mutate(Size=as.numeric(Filter))
 head(phyto)
-id.labs <- phyto$Cast
+# Make file for nice station plotting
+id.labs <- phyto$Station
+names(id.labs) <- phyto$Cast
 id.labs
 
 # Scatter plots for all casts 
@@ -95,7 +98,7 @@ ggsave('ChlDepth_Cast_bar.png', width=10, height = 5.625, dpi = 300)
   
  a.20 = 
      phyto %>% 
-    filter(Size==0.2) %>% 
+    filter(Size==2) %>% 
     ggplot(aes(x = as.factor(Cast), y = Depth, size = Chlorophyll)) +
    geom_point(alpha = 0.6, color ="darkgreen") +
      scale_y_reverse() +
@@ -106,7 +109,7 @@ ggsave('ChlDepth_Cast_bar.png', width=10, height = 5.625, dpi = 300)
  
  a20 = 
      phyto %>% 
-     filter(Size==0.2) %>% 
+     filter(Size==20) %>% 
      ggplot(aes(x = as.factor(Cast), y = Depth, size = Chlorophyll)) +
      geom_point(alpha = 0.6, color ="darkgreen") +
      scale_y_reverse() +
@@ -121,12 +124,29 @@ ggsave('ChlDepth_Cast_bar.png', width=10, height = 5.625, dpi = 300)
  ggsave('ChlBubblePlot_AllStns.png', width=10, height = 5.625, dpi = 300, units = 'in')
  
  
+ # Heatmap
+ p02 <- phyto %>% 
+   filter(Size == 0.2) %>% 
+   ggplot() +
+    geom_tile(aes(x=as.factor(Cast), y=Depth, fill=Chlorophyll)) +
+    scale_y_reverse() +
+    scale_fill_gradient(low='white', high='darkgreen') +
+    xlab('Cast') + 
+    ylab('Depth [m])') +
+    theme_minimal()
  
  
+ # scatter plot
+ phyto %>% filter(Depth == 0) %>% 
+ggplot() +
+  geom_point(aes(Size, Chlorophyll, group=Cast, color=as.factor(Cast))) +
+  theme_bw()
+  
  
  
 # --------------------------------- ZOOPLANKTON -------------------------------
-zoops <- read_xlsx(paste(here(), 'Biomass filter weights.xlsx', sep='/'), sheet = 1)
+#zoops <- read_xlsx(paste(here(), 'Biomass filter weights.xlsx', sep='/'), sheet = 1) # Emma's
+zoops <- read_xlsx(paste(here(), 'Data/Biomass filter weights.xlsx', sep='/'), sheet = 1)  # Johanna's
 head(zoops)
 
 # Clean up zooplankton data
