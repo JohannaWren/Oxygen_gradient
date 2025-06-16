@@ -118,7 +118,7 @@ depthProfile <- function(CTDdata, PlotVar, VarName, figTitle) {
           panel.grid.minor = element_blank(),
           panel.border = element_blank(),
           panel.background = element_blank()) +
-    {if (PlotVar == 'Oxygen') geom_hline(data = o2_min, aes(yintercept = Depth), linetype= 'dashed', color='red')} +
+    {if (PlotVar %in% c('Oxygen', 'FlECO.AFL')) geom_hline(data = o2_min, aes(yintercept = Depth), linetype= 'dashed', color='red')} +
     #geom_hline(data = o2_min, aes(yintercept = Depth), linetype= 'dashed', color='red') +
     #geom_hline(yintercept = 500, linetype = "dashed", color = "gray")
     xlab(VarName) + ylab('Depth [m]') +
@@ -137,26 +137,26 @@ tempProfile <- depthProfile(ctdAll, "T090C", 'Temperature [°C]', 'Temerature de
 #ggsave(plot=oxyProfile, filename='O2DepthProfiles_AllStns_min.png', width=10, height = 5.625, dpi = 300)
 
 
-# # Plot Oxycline
-# o2_min <- ctdAll %>% 
-#   group_by(Cast) %>% 
-#   slice(which.min(Oxygen)) %>% select(Cast, Depth)
-# 
-# ctdAll %>% 
-#   ggplot(aes(x=Oxygen, y=Depth)) + 
-#     geom_path() +
-#     scale_y_reverse() + 
-#     facet_wrap(.~Cast, labeller=labeller(Cast=id.labs)) +
-#     theme_bw() +
-#     theme(axis.line = element_line(colour = "black"),
-#         panel.grid.major = element_blank(),
-#         panel.grid.minor = element_blank(),
-#         panel.border = element_blank(),
-#         panel.background = element_blank()) +
-#     geom_hline(data = o2_min, aes(yintercept = Depth), linetype= 'dashed', color='red') +
-#     #geom_hline(yintercept = 500, linetype = "dashed", color = "gray")
-#     xlab('Oxygen [umol/kg]') + ylab('Depth [m]') +
-#     ggtitle('Oxygen Depth Profiles SE2204')
+# Plot Oxygen Minimum 
+o2_min <- ctdAll %>%
+  group_by(Cast) %>%
+  slice(which.min(Oxygen)) %>% select(Cast, Depth)
+
+ctdAll %>%
+  ggplot(aes(x=Oxygen, y=Depth)) +
+    geom_path() +
+    scale_y_reverse() +
+    facet_wrap(.~Cast, labeller=labeller(Cast=id.labs)) +
+    theme_bw() +
+    theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) +
+    geom_hline(data = o2_min, aes(yintercept = Depth), linetype= 'dashed', color='red') +
+    #geom_hline(yintercept = 500, linetype = "dashed", color = "gray")
+    xlab('Oxygen [umol/kg]') + ylab('Depth [m]') +
+    ggtitle('Oxygen Depth Profiles SE2204')
 
 ggsave('O2DepthProfiles_AllStns_min.pdf', width=11, height = 8, dpi = 300, units = 'in')
 ggsave('O2DepthProfiles_AllStns_min.png', width=10, height = 5.625, dpi = 300)
@@ -452,14 +452,59 @@ ggsave('PhosphateXDepthProfiles_AllStns.pdf', width=11, height = 8)
 ggsave('PhosphateDepthProfile_scatterfreex.png', width=10, height = 5.625, dpi = 300)
 
 #Nitrite/Nitarte 
+
+# Rough line for nutrient increase
+# nut_lines <- nut %>%
+#   group_by(Cast) %>%
+#   filter(!is.na(`Nitrate...Nitrite`)) %>%
+#   slice_min(order_by = `Nitrate...Nitrite`, n = 1, with_ties = FALSE) %>%
+#   ungroup() %>%
+#   select(Cast, Depth2)
+
+library(zoo)
+nut_slope <- nut %>%
+  group_by(Cast) %>%
+  arrange(Depth2) %>%
+  mutate(
+    smoothed = zoo::rollapply(`Nitrate...Nitrite`, width = 5, FUN = mean, fill = NA, align = "center"),
+    slope = c(NA, diff(smoothed) / diff(Depth2))  # approximate derivative
+  ) %>%
+  ungroup()
+min_depths <- nut_slope %>%
+  group_by(Cast) %>%
+  filter(!is.na(smoothed)) %>%
+  slice_min(smoothed, n = 1, with_ties = FALSE) %>%
+  select(Cast, min_depth = Depth2)
+nut_rising <- nut_slope %>%
+  inner_join(min_depths, by = "Cast") %>%
+  filter(Depth2 > min_depth) %>%
+  group_by(Cast) %>%
+  mutate(min_value = min(smoothed, na.rm = TRUE)) %>%
+  filter(smoothed > min_value + .025) %>%  # <- Change '1' depending on your data range
+  slice_min(Depth2, n = 1) %>%
+  select(Cast, Depth2)
+# nut_inflection <- nut_slope %>%
+#   group_by(Cast) %>%
+#   filter(!is.na(slope)) %>%
+#   filter(slope > 0.01) %>%
+#   slice_min(Depth2, n = 1) %>%
+#   select(Cast, Depth2) %>%
+#   ungroup()
+# 
+
 ggplot(nut, aes(x= Nitrate...Nitrite, y=Depth2)) +
   geom_point() +
+  # geom_hline(data = nut_lines, aes(yintercept = Depth2), color = "red", linetype = "dashed") +
+  # geom_hline(data = nut_inflection, aes(yintercept = Depth2), 
+  #            color = "red", linetype = "dashed") +
+  geom_hline(data = nut_rising, aes(yintercept = Depth2), 
+             color = "red", linetype = "dashed") +
   scale_y_reverse() +
   facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x') +
   theme_bw() +
   theme(axis.line = element_line(colour = "black"),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
+        # panel.grid.major = element_blank(),
+        # panel.grid.minor = element_blank(),
         panel.border = element_blank(),
         panel.background = element_blank()) +
   xlab('Nitrate/Nitrite [umol/L]') + 
@@ -467,8 +512,8 @@ ggplot(nut, aes(x= Nitrate...Nitrite, y=Depth2)) +
   ggtitle('Nitrate/Nitrite Depth Profiles SE2204')
 
 
-ggsave('NitrogenDepthProfiles_AllStns.pdf', width=11, height = 8)
-ggsave('NDepthProfile_scatter.png', width=10, height = 5.625, dpi = 300)
+# ggsave('NitrogenDepthProfiles_AllStns.pdf', width=11, height = 8)
+# ggsave('NDepthProfile_scatter.png', width=10, height = 5.625, dpi = 300)
 
 # Ammonia 
 ggplot(nut, aes(x= Ammonia, y=Depth2)) +
