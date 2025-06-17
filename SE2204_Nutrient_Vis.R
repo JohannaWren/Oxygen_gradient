@@ -6,21 +6,21 @@ library(readxl)
 library(stringr)
 
 # 
-setwd('~/Documents/Cruises/SE2204_BETOceanography/SE2204 - Hot Spot/')
+#setwd('~/Documents/Cruises/SE2204_BETOceanography/SE2204 - Hot Spot/')
 ##-------------------------------------------------------------
 ## Read in the data
 ##-------------------------------------------------------------
 # Nutrients
-nutrients <- readxl::read_xls('SE2204_Nutrient_data.xls', skip=12)
-nutrients <- nutrients[-1,]
-colnames(nutrients)[1] <- 'index'
-nutrients$index <- as.numeric(nutrients$index)
-str(nutrients)
-nutmeta <- read.csv('SE2204_nutrient_metadata.csv')
+# nutrients <- readxl::read_xls('SE2204_Nutrient_data.xls', skip=12)
+# nutrients <- nutrients[-1,]
+# colnames(nutrients)[1] <- 'index'
+# nutrients$index <- as.numeric(nutrients$index)
+# str(nutrients)
+nutmeta <- read.csv('SE2204_nutrient_metadata.csv')  # If using the file where you put the nutrients into the metadata file, no need to merge datasets
 nutmeta$Depth <- as.numeric(str_sub(nutmeta$Depth, start=1, end=-2))
 nutmeta$index <- 1:nrow(nutmeta)
 nutmeta <- nutmeta[-28,]
-nut <- full_join(nutrients, nutmeta)
+nut <- nutmeta #full_join(nutrients, nutmeta)
 nut
 
 nut$Ammonia <- ifelse(nut$Ammonia == "<0.02", 0.01, as.numeric(nut$Ammonia))
@@ -93,9 +93,12 @@ nut
 library(MBA)
 library(reshape2)
 library(ggplot2)
+# To plot chlorophyll points on top of nutrient profile
+test <- phyto %>%  filter(Size==0.2)%>% left_join(nutmeta[,c(2,4,5)], by='Station')
+
 nutriDN <- nut %>% 
-  dplyr::select(Latitude, Depth, Phosphate) %>% 
-  rename(NutVar=Phosphate)
+  dplyr::select(Latitude, Depth, Nitrate...Nitrite) %>% 
+  rename(NutVar=Nitrate...Nitrite)
 
 ctd_mba <- mba.surf(na.omit(nutriDN), no.X = 300, no.Y = 300, extend = T)
 dimnames(ctd_mba$xyz.est$z) <- list(ctd_mba$xyz.est$x, ctd_mba$xyz.est$y)
@@ -113,6 +116,7 @@ ggplot(data = ctd_mba, aes(x = Latitude, y = Depth)) +
   ### Activate to see which pixels are real and not interpolated
   geom_point(data = nutriDN, aes(x = Latitude, y = Depth),
              colour = 'black', size = 0.2, alpha = 0.4, shape = 8) +
+  geom_point(data=test, aes(x=Latitude, y=Depth, size=Chlorophyll), color='white') +
   ###
   labs(y = "Depth (m)", x = 'Latitude', fill = "Phosphate\n(µmol/L)") +
   coord_cartesian(expand = 0) +
