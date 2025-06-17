@@ -34,6 +34,7 @@ str(ctd_list[[10]])
 ctdAll <- rbindlist(ctd_list, use.names = T, idcol = T) %>% 
   rename(FileNum=.id, Depth=DepSM)
 
+
 # Make Datetime column
 ctdAll$DateTime <- as.POSIXct(paste(ctdAll$mm.dd.yyyy, ctdAll$hh.mm.ss), format='%m/%d/%Y %H:%M:%S')
 # remove missing oxygen data
@@ -202,7 +203,7 @@ ggplot(interp_df, aes(x = Latitude, y = Depth, fill = Temperature)) +
     fill = "Temperature [°C]",
     title = "Interpolated Temperature Section"
   )
-ggsave('Temp_Interp.png', width=10, height = 5.625, dpi = 300)
+# ggsave('Temp_Interp.png', width=10, height = 5.625, dpi = 300)
 
 # Plot Oxygen Minimum 
 o2_min <- ctdAll %>%
@@ -225,8 +226,8 @@ ctdAll %>%
     xlab('Oxygen [umol/kg]') + ylab('Depth [m]') +
     ggtitle('Oxygen Depth Profiles SE2204')
 
-ggsave('O2DepthProfiles_AllStns_min.pdf', width=11, height = 8, dpi = 300, units = 'in')
-ggsave('O2DepthProfiles_AllStns_min.png', width=10, height = 5.625, dpi = 300)
+# ggsave('O2DepthProfiles_AllStns_min.pdf', width=11, height = 8, dpi = 300, units = 'in')
+# ggsave('O2DepthProfiles_AllStns_min.png', width=10, height = 5.625, dpi = 300)
 
 
 #Thermocline Profiles 
@@ -244,8 +245,8 @@ ctdAll %>%
   xlab('Temperature [°C]')+ ylab('Depth [m]') +
   ggtitle('Temperature Depth Profiles SE2204')
 
-ggsave('TempDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
-ggsave('TempDepthProfiles_AllStns.png', width=10, height = 5.625, dpi = 300)
+# ggsave('TempDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
+# ggsave('TempDepthProfiles_AllStns.png', width=10, height = 5.625, dpi = 300)
 
 # Halocline Profiles
 ctdAll %>% 
@@ -262,8 +263,8 @@ ctdAll %>%
   xlab('Salinity [PSU]')+ ylab('Depth [m]') +
   ggtitle('Salinity Depth Profiles SE2204')
 
-ggsave('SalinityDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
-ggsave('SalinityDepthProfiles_AllStns.png', width=10, height = 5.625, dpi = 300)
+# ggsave('SalinityDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
+# ggsave('SalinityDepthProfiles_AllStns.png', width=10, height = 5.625, dpi = 300)
 
 
 interp_sal <- with(ctdAll, akima::interp(
@@ -492,7 +493,7 @@ ggplot(nut, aes(x = Latitude, y = Depth2, color = Phosphate)) +
     color = "Phosphate" ) +
   theme_minimal() +
   theme(legend.key.size = unit(0.05, 'cm'))
-ggsave('PhosphateLat_bubble.png', width=10, height = 5.625, dpi = 300)
+# ggsave('PhosphateLat_bubble.png', width=10, height = 5.625, dpi = 300)
 
 ggplot(nut, aes(x=Silicate, y=Depth2)) +
   geom_path() +
@@ -508,15 +509,13 @@ ggplot(nut, aes(x=Silicate, y=Depth2)) +
   ylab('Depth [m]') +
   ggtitle('Silicate Depth Profiles SE2204')
 
-ggsave('SilicateDepthProfiles_AllStns.pdf', width=11, height = 8) 
-ggsave('SilicateDepthProfiles_line.png', width=10, height = 5.625, dpi = 300)
+# ggsave('SilicateDepthProfiles_AllStns.pdf', width=11, height = 8) 
+# ggsave('SilicateDepthProfiles_line.png', width=10, height = 5.625, dpi = 300)
 
 # Phosphate
 ggplot(nut, aes(x=Phosphate, y=Depth2)) +
   geom_point() +
   scale_y_reverse() +
-  geom_hline(data = nut_rising, aes(yintercept = Depth2), 
-             color = "red", linetype = "dashed") +
   facet_wrap(.~Cast, labeller=labeller(Cast=id.labs)) +
   theme_bw() +
   theme(axis.line = element_line(colour = "black"),
@@ -528,8 +527,8 @@ ggplot(nut, aes(x=Phosphate, y=Depth2)) +
   ylab('Depth [m]') +
   ggtitle('Phosphate Depth Profiles SE2204')
 
-ggsave('PhosphateDepthProfiles_AllStns.pdf', width=11, height = 8)
-ggsave('PhosphateDepthProfile_NReminLine.png', width=10, height = 5.625, dpi = 300)
+# ggsave('PhosphateDepthProfiles_AllStns.pdf', width=11, height = 8)
+# ggsave('PhosphateDepthProfile_NReminLine.png', width=10, height = 5.625, dpi = 300)
 
 # Phosphate Pt. 2
 ggplot(nut, aes(x=Phosphate, y=Depth2)) +
@@ -547,8 +546,8 @@ ggplot(nut, aes(x=Phosphate, y=Depth2)) +
   ggtitle('Phosphate Depth Profiles SE2204')
 
 
-ggsave('PhosphateXDepthProfiles_AllStns.pdf', width=11, height = 8)
-ggsave('PhosphateDepthProfile_scatterfreex.png', width=10, height = 5.625, dpi = 300)
+# ggsave('PhosphateXDepthProfiles_AllStns.pdf', width=11, height = 8)
+# ggsave('PhosphateDepthProfile_scatterfreex.png', width=10, height = 5.625, dpi = 300)
 
 #Nitrite/Nitarte 
 
@@ -610,7 +609,7 @@ ggplot(nut, aes(x= Nitrate...Nitrite, y=Depth2)) +
   ylab('Depth [m]') +
   ggtitle('Nitrate/Nitrite Depth Profiles SE2204')
 
-ggsave('Nitrogen_ReminLine.png', width=10, height = 5.625, dpi = 300)
+# ggsave('Nitrogen_ReminLine.png', width=10, height = 5.625, dpi = 300)
 
 # ggsave('NitrogenDepthProfiles_AllStns.pdf', width=11, height = 8)
 # ggsave('NDepthProfile_scatter.png', width=10, height = 5.625, dpi = 300)
@@ -631,8 +630,8 @@ ggplot(nut, aes(x= Ammonia, y=Depth2)) +
   ggtitle('Ammonia Depth Profiles SE2204')
 
 
-ggsave('AmmoniaDepthProfiles_AllStns.pdf', width=11, height = 8)
-ggsave('AmmoniaDepthProfile_scatter.png', width=10, height = 5.625, dpi = 300)
+# ggsave('AmmoniaDepthProfiles_AllStns.pdf', width=11, height = 8)
+# ggsave('AmmoniaDepthProfile_scatter.png', width=10, height = 5.625, dpi = 300)
 
 # Oxygen Vs. Temperature
 # install.packages("paletteer")
@@ -649,8 +648,8 @@ ctdAll %>%
   ylab('Oxygen [umol/kg]') +
   ggtitle('Oxygen vs. Temperature Profiles SE2204')
 
-ggsave('O2vsTemp_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
-ggsave('O2vsT_linearR.png', width=10, height = 5.625, dpi = 300)
+# ggsave('O2vsTemp_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
+# ggsave('O2vsT_linearR.png', width=10, height = 5.625, dpi = 300)
 
 
 
@@ -683,7 +682,7 @@ ggplot() +
         panel.background = element_blank()) +
   ggtitle('Climatology Oxygen: GLORYS Model and SE2204 CTD Observations')
 
-ggsave('O2Climatology_GLORYS.png', width=10, height = 5.625, dpi = 300)
+# ggsave('O2Climatology_GLORYS.png', width=10, height = 5.625, dpi = 300)
 
 
 
@@ -708,7 +707,7 @@ ggplot() +
         panel.background = element_blank()) +
   ggtitle('Monthly Oxygen: GLORYS Model and SE2204 CTD Observations')
 
-ggsave('O2Monthly_GLORYS.png', width=10, height = 5.625, dpi = 300)
+# ggsave('O2Monthly_GLORYS.png', width=10, height = 5.625, dpi = 300)
 
 
 # Read in DAILY GLORYS Data 
@@ -733,7 +732,7 @@ ggplot() +
         panel.background = element_blank()) +
   ggtitle('Daily Oxygen: GLORYS Model and SE2204 CTD Observations')
 
-ggsave('O2GLORYSDaily_CTD.png', width=10, height = 5.625, dpi = 300)
+# ggsave('O2GLORYSDaily_CTD.png', width=10, height = 5.625, dpi = 300)
 
 
 
