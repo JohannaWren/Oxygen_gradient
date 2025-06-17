@@ -11,10 +11,11 @@ library(here)
 library(lubridate)
 library(tidyr)
 library(data.table)
+library(akima) 
 
 # Set working directory
-#myDir <- paste(here(),'CTD_processed_headers', sep='/') # Emma's file path
-myDir <- paste(here(), 'CTD', 'CTD_processed', sep='/')  # Johanna's File path
+myDir <- paste(here(),'CTD_processed_headers', sep='/') # Emma's file path
+# myDir <- paste(here(), 'CTD', 'CTD_processed', sep='/')  # Johanna's File path
 setwd(myDir)
 
 # Read in files in a loop
@@ -137,6 +138,72 @@ tempProfile <- depthProfile(ctdAll, "T090C", 'Temperature [°C]', 'Temerature de
 #ggsave(plot=oxyProfile, filename='O2DepthProfiles_AllStns_min.png', width=10, height = 5.625, dpi = 300)
 
 
+
+
+
+# Attempt to make a function for interpolation
+# InterpProfile <- function(DATA, variable, VarName, figTitle) {
+#   interp_func <- with(DATA, akima::interp(
+#     x = newLat,
+#     y = Depth,
+#     z = variable,
+#     xo = seq(min(newLat), max(newLat), length = 80),
+#     yo = seq(min(Depth), max(Depth), length = 200),
+#     duplicate = "mean",
+#     linear = TRUE
+#   ))
+# 
+#   interp_df <- expand.grid(
+#     Latitude = interp_func$x,
+#     Depth = interp_func$y
+#   )
+#   interp_df$variable <- as.vector(interp_func$z)
+# 
+#   p <- DATA %>%
+#     ggplot(interp_df, aes(x = Latitude, y = Depth, fill = variable)) +
+#     geom_tile() +
+#     scale_y_reverse() +
+#     scale_fill_viridis_c() +
+#     theme_minimal() +
+#     labs(
+#       x = "Latitude",
+#       y = "Depth [m]",
+#       fill = varname) +
+#     ggtitle(figTitle)
+#   return(p)
+# }
+
+
+#Make an interpolated temperature depth profile along lat
+interp_temp <- with(ctdAll, akima::interp(
+  x = newLat,
+  y = Depth,
+  z = T090C,
+  xo = seq(min(newLat), max(newLat), length = 80),
+  yo = seq(min(Depth), max(Depth), length = 200), 
+  duplicate = "mean",
+  linear = TRUE
+))
+
+interp_df <- expand.grid(
+  Latitude = interp_temp$x,
+  Depth = interp_temp$y
+)
+interp_df$Temperature <- as.vector(interp_temp$z)
+
+ggplot(interp_df, aes(x = Latitude, y = Depth, fill = Temperature)) +
+  geom_tile() +
+  scale_y_reverse() +
+  scale_fill_viridis_c(option = "turbo") +
+  theme_minimal() +
+  labs(
+    x = "Latitude",
+    y = "Depth [m]",
+    fill = "Temperature [°C]",
+    title = "Interpolated Temperature Section"
+  )
+ggsave('Temp_Interp.png', width=10, height = 5.625, dpi = 300)
+
 # Plot Oxygen Minimum 
 o2_min <- ctdAll %>%
   group_by(Cast) %>%
@@ -197,6 +264,36 @@ ctdAll %>%
 
 ggsave('SalinityDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
 ggsave('SalinityDepthProfiles_AllStns.png', width=10, height = 5.625, dpi = 300)
+
+
+interp_sal <- with(ctdAll, akima::interp(
+  x = newLat,
+  y = Depth,
+  z = Sal00,
+  xo = seq(min(newLat), max(newLat), length = 80),
+  yo = seq(min(Depth), max(Depth), length = 200), 
+  duplicate = "mean",
+  linear = TRUE
+))
+
+interp_df <- expand.grid(
+  Latitude = interp_sal$x,
+  Depth = interp_sal$y
+)
+interp_df$Salinity <- as.vector(interp_sal$z)
+
+ggplot(interp_df, aes(x = Latitude, y = Depth, fill = Salinity)) +
+  geom_tile() +
+  scale_y_reverse() +
+  scale_fill_viridis_c(option = "mako") +
+  theme_minimal() +
+  labs(
+    x = "Latitude",
+    y = "Depth [m]",
+    fill = "Salinity [PSU]",
+    title = "Interpolated Salinity Section"
+  )
+ggsave('Salinity_Interp.png', width=10, height = 5.625, dpi = 300)
 
 # Pycnocline Profiles 
 ctdAll %>% 
@@ -418,6 +515,8 @@ ggsave('SilicateDepthProfiles_line.png', width=10, height = 5.625, dpi = 300)
 ggplot(nut, aes(x=Phosphate, y=Depth2)) +
   geom_point() +
   scale_y_reverse() +
+  geom_hline(data = nut_rising, aes(yintercept = Depth2), 
+             color = "red", linetype = "dashed") +
   facet_wrap(.~Cast, labeller=labeller(Cast=id.labs)) +
   theme_bw() +
   theme(axis.line = element_line(colour = "black"),
@@ -430,7 +529,7 @@ ggplot(nut, aes(x=Phosphate, y=Depth2)) +
   ggtitle('Phosphate Depth Profiles SE2204')
 
 ggsave('PhosphateDepthProfiles_AllStns.pdf', width=11, height = 8)
-ggsave('PhosphateDepthProfile_scatter.png', width=10, height = 5.625, dpi = 300)
+ggsave('PhosphateDepthProfile_NReminLine.png', width=10, height = 5.625, dpi = 300)
 
 # Phosphate Pt. 2
 ggplot(nut, aes(x=Phosphate, y=Depth2)) +
@@ -511,6 +610,7 @@ ggplot(nut, aes(x= Nitrate...Nitrite, y=Depth2)) +
   ylab('Depth [m]') +
   ggtitle('Nitrate/Nitrite Depth Profiles SE2204')
 
+ggsave('Nitrogen_ReminLine.png', width=10, height = 5.625, dpi = 300)
 
 # ggsave('NitrogenDepthProfiles_AllStns.pdf', width=11, height = 8)
 # ggsave('NDepthProfile_scatter.png', width=10, height = 5.625, dpi = 300)
