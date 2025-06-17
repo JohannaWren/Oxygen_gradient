@@ -12,8 +12,8 @@ library(tidyr)
 library(data.table)
 
 # load the data
-#phyto <- read.csv(paste(here(), 'fluorometry_SE2204.csv', sep='/'))  # Emma's
-phyto <- read.csv(paste(here(), 'Data/fluorometry_SE2204.csv', sep='/'))  # Johanna's
+phyto <- read.csv(paste(here(), 'fluorometry_SE2204.csv', sep='/'))  # Emma's
+# phyto <- read.csv(paste(here(), 'Data/fluorometry_SE2204.csv', sep='/'))  # Johanna's
 head(phyto)
 
 # Clean up the phytoplankton data and make sure and turn filter into sizes
@@ -128,7 +128,7 @@ ggsave('ChlDepth_Cast_bar.png', width=10, height = 5.625, dpi = 300)
  
  # Heatmap
  p02 <- phyto %>% 
-   filter(Size == 0.2) %>% 
+   filter(Size == 20) %>% 
    ggplot() +
     geom_tile(aes(x=as.factor(Cast), y=Depth, fill=Chlorophyll)) +
     scale_y_reverse() +
@@ -136,10 +136,10 @@ ggsave('ChlDepth_Cast_bar.png', width=10, height = 5.625, dpi = 300)
     xlab('Cast') + 
     ylab('Depth [m])') +
     theme_minimal()
- 
+ p02
  
  # scatter plot
-phyto %>% filter(Depth == 80) %>% 
+phyto %>% filter(Depth == 0) %>% 
   ggplot(aes(x=Size, y=Chlorophyll)) + 
    geom_point() +
    geom_smooth(method='lm', se=F, linewidth = 0.75, colour = 'darkgreen', alpha = 0.2) +
