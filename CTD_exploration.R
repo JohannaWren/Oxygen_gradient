@@ -656,9 +656,6 @@ ctdAll %>%
 
 
 
-
-
-
 # ----------------------------- GLORYS ---------------------------------------
 # Read in CLIMATOLOGY GLORYS Data 
 clim <- read.csv('../GLORYS_Climatology_JunJul_SE2204.csv')
@@ -684,6 +681,11 @@ ggplot() +
 
 # ggsave('O2Climatology_GLORYS.png', width=10, height = 5.625, dpi = 300)
 
+#Anomaly 
+anomaly =ctdAll$Oxygen - clim$Oxygen
+threshold <- 2 * sd(anomaly)
+df.am <- data.frame( Depth = ctdAll$Depth, Anomaly = anomaly, Outlier = abs(anomaly > threshold)) 
+Outlier <- abs(df.am$Anomaly) > threshold
 
 
 #Read in MONTHLY GLORYS Data
