@@ -11,6 +11,7 @@ library(here)
 library(lubridate)
 library(tidyr)
 library(data.table)
+library(akima) 
 
 # Set working directory
 myDir <- paste(here(),'CTD_processed_headers', sep='/') # Emma's file path
@@ -75,6 +76,9 @@ head(ctdAll)
 # check to see if there are still NA's in the file. Zero means no NAs
 length(which(is.na(ctdAll$newLat)))
 
+
+# --------------------- Depth Profile Function ---------------------------------
+
 # Create Depth Profile Function 
 depthProfile <- function(CTDdata, PlotVar, VarName, figTitle) {
   # Calculate depth of oxygen minimum
@@ -129,3 +133,15 @@ FluorProfile <- depthProfile(ctdAll, "FlECO.AFL", 'Fluorescence [ug/L]', 'Temera
 FluorProfile
 # ggsave('FluorDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
 # ggsave('FluorDepthProfiles_AllStns.png', width=10, height = 5.625, dpi = 300)
+
+
+# --------------------- Interpolated Depth Profile Function -------------------
+
+
+
+
+
+
+
+
+
