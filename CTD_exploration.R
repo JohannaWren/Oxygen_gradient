@@ -87,6 +87,16 @@ length(which(is.na(ctdAll$newLat)))
 
 # Change column names to be something more descriptive
 names(ctdAll)[c(5:9, 12,14,15)] <- c('Pressure', 'Temperature', 'Conductivity', 'Oxygen_Raw', 'Flourescence', 'Density', 'Oxygen_processed', 'Salinity')
+write.csv(ctdAll, file='~/Documents/Cruises/SE2204_BETOceanography/SE2204 - Hot Spot/CTD/CTD_data_forAnalysis.csv', quote = F, row.names = F)
+
+# add some more useful columns to metadata file
+stnInfo <- stnInfo %>% 
+  mutate(DateTime = as.Date(Date, '%m/%d/%y %H:%M'), Month=month(DateTime), ID=1:n())
+# Save metadata file as well
+write.csv(stnInfo, '../CTD_metadata_forAnalysis.csv', quote = F, row.names = F)
+
+
+
 
 # make a depth profile
 # this plots all of the profiles on one plot
