@@ -14,72 +14,17 @@ library(data.table)
 library(akima) 
 
 # Set working directory
-#myDir <- paste(here(),'CTD_processed_headers', sep='/') # Emma's file path
-myDir <- paste(here(), 'CTD', sep='/')  # Johanna's File path
+myDir <- paste(here(), sep='/') # Emma's file path
+# myDir <- paste(here(), 'CTD', sep='/')  # Johanna's File path
 setwd(myDir)
 
 # Read in files 
 ctdAll <- read.csv('CTD_data_forAnalysis.csv')
 stnInfo <- read.csv('CTD_metadata_forAnalysis.csv')
 
-
-files = dir(path = ".", pattern = ".asc", full.names = TRUE)
-ctd_list <- list()
-# read in files in loop
-for (i in seq_along(files)) {
-  ctd_list[[i]] <- read.csv(files[i])
-}
-# Turn list into data.frame
-ctdAll <- rbindlist(ctd_list, use.names = T, idcol = T) %>% 
-  rename(FileNum=.id, Depth=DepSM)
-
-# Make Datetime column
-ctdAll$DateTime <- as.POSIXct(paste(ctdAll$mm.dd.yyyy, ctdAll$hh.mm.ss), format='%m/%d/%Y %H:%M:%S')
-# remove missing oxygen data
-ctdAll$Oxygen <- ctdAll$Sbox0Mm.Kg
-ctdAll$Oxygen[which(ctdAll$Oxygen < 0)] <- NA
-
-# read in station list from file
-stns <- read.csv('../SE2204_CTDlocations.csv')  # Change this to fit the directory your file is in
-stns$Cast <- 1:nrow(stns)
-head(stns)
-
-p <- vector()
-for (i in seq_along(files)) {
-  p[i] <- grep(paste0('dSE-22-04_', stns$Station[i]), files)
-}
-
-# Add the file names and index number to the stns data.frame
-stnInfo <- data.frame(stns, FileName=files[p], FileNum=p)
-head(stnInfo)
-# Remove all casts that have eDNA sampling only
-stnInfo <-  stnInfo[which(stnInfo$Sampling == stnInfo$Sampling[2]),]
-
-ctdAll <- ctdAll %>% 
-  filter(FileNum %in% stnInfo$FileNum)
-
-# Add new index row for station ID
-for (x in unique(stnInfo$FileNum)) { 
-  ctdAll[which(ctdAll$FileNum == x), 'Cast'] <- stnInfo$Cast[which(stnInfo$FileNum == x)] 
-}
-
-# Make a little table with labels you want and the index that we can use for plotting
+# Make a table with labels you want and the index that we can use for plotting
 id.labs <- stnInfo$Station2
 names(id.labs) <- stnInfo$Cast
-
-# Replace the missing value codes for Latitude with average latitude for that cast
-ctdAll$newLat <- ctdAll$Latitude
-for (l in unique(ctdAll$Cast)) {
-  idl <- which(ctdAll$Cast == l)
-  idc <- which(ctdAll$Cast == l & ctdAll$Latitude < 0) 
-  #print(summary(ctdAll[idc,c('Latitude', 'Cast')]))
-  ctdAll$newLat[idc] <- mean(ctdAll$Latitude[idl], na.rm = T)
-}
-head(ctdAll)
-
-# check to see if there are still NA's in the file. Zero means no NAs
-length(which(is.na(ctdAll$newLat)))
-
 
 # --------------------- Depth Profile Function ---------------------------------
 
@@ -143,7 +88,6 @@ FluorProfile
 
 
 # --------------------- Interpolated Depth Profile Function -------------------
-
 
 
 
