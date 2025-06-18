@@ -85,6 +85,9 @@ head(ctdAll)
 # check to see if there are still NA's in the file. Zero means no NAs
 length(which(is.na(ctdAll$newLat)))
 
+# Change column names to be something more descriptive
+names(ctdAll)[c(5:9, 12,14,15)] <- c('Pressure', 'Temperature', 'Conductivity', 'Oxygen_Raw', 'Flourescence', 'Density', 'Oxygen_processed', 'Salinity')
+
 # make a depth profile
 # this plots all of the profiles on one plot
 ggplot(ctdAll, aes(x=Oxygen, y=Depth)) + 
