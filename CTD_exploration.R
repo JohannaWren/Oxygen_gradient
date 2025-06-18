@@ -744,7 +744,7 @@ unique(ctdAll$Cast)
 
 # Function to calculate correlations
 # Defined as PearsonCorr for Pearson Correlation where r and R^2 are calculated in a correlation significance test
-PearsonCorr <- function(CTDdata, Gdata, CastNr) {
+PearsonCorr <- function(CTDdata, ModelData, CastNr) {
   # make a variable for the station you want to compare with CTD data
   cst2ctd <- CTDdata %>% 
     filter(Cast == CastNr) %>% 
@@ -752,7 +752,7 @@ PearsonCorr <- function(CTDdata, Gdata, CastNr) {
     data.frame()
   
   # Then a matching one with GLORYS data
-  cst2glo <- Gdata %>% 
+  cst2glo <- ModelData %>% 
     filter(Cast == CastNr) %>% 
     select(Depth, Oxygen)
   # Interpolate glorys data over the depths in the CTD data
