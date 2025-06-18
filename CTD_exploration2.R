@@ -15,10 +15,14 @@ library(akima)
 
 # Set working directory
 #myDir <- paste(here(),'CTD_processed_headers', sep='/') # Emma's file path
-myDir <- paste(here(), 'CTD', 'CTD_processed', sep='/')  # Johanna's File path
+myDir <- paste(here(), 'CTD', sep='/')  # Johanna's File path
 setwd(myDir)
 
-# Read in files in a loop
+# Read in files 
+ctdAll <- read.csv('CTD_data_forAnalysis.csv')
+stnInfo <- read.csv('CTD_metadata_forAnalysis.csv')
+
+
 files = dir(path = ".", pattern = ".asc", full.names = TRUE)
 ctd_list <- list()
 # read in files in loop
@@ -103,6 +107,9 @@ depthProfile <- function(CTDdata, PlotVar, VarName, figTitle) {
     ggtitle(figTitle)
   return(p)
 }
+
+
+
 
 # Make oxygen profile with oxygen min marked with line
 oxyProfile <- depthProfile(ctdAll, 'Oxygen', 'Oxygen [umol/kg]', 'Oxygen depth profile for SE2204')
