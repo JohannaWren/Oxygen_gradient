@@ -14,8 +14,8 @@ library(data.table)
 library(akima) 
 
 # Set working directory
-myDir <- paste(here(),'CTD_processed_headers', sep='/') # Emma's file path
-# myDir <- paste(here(), 'CTD', 'CTD_processed', sep='/')  # Johanna's File path
+#myDir <- paste(here(),'CTD_processed_headers', sep='/') # Emma's file path
+myDir <- paste(here(), 'CTD', 'CTD_processed', sep='/')  # Johanna's File path
 setwd(myDir)
 
 # Read in files in a loop
@@ -141,6 +141,100 @@ FluorProfile
 
 
 
+# --------------------- CTD, GLORYS, and WOA comparisons -------------------
+# Read in CLIMATOLOGY GLORYS Data 
+clim <- read.csv(paste0(here(), '/CTD/GLORYScomp/GLORYS_Climatology_JunJul_SE2204.csv'))
+head(clim)
+
+# Plot of CTD vs Climatology GLORYS Data 
+ggplot() + 
+  geom_path(data=ctdAll, aes(y=Depth, x=Oxygen, color='CTD')) +
+  geom_path(data=clim, aes(y=Depth, x=Oxygen, color='GLORYS')) +
+  scale_y_reverse() +
+  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x') +
+  scale_color_manual(
+    name = "Data Source",  # Legend title
+    values = c("CTD" = "blue", "GLORYS" = "red")) +
+  labs(color = "Data Source") +
+  theme_bw() +
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) +
+  ggtitle('Climatology Oxygen: GLORYS Model and SE2204 CTD Observations')
+# ggsave('O2Climatology_GLORYS.png', width=10, height = 5.625, dpi = 300)
+
+# Anomaly 
+# First we need the depths to be the same for both datasets
+cst2ctd <- ctdAll %>% 
+  filter(Cast == 2) %>% 
+  select(Depth, Oxygen) %>% 
+  data.frame()
+# Then a matching one with GLORYS data
+cst2glo <- clim %>% 
+  filter(Cast == 2) %>% 
+  select(Depth, Oxygen)
+# Interpolate glorys data over the depths in the CTD data
+modelProfile <- approx(cst2glo$Depth, cst2glo$Oxygen, xout=cst2ctd$Depth)
+modProfile <- data.frame(Depth=modelProfile$x, Oxygen=modelProfile$y)
+anomCTDglo <- cst2ctd$Oxygen-modProfile$Oxygen %>% 
+  bind_cols(cst2ctd$Depth) %>% 
+  rename(OxygenAnom=...1, Depth=...2)
+
+anomaly =ctdAll$Oxygen - clim$Oxygen
+threshold <- 2 * sd(anomaly)
+df.am <- data.frame( Depth = ctdAll$Depth, Anomaly = anomaly, Outlier = abs(anomaly > threshold)) 
+Outlier <- abs(df.am$Anomaly) > threshold
+
+
+#Read in MONTHLY GLORYS Data
+oxymonth <- read.csv("../GLORYS_Monthly_JunJul_SE2204.csv")
+
+#Plot of CTD vs Monthly GLORYS Data 
+ggplot() + 
+  geom_path(data=ctdAll, aes(y=DepSM, x=Oxygen, color='CTD')) +
+  geom_path(data=oxymonth, aes(y=Depth, x=Oxygen, color='GLORYS')) +
+  scale_y_reverse() +
+  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x') +
+  scale_color_manual(
+    name = "Data Source",  # Legend title
+    values = c("CTD" = "blue", "GLORYS" = "red")) +
+  labs(color = "Data Source") +
+  theme_bw() +
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) +
+  ggtitle('Monthly Oxygen: GLORYS Model and SE2204 CTD Observations')
+
+# ggsave('O2Monthly_GLORYS.png', width=10, height = 5.625, dpi = 300)
+
+
+# Read in DAILY GLORYS Data 
+oxy <- read.csv('../GLORYS_oxygen_SE2204.csv')
+head(oxy)
+
+# Plot of CTD vs Daily GLORYS Data 
+ggplot() + 
+  geom_path(data=ctdAll, aes(y=Depth, x=Oxygen, color='CTD')) +
+  geom_path(data=oxy, aes(y=Depth, x=Oxygen, color='GLORYS')) +
+  scale_y_reverse() +
+  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x') +
+  scale_color_manual(
+    name = "Data Source",  # Legend title
+    values = c("CTD" = "blue", "GLORYS" = "red")) +
+  labs(color = "Data Source") +
+  theme_bw() +
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) +
+  ggtitle('Daily Oxygen: GLORYS Model and SE2204 CTD Observations')
+
+# ggsave('O2GLORYSDaily_CTD.png', width=10, height = 5.625, dpi = 300)
 
 
 
