@@ -55,7 +55,6 @@ depthProfile <- function(CTDdata, PlotVar, VarName, figTitle) {
 
 
 
-
 # Make oxygen profile with oxygen min marked with line
 oxyProfile <- depthProfile(ctdAll, 'Oxygen', 'Oxygen [umol/kg]', 'Oxygen depth profile for SE2204')
 oxyProfile
@@ -63,25 +62,25 @@ oxyProfile
 #ggsave(plot=oxyProfile, filename='O2DepthProfiles_AllStns_min.png', width=10, height = 5.625, dpi = 300)
 
 #Thermocline Profiles 
-tempProfile <- depthProfile(ctdAll, "T090C", 'Temperature [°C]', 'Temerature depth profile for SE2204')
+tempProfile <- depthProfile(ctdAll, "Temperature", 'Temperature [°C]', 'Temerature depth profile for SE2204')
 tempProfile
 # ggsave('TempDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
 # ggsave('TempDepthProfiles_AllStns.png', width=10, height = 5.625, dpi = 300)
 
 # Halocline Profiles
-salProfile <- depthProfile(ctdAll, "Sal00", 'Salinity [PSU]', 'Salinity depth profile for SE2204')
+salProfile <- depthProfile(ctdAll, "Salinity", 'Salinity [PSU]', 'Salinity depth profile for SE2204')
 salProfile
 # ggsave('SalinityDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
 # ggsave('SalinityDepthProfiles_AllStns.png', width=10, height = 5.625, dpi = 300)
 
 # Pycnocline Profiles 
-DensProfile <- depthProfile(ctdAll, "T090C", labs(x = expression('σ'[θ])), 'Density depth profile for SE2204')
+DensProfile <- depthProfile(ctdAll, "Density", labs(x = expression('σ'[θ])), 'Density depth profile for SE2204')
 DensProfile
 # ggsave('DensityDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
 # ggsave('DensityDepthProfiles_AllStns.png', width=10, height = 5.625, dpi = 300)
 
 # Fluorescence Profiles 
-FluorProfile <- depthProfile(ctdAll, "FlECO.AFL", 'Fluorescence [ug/L]', 'Temerature depth profile for SE2204')
+FluorProfile <- depthProfile(ctdAll, "Florescence", 'Fluorescence [ug/L]', 'Temerature depth profile for SE2204')
 FluorProfile
 # ggsave('FluorDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
 # ggsave('FluorDepthProfiles_AllStns.png', width=10, height = 5.625, dpi = 300)
@@ -94,7 +93,8 @@ FluorProfile
 
 # --------------------- CTD, GLORYS, and WOA comparisons -------------------
 # Read in CLIMATOLOGY GLORYS Data 
-clim <- read.csv(paste0(here(), '/CTD/GLORYScomp/GLORYS_Climatology_JunJul_SE2204.csv'))
+# clim <- read.csv(paste0(here(), '/CTD/GLORYScomp/GLORYS_Climatology_JunJul_SE2204.csv'))
+clim <- read.csv('GLORYS_Climatology_JunJul_SE2204.csv') #Emma's 
 head(clim)
 
 # Plot of CTD vs Climatology GLORYS Data 
@@ -141,10 +141,12 @@ Outlier <- abs(df.am$Anomaly) > threshold
 
 #Read in MONTHLY GLORYS Data
 oxymonth <- read.csv("../GLORYS_Monthly_JunJul_SE2204.csv")
+oxymonth <- read.csv("GLORYS_Monthly_JunJul_SE2204.csv") #Emma's
+
 
 #Plot of CTD vs Monthly GLORYS Data 
 ggplot() + 
-  geom_path(data=ctdAll, aes(y=DepSM, x=Oxygen, color='CTD')) +
+  geom_path(data=ctdAll, aes(y=Depth, x=Oxygen, color='CTD')) +
   geom_path(data=oxymonth, aes(y=Depth, x=Oxygen, color='GLORYS')) +
   scale_y_reverse() +
   facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x') +
@@ -159,12 +161,12 @@ ggplot() +
         panel.border = element_blank(),
         panel.background = element_blank()) +
   ggtitle('Monthly Oxygen: GLORYS Model and SE2204 CTD Observations')
-
 # ggsave('O2Monthly_GLORYS.png', width=10, height = 5.625, dpi = 300)
 
 
 # Read in DAILY GLORYS Data 
 oxy <- read.csv('../GLORYS_oxygen_SE2204.csv')
+oxy <- read.csv('GLORYS_oxygen_SE2204.csv') #Emma's 
 head(oxy)
 
 # Plot of CTD vs Daily GLORYS Data 
@@ -184,7 +186,6 @@ ggplot() +
         panel.border = element_blank(),
         panel.background = element_blank()) +
   ggtitle('Daily Oxygen: GLORYS Model and SE2204 CTD Observations')
-
 # ggsave('O2GLORYSDaily_CTD.png', width=10, height = 5.625, dpi = 300)
 
 
