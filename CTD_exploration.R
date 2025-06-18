@@ -1144,17 +1144,18 @@ oxyLong <- gather(oxy, key='Date', value = 'Oxygen', -Depth:-Lat)
 oxyLong$DateTime <- as.Date(substr(oxyLong$Date, 2, 11), '%Y.%m.%d')
 head(oxyLong)
 # combine CTD metadata with oxygen data
-time <- as.Date(stnInfo$Date, '%m/%d/%y %H:%M')
+stnInfo$DateTime <- as.Date(stnInfo$Date, '%m/%d/%y %H:%M')
 oxyLong$DateTime <- as.Date(substr(oxyLong$Date, 2, 11), '%Y.%m.%d')
 test <- oxyLong %>% 
-  left_join(stnInfo[,c(1,8, 10, 13)], by=c('Station', 'DateTime'))
+  left_join(stnInfo[,c('Station','Station2','Cast','DateTime')], by=c('Station', 'DateTime'))
 test <- na.omit(test)
 head(test)
 oxyLong <- test
-write.csv(test, 'SE2204_CTD_processed_down_cnv/GLORYS_oxygen_SE2204.csv', quote = F, row.names = F)
+write.csv(oxyLong, 'SE2204_CTD_processed_down_cnv/GLORYS_oxygen_SE2204.csv', quote = F, row.names = F)
 
 ### CLIMATOLOGICAL GLORYS COMPARISON WITH CTD DATA
 library(terra)
+library(stringr)
 # Read in the .nc file as a SpatRast object
 oxyT <- rast('~/Downloads/cmems_mod_glo_bgc_my_0.25deg_P1M-m_1749767610042.nc')
 # get all unique depths
@@ -1167,13 +1168,13 @@ for (i in seq_along(d)) {
   oxyD <- terra::subset(oxyT, depth(oxyT) == d[i])
   # Calculate the mean (climatolory) by month for all years for the one depth
   oxyClim[[i]] <- tapp(oxyD, 'month', 'mean')
-  oxyCastClim[[i]] <- terra::extract(oxyClim[[i]], stnInfo[,4:5], xy=T) %>% 
-    select(x,y, m_6, m_7) %>% 
-    bind_cols(stnInfo[,c(1,8,10,13)], Depth=d[i])  
+  oxyCastClim[[i]] <- terra::extract(oxyClim[[i]], stnInfo[,4:5], xy=T) %>%
+    dplyr::select(x,y, m_6, m_7) %>% 
+    bind_cols(stnInfo[,c('Station','Station2','Cast','DateTime','Lon','Lat')], Depth=d[i])  
 }
 oxyClim67 <- rbindlist(oxyCastClim, use.names = T, idcol = F) %>% 
-  select(7,5,6,1,2,8,9,3,4) %>% 
-  rename(Lon=x, Lat=y, June=m_6, July=m_7)
+  dplyr::select(7,5,6,1,2,9,10,8,11,3,4) %>% 
+  rename(LonGlorys=x, LatGlorys=y, June=m_6, July=m_7)
 head(oxyClim67)
 
 # Put into long format and remove GLORYS data for months when there was no sampling
@@ -1201,17 +1202,39 @@ head(oxyCastM)
 # Merge the monthly GLORYS data with the cast metadata. Had to do this by ID (1-23)
 oxyMonthLong <- stnInfo %>% 
   mutate(ID=1:n(), Month=month(DateTime)) %>% 
-  select(c(1,8,10,13,4,5,14,15)) %>% 
+  dplyr::select(c('Station','Station2','Cast','DateTime','Lon','Lat','ID','Month')) %>% 
   right_join(oxyCastM, by=c('ID', 'Month')) %>% 
   na.omit() %>% 
-  select(3,1,2,5,6,4,8,14,12)
+  dplyr::select(3,1,2,5,6,4,8,14,12)
 head(oxyMonthLong)
 # Save file
-write.csv(oxyClimLong, 'SE2204_CTD_processed_down_cnv/GLORYS_Monthly_JunJul_SE2204.csv', quote = F, row.names = F)
+write.csv(oxyMonthLong, 'SE2204_CTD_processed_down_cnv/GLORYS_Monthly_JunJul_SE2204.csv', quote = F, row.names = F)
 
 
-
-
-
+### MONTHLY CLIMATOLOGICAL WOA DATA ###
+library(terra)
+library(stringr)
+fileNames <- list.files('~/Downloads/', pattern = 'WOA_oxy_Clim', full.names = T)
+climWOAlist <- list()
+for (i in seq_along(fileNames)) {
+  test <- rast(fileName[i])
+  climWOAlist[[i]] <- extract(test, stnInfo[,4:5], xy=T) %>% 
+    mutate(Lon=stnInfo$Lon, Lat=stnInfo$Lat, Month=c(1:12)[i]) %>% 
+    gather(key = 'DepthIdx', value = 'Oxygen', 2:58) %>% 
+    mutate(DateIdx = as.numeric(str_sub(DepthIdx, -5, -1)), 
+           Depth=as.numeric(str_sub(DepthIdx, 12,-12))) %>% 
+    rename(LonWOA=x, LatWOA=y)
+}
+climWOAall <- rbindlist(climWOAlist)
+climWOA <- stnInfo %>% 
+  mutate(ID=1:n(), Month=month(DateTime)) %>% 
+  dplyr::select(c('Station','Station2','Cast','DateTime','ID','Month')) %>% 
+  right_join(climWOAall, by=c('ID', 'Month')) %>% 
+  na.omit() %>% 
+  dplyr::select(-c(5,11,13))
+head(climWOA)
+tail(climWOA)
+# Save file
+write.csv(climWOA, 'SE2204_CTD_processed_down_cnv/WOA_Climatology_JunJul_SE2204.csv', quote = F, row.names = F)
 
 
