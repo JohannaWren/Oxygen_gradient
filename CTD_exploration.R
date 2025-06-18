@@ -14,7 +14,7 @@ library(data.table)
 library(akima) 
 
 # Set working directory
-myDir <- paste(here(),'CTD_processed_headers', sep='/') # Emma's file path
+myDir <- paste(here(), sep='/') # Emma's file path
 # myDir <- paste(here(), 'CTD', 'CTD_processed', sep='/')  # Johanna's File path
 setwd(myDir)
 
@@ -362,7 +362,7 @@ library(akima)
 library(viridis)
 # Read in Nutrient Data
 # 10 samples at different depths per station except for NUT_028 Station 1 (9 samples total)
-nut <- read.csv('../SE2204_nutrient_metadata.csv')
+nut <- read.csv('SE2204_nutrient_metadata_USE_THIS.csv')
 # Adding Cast column that is the same as the CTD cast numbers. 
 nut <- nut %>% 
   left_join(stnInfo[,c('Station2', 'Cast')], by=c('Station'='Station2'))
@@ -401,7 +401,7 @@ int.phos =
   ) +
   theme_minimal()
 int.phos
-ggsave('PhosInterp.png', width=10, height = 5.625, dpi = 300)
+# ggsave('PhosInterp.png', width=10, height = 5.625, dpi = 300)
 
 nut_sili <- nut %>%
   mutate(
@@ -430,7 +430,7 @@ int.sili =
   ) +
   theme_minimal()
 int.sili
-ggsave('SiliInterp.png', width=10, height = 5.625, dpi = 300)
+# ggsave('SiliInterp.png', width=10, height = 5.625, dpi = 300)
 
 nut_nit <- nut %>%
   mutate(
@@ -459,7 +459,7 @@ int.nit =
   ) +
   theme_minimal()
 int.nit
-ggsave('NInterp.png', width=10, height = 5.625, dpi = 300)
+# ggsave('NInterp.png', width=10, height = 5.625, dpi = 300)
 
 
 nut_am <- nut %>%
@@ -488,7 +488,7 @@ int.am =
     fill = "Ammonia" ) +
   theme_minimal()
 int.am
-ggsave('AmmoniaInterp.png', width=10, height = 5.625, dpi = 300)
+# ggsave('AmmoniaInterp.png', width=10, height = 5.625, dpi = 300)
 
 cowplot::plot_grid(int.phos, int.sili, int.nit, int.am, nrow = 4)
 
