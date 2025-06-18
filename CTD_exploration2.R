@@ -87,9 +87,67 @@ FluorProfile
 
 
 # --------------------- Interpolated Depth Profile Function -------------------
+# Read in nutrient data and clean out the '<', 'm', and 'NA's'
+nut <- read.csv('SE2204_nutrient_metadata_USE_THIS.csv')
+# Adding Cast column that is the same as the CTD cast numbers. 
+nut <- nut %>% 
+  left_join(stnInfo[,c('Station2', 'Cast')], by=c('Station'='Station2'))
+head(nut)
 
+nut$Depth2 <- as.numeric(substr(nut$Depth, 1, nchar(nut$Depth)-1))
+head(nut)
+# Remove the m from nutrient file depths and create a new column with numeric depth only
 
+nut$Ammonia <- ifelse(nut$Ammonia == "<0.02", 0.01, as.numeric(nut$Ammonia))
+nut$Phosphate <- ifelse(nut$Phosphate == "<0.008", 0.007, as.numeric(nut$Phosphate))
+nut$Silicate <- as.numeric(nut$Silicate)
+nut$`Nitrate + Nitrite` <- as.numeric(nut$`Nitrate + Nitrite`)
+nut$Date <- as.Date(nut$Date, '%m/%d/%y') 
+# -----------------------------------------------------------------------------
 
+interpolate_nutrient_plot <- function(data, lat_col, depth_col, nutrient_col, VarName, figTitle) {
+  lat_sym <- sym(lat_col)
+  depth_sym <- sym(depth_col)
+  nut_sym <- sym(nutrient_col)
+  
+  # Convert and clean data
+  nut_data <- data %>%
+    mutate(
+      Latitude = as.numeric(!!lat_sym),
+      Depth2 = as.numeric(!!depth_sym),
+      Nutrient = as.numeric(!!nut_sym)
+    ) %>%
+    filter(!is.na(Latitude), !is.na(Depth2), !is.na(Nutrient))
+  
+  # Interpolation
+  interp_result <- with(nut_data,
+                        interp(x = Latitude, y = Depth2, z = Nutrient,
+                               duplicate = "mean", linear = TRUE))
+  
+  # Create dataframe from interp result
+  interp_df <- expand.grid(Latitude = interp_result$x, Depth2 = interp_result$y)
+  interp_df$Nutrient <- as.vector(interp_result$z)
+  
+  # Plot
+  plot_title <- paste("Interpolated", nutrient_col, "Concentration")
+  
+  int_plot <- ggplot(interp_df, aes(x = Latitude, y = Depth2, z = Nutrient)) +
+    geom_contour_filled() +
+    scale_y_reverse() +
+    scale_fill_viridis_d() +
+    labs(
+      title = plot_title,
+      x = "Latitude",
+      y = "Depth (m)",
+      fill = nutrient_col
+    ) +
+    theme_minimal() +
+    xlab(VarName) + ylab('Depth [m]') +
+    ggtitle(figTitle)
+  return(int_plot)
+}
+
+interpolate_nutrient_plot(data = nut, lat_col = 'Latitude', depth_col = 'Depth2', nutrient_col = 'Silicate', VarName = 'Silicate [umol/kg]', figTitle = 'SE2204 Interpolated Silicate Concentration' )
 
 # --------------------- CTD, GLORYS, and WOA comparisons -------------------
 # Read in CLIMATOLOGY GLORYS Data 
