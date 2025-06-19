@@ -368,9 +368,16 @@ nut <- nut %>%
   left_join(stnInfo[,c('Station2', 'Cast')], by=c('Station'='Station2'))
 head(nut)
 
-# Remove the m from nutrient file depths and create a new column with numeric depth only
 nut$Depth2 <- as.numeric(substr(nut$Depth, 1, nchar(nut$Depth)-1))
 head(nut)
+# Remove the m from nutrient file depths and create a new column with numeric depth only
+
+nut$Ammonia <- ifelse(nut$Ammonia == "<0.02", 0.01, as.numeric(nut$Ammonia))
+nut$Phosphate <- ifelse(nut$Phosphate == "<0.008", 0.007, as.numeric(nut$Phosphate))
+nut$Silicate <- as.numeric(nut$Silicate)
+nut$`Nitrate + Nitrite` <- as.numeric(nut$`Nitrate + Nitrite`)
+nut$Date <- as.Date(nut$Date, '%m/%d/%y') 
+nut
 
 # Interpolations for Nutrients along Latitude 
 nut_data <- nut %>%
