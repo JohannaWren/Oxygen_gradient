@@ -150,7 +150,7 @@ FluorProfile
 
 # --------------------- CTD, GLORYS, and WOA comparisons -------------------
 # Read in CLIMATOLOGY GLORYS Data 
-clim <- read.csv(paste0(here(), '/CTD/GLORYScomp/GLORYS_Climatology_JunJul_SE2204.csv'))
+clim <- read.csv(paste0(here(), '/GLORYScomp/GLORYS_Climatology_JunJul_SE2204.csv'))
 head(clim)
 
 # Plot of CTD vs Climatology GLORYS Data 
@@ -174,20 +174,26 @@ ggplot() +
 
 # Anomaly 
 # First we need the depths to be the same for both datasets
-cst2ctd <- ctdAll %>% 
-  filter(Cast == 2) %>% 
-  select(Depth, Oxygen) %>% 
-  data.frame()
-# Then a matching one with GLORYS data
-cst2glo <- clim %>% 
-  filter(Cast == 2) %>% 
-  select(Depth, Oxygen)
-# Interpolate glorys data over the depths in the CTD data
-modelProfile <- approx(cst2glo$Depth, cst2glo$Oxygen, xout=cst2ctd$Depth)
-modProfile <- data.frame(Depth=modelProfile$x, Oxygen=modelProfile$y)
-anomCTDglo <- cst2ctd$Oxygen-modProfile$Oxygen %>% 
-  bind_cols(cst2ctd$Depth) %>% 
-  rename(OxygenAnom=...1, Depth=...2)
+oxyAnom <- function(CTDdata, ModelData, CastNr, Variable="Oxygen") {
+  cst2ctd <- CTDdata %>% 
+    filter(Cast == CastNr) %>% 
+    select(Depth, get(Variable)) %>% 
+    data.frame()
+  # Then a matching one with GLORYS data
+  cst2glo <- ModelData %>% 
+    filter(Cast == CastNr) %>% 
+    select(Depth, get(Variable))
+  # Interpolate glorys data over the depths in the CTD data
+  modelProfile <- approx(cst2glo$Depth, cst2glo$Oxygen, xout=cst2ctd$Depth)
+  modProfile <- data.frame(Depth=modelProfile$x, Oxygen=modelProfile$y)
+  anomCTDglo <- cst2ctd$Oxygen-modProfile$Oxygen %>% 
+    bind_cols(cst2ctd$Depth) %>% 
+    rename(OxygenAnom=...1, Depth=...2)
+  return(anomXTDglo)
+}
+
+
+
 
 anomaly =ctdAll$Oxygen - clim$Oxygen
 threshold <- 2 * sd(anomaly)
