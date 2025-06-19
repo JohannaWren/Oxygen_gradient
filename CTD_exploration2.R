@@ -226,22 +226,21 @@ ggplot() +
 
 # Anomaly 
 # First we need the depths to be the same for both datasets
-oxyAnom <- function(CTDdata, ModelData, CastNr, Variable="Oxygen") {
+oxyAnom <- function(CTDdata, ModelData, CastNr, Variable='Oxygen') {
   cst2ctd <- CTDdata %>% 
     filter(Cast == CastNr) %>% 
-    select(Depth, get(Variable)) %>% 
+    select(Depth, all_of(Variable)) %>% 
     data.frame()
   # Then a matching one with GLORYS data
-  cst2glo <- ModelData %>% 
-    filter(Cast == CastNr) %>% 
-    select(Depth, get(Variable))
+  cst2glo <- ModelData %>%
+    filter(Cast == CastNr) %>%
+    select(Depth, all_of(Variable))
   # Interpolate glorys data over the depths in the CTD data
   modelProfile <- approx(cst2glo$Depth, cst2glo$Oxygen, xout=cst2ctd$Depth)
   modProfile <- data.frame(Depth=modelProfile$x, Oxygen=modelProfile$y)
-  anomCTDglo <- cst2ctd$Oxygen-modProfile$Oxygen %>% 
-    bind_cols(cst2ctd$Depth) %>% 
-    rename(OxygenAnom=...1, Depth=...2)
-  return(anomXTDglo)
+  anomCTDglo <- cst2ctd$Oxygen-modProfile$Oxygen 
+  anomCTDglo <- data.frame(OxygenAnom=anomCTDglo, Depth=cst2ctd$Depth)
+  return(anomCTDglo)
 }
 
 
