@@ -26,6 +26,7 @@ stnInfo <- read.csv('CTD_metadata_forAnalysis.csv')
 id.labs <- stnInfo$Station2
 names(id.labs) <- stnInfo$Cast
 
+
 # --------------------- Depth Profile Function ---------------------------------
 
 # Create Depth Profile Function 
@@ -85,6 +86,9 @@ FluorProfile
 # ggsave('FluorDepthProfiles_AllStns.png', width=10, height = 5.625, dpi = 300)
 
 
+
+
+
 # --------------------- Interpolated Depth Profile Function -------------------
 # Read in nutrient data and clean out the '<', 'm', and 'NA's'
 nut <- read.csv('SE2204_nutrient_metadata_USE_THIS.csv')
@@ -100,7 +104,6 @@ head(nut)
 nut$Ammonia <- ifelse(nut$Ammonia == "<0.02", 0.01, as.numeric(nut$Ammonia))
 nut$Phosphate <- ifelse(nut$Phosphate == "<0.008", 0.007, as.numeric(nut$Phosphate))
 nut$Silicate <- as.numeric(nut$Silicate)
-nut$`Nitrate + Nitrite` <- as.numeric(nut$`Nitrate + Nitrite`)
 nut$Date <- as.Date(nut$Date, '%m/%d/%y') 
 # -----------------------------------------------------------------------------
 
@@ -146,9 +149,23 @@ interpolate_nutrient_plot <- function(data, lat_col, depth_col, nutrient_col, Va
   return(int_plot)
 }
 
+# Section Plot for Silicate 
 interpolate_nutrient_plot(data = nut, lat_col = 'Latitude', depth_col = 'Depth2', nutrient_col = 'Silicate', VarName = 'Silicate [umol/kg]', figTitle = 'SE2204 Interpolated Silicate Concentration' )
 
-# --------------------- CTD, GLORYS, and WOA comparisons -------------------
+# Section Plot for Phosphate 
+interpolate_nutrient_plot(data = nut, lat_col = 'Latitude', depth_col = 'Depth2', nutrient_col = 'Phosphate', VarName = 'Phosphate [umol/kg]', figTitle = 'SE2204 Interpolated Phosphate Concentration' )
+
+# Section Plot for Nitrate+Nitrite 
+interpolate_nutrient_plot(data = nut, lat_col = 'Latitude', depth_col = 'Depth2', nutrient_col = 'Nitrate..Nitrite', VarName = 'Silicate [umol/kg]', figTitle = 'SE2204 Interpolated Nitrate+Nitrite Concentration' )
+
+# Section Plot for Ammonia
+interpolate_nutrient_plot(data = nut, lat_col = 'Latitude', depth_col = 'Depth2', nutrient_col = 'Ammonia', VarName = 'Silicate [umol/kg]', figTitle = 'SE2204 Interpolated Ammonia Concentration' )
+
+
+
+
+# --------------------- CTD, GLORYS, and WOA comparisons -----------------------
+
 # Read in CLIMATOLOGY GLORYS Data 
 # clim <- read.csv(paste0(here(), '/CTD/GLORYScomp/GLORYS_Climatology_JunJul_SE2204.csv'))
 clim <- read.csv('GLORYS_Climatology_JunJul_SE2204.csv') #Emma's 
