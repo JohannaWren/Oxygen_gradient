@@ -52,3 +52,4 @@ of Commerce. To this end, the Department of Commerce hereby grants
 to Recipient a royalty-free, nonexclusive license to use, copy, and 
 create derivative works of the Software outside of the United States.
 See LICENSE for further details.
+A line I wrote on my local computer  
