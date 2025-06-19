@@ -12,6 +12,8 @@ library(lubridate)
 library(tidyr)
 library(data.table)
 library(akima) 
+library(MBA)
+library(reshape2)
 
 # Set working directory
 myDir <- paste(here(), sep='/') # Emma's file path
@@ -105,8 +107,42 @@ nut$Ammonia <- ifelse(nut$Ammonia == "<0.02", 0.01, as.numeric(nut$Ammonia))
 nut$Phosphate <- ifelse(nut$Phosphate == "<0.008", 0.007, as.numeric(nut$Phosphate))
 nut$Silicate <- as.numeric(nut$Silicate)
 nut$Date <- as.Date(nut$Date, '%m/%d/%y') 
-# -----------------------------------------------------------------------------
 
+# -----------------------------------------------------------------------------
+# Plot from NutriVis
+nutriDN <- nut %>%
+  select(Latitude, Depth2, Nitrate..Nitrite) %>%
+  rename(NutVar = Nitrate..Nitrite) %>%
+  filter(!is.na(Latitude), !is.na(Depth2), !is.na(NutVar))
+
+# Interpolation with MBA
+ctd_mba <- mba.surf(nutriDN, no.X = 300, no.Y = 300, extend = TRUE)
+dimnames(ctd_mba$xyz.est$z) <- list(ctd_mba$xyz.est$x, ctd_mba$xyz.est$y)
+
+# Convert to dataframe
+mba_df <- melt(ctd_mba$xyz.est$z, varnames = c("Latitude", "Depth"), value.name = "NutVar") %>%
+  mutate(NutVar = round(NutVar, 1))
+
+# Plot
+ggplot(data = mba_df, aes(x = Latitude, y = Depth)) +
+  geom_raster(aes(fill = NutVar)) +
+  scale_fill_viridis_c() +
+  scale_x_reverse() +
+  scale_y_reverse() +
+  geom_contour(aes(z = NutVar), binwidth = 1, colour = "black", alpha = 0.2) +
+  geom_point(data = nutriDN, aes(x = Latitude, y = Depth2),
+             colour = "black", size = 0.2, alpha = 0.4, shape = 8) +
+  labs(
+    y = "Depth (m)",
+    x = "Latitude",
+    fill = "Nitrate + Nitrite\n(µmol/L)",
+    title = "SE2204 All Stations",
+    subtitle = "Interpolated over depth and space; \nBlack dots show actual sampling locations.\nUsed lat instead of station numbers"
+  ) +
+  coord_cartesian(expand = 0) +
+  theme_minimal()
+
+# ---------------------------------------------------------------------------
 interpolate_nutrient_plot <- function(data, lat_col, depth_col, nutrient_col, VarName, figTitle) {
   lat_sym <- sym(lat_col)
   depth_sym <- sym(depth_col)
@@ -160,8 +196,6 @@ interpolate_nutrient_plot(data = nut, lat_col = 'Latitude', depth_col = 'Depth2'
 
 # Section Plot for Ammonia
 interpolate_nutrient_plot(data = nut, lat_col = 'Latitude', depth_col = 'Depth2', nutrient_col = 'Ammonia', VarName = 'Silicate [umol/kg]', figTitle = 'SE2204 Interpolated Ammonia Concentration' )
-
-
 
 
 # --------------------- CTD, GLORYS, and WOA comparisons -----------------------
