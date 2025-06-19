@@ -54,7 +54,6 @@ depthProfile <- function(CTDdata, PlotVar, VarName, figTitle) {
 }
 
 
-
 # Make oxygen profile with oxygen min marked with line
 oxyProfile <- depthProfile(ctdAll, 'Oxygen', 'Oxygen [umol/kg]', 'Oxygen depth profile for SE2204')
 oxyProfile
