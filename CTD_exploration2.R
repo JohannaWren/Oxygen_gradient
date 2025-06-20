@@ -61,7 +61,7 @@ depthProfile <- function(CTDdata, PlotVar, VarName, figTitle) {
 oxyProfile <- depthProfile(ctdAll, 'Oxygen', 'Oxygen [umol/kg]', 'Oxygen depth profile for SE2204')
 oxyProfile
 #ggsave(plot=oxyProfile, filename='O2DepthProfiles_AllStns_min.pdf', width=11, height = 8, dpi = 300, units = 'in')
-#ggsave(plot=oxyProfile, filename='O2DepthProfiles_AllStns_min.png', width=10, height = 5.625, dpi = 300)
+ggsave(plot=oxyProfile, filename='O2DepthProfiles_AllStns_min.png', width=10, height = 5.625, dpi = 300)
 
 #Thermocline Profiles 
 tempProfile <- depthProfile(ctdAll, "Temperature", 'Temperature [°C]', 'Temerature depth profile for SE2204')
