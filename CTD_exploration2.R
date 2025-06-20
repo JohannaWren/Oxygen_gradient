@@ -201,19 +201,22 @@ interpolate_nutrient_plot(data = nut, lat_col = 'Latitude', depth_col = 'Depth2'
 # --------------------- CTD, GLORYS, and WOA comparisons -----------------------
 
 # Read in CLIMATOLOGY GLORYS Data 
-clim <- read.csv(paste0(here(), '/CTD/GLORYScomp/GLORYS_Climatology_JunJul_SE2204.csv'))
-daily <- read.csv(paste0(here(), '/CTD/GLORYScomp/GLORYS_oxygen_SE2204.csv'))
-monthly <- read.csv(paste0(here(), '/CTD/GLORYScomp/GLORYS_Monthly_JunJul_se2204.csv'))
-woa <- read.csv(paste0(here(), '/CTD/GLORYScomp/WOA_Climatology_JunJul_SE2204.csv'))
-#clim <- read.csv('GLORYS_Climatology_JunJul_SE2204.csv') #Emma's 
+# clim <- read.csv(paste0(here(), '/CTD/GLORYScomp/GLORYS_Climatology_JunJul_SE2204.csv'))
+# daily <- read.csv(paste0(here(), '/CTD/GLORYScomp/GLORYS_oxygen_SE2204.csv'))
+# monthly <- read.csv(paste0(here(), '/CTD/GLORYScomp/GLORYS_Monthly_JunJul_se2204.csv'))
+# woa <- read.csv(paste0(here(), '/CTD/GLORYScomp/WOA_Climatology_JunJul_SE2204.csv'))
+
+clim <- read.csv('GLORYS_Climatology_JunJul_SE2204.csv') #Emma's 
+daily <- read.csv('GLORYS_oxygen_SE2204.csv')
+monthly <- read.csv('GLORYS_Monthly_JunJul_se2204.csv')
+woa <- read.csv('WOA_Climatology_JunJul_SE2204.csv')
 head(clim)
 
-# Plot of CTD vs Climatology GLORYS Data 
 ggplot() + 
   geom_path(data=ctdAll, aes(y=Depth, x=Oxygen, color='CTD')) +
-  geom_path(data=woa, aes(y=Depth, x=Oxygen, color='GLORYS')) +
+  geom_path(data=daily, aes(y=Depth, x=Oxygen, color='GLORYS')) +
   scale_y_reverse() +
-  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x') +
+  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x', nrow=1) +
   scale_color_manual(
     name = "Data Source",  # Legend title
     values = c("CTD" = "blue", "GLORYS" = "red")) +
@@ -224,10 +227,48 @@ ggplot() +
         panel.grid.minor = element_blank(),
         panel.border = element_blank(),
         panel.background = element_blank()) +
-  ggtitle('Climatology Oxygen: GLORYS Model and SE2204 CTD Observations')
-# ggsave('O2Climatology_GLORYS.png', width=10, height = 5.625, dpi = 300)
+  ggtitle('Oxygen Concentration: Daily GLORYS and SE2204 CTD Observations')
+# ggsave('O2Daily_GLORYS_nrow=1.png', width=10, height = 1.8, dpi = 300)
 
-# Anomaly 
+ggplot() + 
+  geom_path(data=ctdAll, aes(y=Depth, x=Oxygen, color='CTD')) +
+  geom_path(data=daily, aes(y=Depth, x=Oxygen, color='GLORYS')) +
+  scale_y_reverse() +
+  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x', nrow=1) +
+  scale_color_manual(
+    name = "Data Source",  # Legend title
+    values = c("CTD" = "blue", "GLORYS" = "red")) +
+  labs(color = "Data Source") +
+  theme_bw() +
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) +
+  ggtitle('Oxygen Concentration: Monthly GLORYS and SE2204 CTD Observations')
+# ggsave('O2Monthly_GLORYS_nrow1.png', width=10, height = 1.8, dpi = 300)
+
+# Plot of CTD vs Climatology GLORYS Data 
+ggplot() + 
+  geom_path(data=ctdAll, aes(y=Depth, x=Oxygen, color='CTD')) +
+  geom_path(data=clim, aes(y=Depth, x=Oxygen, color='GLORYS')) +
+  scale_y_reverse() +
+  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x', nrow=1) +
+  scale_color_manual(
+    name = "Data Source",  # Legend title
+    values = c("CTD" = "blue", "GLORYS" = "red")) +
+  labs(color = "Data Source") +
+  theme_bw() +
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) +
+  ggtitle('Oxygen Concentration: Climatology GLORYS and SE2204 CTD Observations')
+# ggsave('O2Clim_GLORYS_nrow1.png', width=10, height = 1.8, dpi = 300)
+
+
+#------------------------------ Anomaly ---------------------------------------
 # First we need the depths to be the same for both datasets
 oxyAnom <- function(CTDdata, ModelData, CastNr, Variable='Oxygen') {
   cst2ctd <- CTDdata %>% 
@@ -247,8 +288,6 @@ oxyAnom <- function(CTDdata, ModelData, CastNr, Variable='Oxygen') {
   
   # Make an anomaly plot
   
-  
-  
   return(anomCTDglo)
 }
 
@@ -259,76 +298,17 @@ for (i in stnInfo$Cast) {
 
 ggplot(oxyAnomAll, aes(OxygenAnom, Depth)) + 
   geom_path() + 
-  geom_vline(xintercept = 0, linetype='dashed', color='gray') + 
+  geom_vline(xintercept = 0, linetype='dashed', color='tan1')+ 
   scale_y_reverse() +
-  facet_wrap(.~Cast, nrow=1, labeller=labeller(Cast=id.labs)) +
+  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs)) +
   theme_bw() +
   theme(axis.line = element_line(colour = "black"),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
         panel.border = element_blank(),
         panel.background = element_blank()) +
-  ggtitle('GLORYS daily vs climatology Oxygen Anomalies')
-
-
-
-
-
-anomaly =ctdAll$Oxygen - clim$Oxygen
-threshold <- 2 * sd(anomaly)
-df.am <- data.frame( Depth = ctdAll$Depth, Anomaly = anomaly, Outlier = abs(anomaly > threshold)) 
-Outlier <- abs(df.am$Anomaly) > threshold
-
-
-#Read in MONTHLY GLORYS Data
-oxymonth <- read.csv("../GLORYS_Monthly_JunJul_SE2204.csv")
-oxymonth <- read.csv("GLORYS_Monthly_JunJul_SE2204.csv") #Emma's
-
-
-#Plot of CTD vs Monthly GLORYS Data 
-ggplot() + 
-  geom_path(data=ctdAll, aes(y=Depth, x=Oxygen, color='CTD')) +
-  geom_path(data=oxymonth, aes(y=Depth, x=Oxygen, color='GLORYS')) +
-  scale_y_reverse() +
-  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x') +
-  scale_color_manual(
-    name = "Data Source",  # Legend title
-    values = c("CTD" = "blue", "GLORYS" = "red")) +
-  labs(color = "Data Source") +
-  theme_bw() +
-  theme(axis.line = element_line(colour = "black"),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.border = element_blank(),
-        panel.background = element_blank()) +
-  ggtitle('Monthly Oxygen: GLORYS Model and SE2204 CTD Observations')
-# ggsave('O2Monthly_GLORYS.png', width=10, height = 5.625, dpi = 300)
-
-
-# Read in DAILY GLORYS Data 
-oxy <- read.csv('../GLORYS_oxygen_SE2204.csv')
-oxy <- read.csv('GLORYS_oxygen_SE2204.csv') #Emma's 
-head(oxy)
-
-# Plot of CTD vs Daily GLORYS Data 
-ggplot() + 
-  geom_path(data=ctdAll, aes(y=Depth, x=Oxygen, color='CTD')) +
-  geom_path(data=oxy, aes(y=Depth, x=Oxygen, color='GLORYS')) +
-  scale_y_reverse() +
-  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x') +
-  scale_color_manual(
-    name = "Data Source",  # Legend title
-    values = c("CTD" = "blue", "GLORYS" = "red")) +
-  labs(color = "Data Source") +
-  theme_bw() +
-  theme(axis.line = element_line(colour = "black"),
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.border = element_blank(),
-        panel.background = element_blank()) +
-  ggtitle('Daily Oxygen: GLORYS Model and SE2204 CTD Observations')
-# ggsave('O2GLORYSDaily_CTD.png', width=10, height = 5.625, dpi = 300)
-
+  ggtitle('GLORYS Daily vs Climatology Oxygen Anomalies')
+ggsave('Anom_GLORYSDM_AllStns(panel).png', width=10, height = 5.625, dpi = 300)
 
 
 
