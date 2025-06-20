@@ -244,13 +244,19 @@ oxyAnom <- function(CTDdata, ModelData, CastNr, Variable='Oxygen') {
   # Calcuate the anomaly
   anomCTDglo <- modProfile$Oxygen-cst2ctd$Oxygen
   anomCTDglo <- data.frame(OxygenAnom=anomCTDglo, Depth=cst2ctd$Depth)
+  
+  # Make an anomaly plot
+  
+  
+  
   return(anomCTDglo)
 }
 
 oxyAnomAll <- data.frame()
 for (i in stnInfo$Cast) {
-  oxyAnomAll <- rbind(oxyAnomAll, cbind(oxyAnom(ctdAll, daily, i), Cast=i))
+  oxyAnomAll <- rbind(oxyAnomAll, cbind(oxyAnom(daily, clim, i), Cast=i))
 }
+
 ggplot(oxyAnomAll, aes(OxygenAnom, Depth)) + 
   geom_path() + 
   geom_vline(xintercept = 0, linetype='dashed', color='gray') + 
@@ -262,7 +268,7 @@ ggplot(oxyAnomAll, aes(OxygenAnom, Depth)) +
         panel.grid.minor = element_blank(),
         panel.border = element_blank(),
         panel.background = element_blank()) +
-  ggtitle('WOA and SE2204 CTD Observations Oxygen Anomalies')
+  ggtitle('GLORYS daily vs climatology Oxygen Anomalies')
 
 
 
