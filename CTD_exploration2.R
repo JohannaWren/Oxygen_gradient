@@ -16,8 +16,8 @@ library(MBA)
 library(reshape2)
 
 # Set working directory
-myDir <- paste(here(), sep='/') # Emma's file path
-# myDir <- paste(here(), 'CTD', sep='/')  # Johanna's File path
+#myDir <- paste(here(), sep='/') # Emma's file path
+myDir <- paste(here(), 'CTD', sep='/')  # Johanna's File path
 setwd(myDir)
 
 # Read in files 
@@ -201,14 +201,17 @@ interpolate_nutrient_plot(data = nut, lat_col = 'Latitude', depth_col = 'Depth2'
 # --------------------- CTD, GLORYS, and WOA comparisons -----------------------
 
 # Read in CLIMATOLOGY GLORYS Data 
-# clim <- read.csv(paste0(here(), '/CTD/GLORYScomp/GLORYS_Climatology_JunJul_SE2204.csv'))
-clim <- read.csv('GLORYS_Climatology_JunJul_SE2204.csv') #Emma's 
+clim <- read.csv(paste0(here(), '/CTD/GLORYScomp/GLORYS_Climatology_JunJul_SE2204.csv'))
+daily <- read.csv(paste0(here(), '/CTD/GLORYScomp/GLORYS_oxygen_SE2204.csv'))
+monthly <- read.csv(paste0(here(), '/CTD/GLORYScomp/GLORYS_Monthly_JunJul_se2204.csv'))
+woa <- read.csv(paste0(here(), '/CTD/GLORYScomp/WOA_Climatology_JunJul_SE2204.csv'))
+#clim <- read.csv('GLORYS_Climatology_JunJul_SE2204.csv') #Emma's 
 head(clim)
 
 # Plot of CTD vs Climatology GLORYS Data 
 ggplot() + 
   geom_path(data=ctdAll, aes(y=Depth, x=Oxygen, color='CTD')) +
-  geom_path(data=clim, aes(y=Depth, x=Oxygen, color='GLORYS')) +
+  geom_path(data=woa, aes(y=Depth, x=Oxygen, color='GLORYS')) +
   scale_y_reverse() +
   facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), scales = 'free_x') +
   scale_color_manual(
@@ -238,10 +241,35 @@ oxyAnom <- function(CTDdata, ModelData, CastNr, Variable='Oxygen') {
   # Interpolate glorys data over the depths in the CTD data
   modelProfile <- approx(cst2glo$Depth, cst2glo$Oxygen, xout=cst2ctd$Depth)
   modProfile <- data.frame(Depth=modelProfile$x, Oxygen=modelProfile$y)
-  anomCTDglo <- cst2ctd$Oxygen-modProfile$Oxygen 
+  # Calcuate the anomaly
+  anomCTDglo <- modProfile$Oxygen-cst2ctd$Oxygen
   anomCTDglo <- data.frame(OxygenAnom=anomCTDglo, Depth=cst2ctd$Depth)
+  
+  # Make an anomaly plot
+  
+  
+  
   return(anomCTDglo)
 }
+
+oxyAnomAll <- data.frame()
+for (i in stnInfo$Cast) {
+  oxyAnomAll <- rbind(oxyAnomAll, cbind(oxyAnom(daily, clim, i), Cast=i))
+}
+
+ggplot(oxyAnomAll, aes(OxygenAnom, Depth)) + 
+  geom_path() + 
+  geom_vline(xintercept = 0, linetype='dashed', color='gray') + 
+  scale_y_reverse() +
+  facet_wrap(.~Cast, nrow=1, labeller=labeller(Cast=id.labs)) +
+  theme_bw() +
+  theme(axis.line = element_line(colour = "black"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank()) +
+  ggtitle('GLORYS daily vs climatology Oxygen Anomalies')
+
 
 
 
