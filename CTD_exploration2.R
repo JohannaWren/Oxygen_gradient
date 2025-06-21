@@ -243,18 +243,13 @@ oxyAnom <- function(CTDdata, ModelData, CastNr, Variable='Oxygen') {
   modProfile <- data.frame(Depth=modelProfile$x, Oxygen=modelProfile$y)
   # Calcuate the anomaly
   anomCTDglo <- modProfile$Oxygen-cst2ctd$Oxygen
-  anomCTDglo <- data.frame(OxygenAnom=anomCTDglo, Depth=cst2ctd$Depth)
-  
-  # Make an anomaly plot
-  
-  
-  
+  anomCTDglo <- data.frame(OxygenAnom=anomCTDglo, Depth=cst2ctd$Depth, Cast=CastNr)
   return(anomCTDglo)
 }
 
 oxyAnomAll <- data.frame()
 for (i in stnInfo$Cast) {
-  oxyAnomAll <- rbind(oxyAnomAll, cbind(oxyAnom(daily, clim, i), Cast=i))
+  oxyAnomAll <- rbind(oxyAnomAll, oxyAnom(daily, clim, i))
 }
 
 ggplot(oxyAnomAll, aes(OxygenAnom, Depth)) + 
