@@ -16,8 +16,8 @@ library(MBA)
 library(reshape2)
 
 # Set working directory
-#myDir <- paste(here(), sep='/') # Emma's file path
-myDir <- paste(here(), 'CTD', sep='/')  # Johanna's File path
+myDir <- paste(here(), sep='/') # Emma's file path
+# myDir <- paste(here(), 'CTD', sep='/')  # Johanna's File path
 setwd(myDir)
 
 # Read in files 
@@ -30,50 +30,118 @@ names(id.labs) <- stnInfo$Cast
 
 
 # -----------------------------AOU--------------------------------------------
-oxyAnom <- function(CTDdata, ModelData, CastNr, Variable='Oxygen') {
+ctdAll$TK <- NA
+ctdAll$TK <- ctdAll$Temperature + 273.15
+
+AOU <- function(CTDdata, cast_id, TK, Variable1 = 'Oxygen', Variable2 = ctdAll$Salinity) {
   cst2ctd <- CTDdata %>% 
-    filter(Cast == CastNr) %>% 
-    select(Depth, all_of(Variable)) %>% 
+    filter(ctdAll$Cast == cast_id) %>% 
+    select(Depth, all_of(Variable1)) %>% 
     data.frame()
-  # Then a matching one with GLORYS data
-  cst2glo <- ModelData %>%
-    filter(Cast == CastNr) %>%
-    select(Depth, all_of(Variable))
-  # Interpolate glorys data over the depths in the CTD data
-  modelProfile <- approx(cst2glo$Depth, cst2glo$Oxygen, xout=cst2ctd$Depth)
-  modProfile <- data.frame(Depth=modelProfile$x, Oxygen=modelProfile$y)
-  # Calcuate the anomaly
-  anomCTDglo <- modProfile$Oxygen-cst2ctd$Oxygen
-  anomCTDglo <- data.frame(OxygenAnom=anomCTDglo, Depth=cst2ctd$Depth)
-  
-  # Make an anomaly plot
-  
-  return(anomCTDglo)
-}
-
-oxyAnomAll <- data.frame()
-for (i in stnInfo$Cast) {
-  oxyAnomAll <- rbind(oxyAnomAll, cbind(oxyAnom(daily, clim, i), Cast=i))
-}
-
-TK <- ctdAll$Temperature + 273.15
-
-  
-AOU <- function(CTDdata, CastNR, TK, O2 = CTDdata$Oxygen, Sal = CTDdata$Salinity) {
   saturation <- -173.9894 + 
     255.5907 * (100 / TK) +
     146.4813 * log(TK / 100) -
     22.2040 * (TK / 100) +
-    Sal * (-0.037362 + 0.016504 * (TK / 100) - 0.0020564 * (TK / 100)^2)
-  
+    Variable2 * (-0.037362 + 0.016504 * (TK / 100) - 0.0020564 * (TK / 100)^2)
   output <- saturation - O2
   return(output)
 }
 
-AOUAll <- data.frame()
-for (i in stnInfo$Cast) {
-  AOUAll <- rbind(oxyAnomAll, cbind(oxyAnom(daily, clim, i), Cast=i))
+ctdAll$AOU <- NA
+casts <- unique(ctdAll$Cast)
+for (cast_id in casts) {
+  cast_data <- ctdAll[ctdAll$Cast == cast_id, ]
+  aou_result <- AOU(CTDdata = cast_data, TK = cast_data$TK)
+  ctdAll$AOU[ctdAll$Cast == cast_id] <- aou_result
 }
+ctdAll$TK <- ctdAll$Temperature + 273.15
+
+
+# Define AOU function
+AOU <- function(CTDdata, cast_id, TK, Variable1 = 'Oxygen', Variable2 = 'Salinity') {
+  cast_data <- CTDdata %>% filter(Cast == cast_id)
+  O2 <- cast_data[[Variable1]]
+  Salinity <- cast_data[[Variable2]]
+  
+  # Calculate saturation (Murray and Riley (1969))
+  saturation <- -173.9894 + 
+    255.5907 * (100 / TK) +
+    146.4813 * log(TK / 100) -
+    22.2040 * (TK / 100) +
+    Salinity * (-0.037362 + 0.016504 * (TK / 100) - 0.0020564 * (TK / 100)^2)
+  
+  # Calculate AOU
+  output <- saturation - O2
+  return(output)
+}
+
+ctdAll$AOU <- NA
+casts <- unique(ctdAll$Cast)
+
+for (cast_id in casts) {
+  cast_data <- ctdAll[ctdAll$Cast == cast_id, ]
+  aou_result <- AOU(CTDdata = cast_data, cast_id = cast_id, TK = cast_data$TK)
+  ctdAll$AOU[ctdAll$Cast == cast_id] <- aou_result
+}
+
+
+interp_data <- ctdAll[!is.na(ctdAll$AOU) & !is.na(ctdAll$newLat) & !is.na(ctdAll$Depth), ]
+interp_result <- with(interp_data, interp(x = newLat, y = Depth, z = AOU,
+                                          duplicate = "mean",
+                                          linear = TRUE,
+                                          extrap = FALSE))
+interp_df <- data.frame(
+  expand.grid(newLat = interp_result$x, Depth = interp_result$y),
+  AOU = as.vector(interp_result$z)
+)
+
+ggplot(interp_df, aes(x = newLat, y = Depth, fill = AOU)) +
+  geom_raster(interpolate = TRUE) + 
+  scale_y_reverse() +                  
+  scale_fill_viridis_c(option = 'turbo') +
+  labs(
+    title = "Interpolated AOU by Latitude and Depth",
+    x = "Latitude [°]",
+    y = "Depth [m]",
+    fill = "AOU"
+  ) +
+  theme_minimal()
+
+# AOU Plot 2
+aou_data <- ctdAll[!is.na(ctdAll$AOU) & !is.na(ctdAll$newLat) & !is.na(ctdAll$Depth), ]
+aou_interp <- with(aou_data, interp(
+  x = newLat,
+  y = Depth,
+  z = AOU,
+  duplicate = "mean",
+  linear = TRUE,
+  extrap = FALSE
+))
+
+aou_df <- data.frame(
+  expand.grid(newLat = aou_interp$x, Depth = aou_interp$y),
+  AOU = as.vector(aou_interp$z)
+)
+
+aou_points <- data.frame(
+  newLat = aou_data$newLat,
+  Depth = aou_data$Depth
+)
+
+ggplot(data = aou_df, aes(x = newLat, y = Depth)) +
+  geom_raster(aes(fill = AOU)) +
+  scale_fill_viridis_c(option = "turbo") +
+  scale_y_reverse() +
+  geom_contour(aes(z = AOU), binwidth = 10, colour = "black", alpha = 0.3) +
+  labs(
+    y = "Depth [m]",
+    x = "Latitude",
+    fill = "AOU [µmol/kg]",
+    title = "Apparent Oxygen Utilization (AOU)",
+    subtitle = "Interpolated across Latitude and Depth"
+  ) +
+  coord_cartesian(expand = 0) +
+  theme_minimal()
 
 
 # --------------------- Depth Profile Function ---------------------------------
