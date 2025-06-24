@@ -276,20 +276,25 @@ head(zoops)
 ggplot(zoops, aes( x =net_cast_number, y =size_fraction, size =net_dry_weight)) +
   geom_point(shape=21, fill='#00A572', color='black', alpha=0.7) +
   scale_size_continuous(name = "Weight (g)") +
-  labs(title = "Zooplankton Biomass by Cast and Size Fraction",
-       x = "Net Cast Number",
-       y = "Size Fraction (µm)") +
+  labs(title = "Zooplankton Biomass by Station and Size Fraction",
+       x = "Station",
+       y = "Size Fraction [µm]") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-# ggsave('Zoop_bubble.png', width=10, height = 5.625, dpi = 300, units = 'in')
+# ggsave('Zoop_bubbleDepth.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 
 # LM for all Casts
 ggplot(zoops, aes(x=size_fraction, y=net_dry_weight, group=as.factor(net_cast_number), color=as.factor(net_cast_number))) +
   scale_color_viridis_d() +
   geom_point() + 
-  geom_smooth(method='lm', se=F)
-# ggsave('Zoop_LM.png', width=10, height = 5.625, dpi = 300, units = 'in')
+  geom_smooth(method='lm', se=F) +
+  labs(title = "Zooplankton ",
+       x = "Size Fraction [µm]",
+       y = "Net dry weight [g]", 
+       color = "Station") +
+  theme_bw()
+ggsave('Zoop_LM.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 # Panels for all casts and their linear regression lines/equation
 zoops %>% 
@@ -378,8 +383,8 @@ zoops_summary <- zoops_summary %>%
     # scale_fill_viridis_d(option = 'mako') +
     scale_fill_paletteer_d("NatParksPalettes::Banff") +
     coord_flip() +
-    labs(title = "Size-fractionated Zooplankton by Net Cast Number",
-         x = "Net Cast Number",
+    labs(title = "Size-fractionated Zooplankton by Station",
+         x = "Station",
          y = "% of Total Zooplankton",
          fill = "Size Class") +
     theme_bw()
@@ -392,14 +397,14 @@ zoops_summary <- zoops_summary %>%
     scale_fill_viridis_c(option = "turbo") +
     scale_y_reverse() +
     labs(
-      title = "Heatmap of Zooplankton Biomass by Size and Cast",
+      title = "Heatmap of Zooplankton Biomass by Size and Station",
       x = "Size Class",
-      y = "Net Cast Number",
+      y = "Station",
       fill = "% Biomass"
     ) +
     theme_minimal()
 # ggsave('ZoopHeatMap.png', width=10, height = 5.625, dpi = 300, units = 'in')
- 
+
 # Stacked Bar line chart  
   ggplot(zoops_summary, aes(x = net_cast_number, y = percent_zoops, fill = Fraction)) +
     geom_area(stat = "identity", position = "stack", size=.5, colour="white") +
@@ -407,13 +412,13 @@ zoops_summary <- zoops_summary %>%
     scale_fill_paletteer_d("NatParksPalettes::Banff") +
     scale_x_reverse() +
     labs(
-      title = "Biomass Distribution Across Net Casts",
-      x = "Net Cast Number",
+      title = "Biomass Distribution Across Stations",
+      x = "Station Number",
       y = "% of Total Zooplankton",
       fill = "Size Class"
     ) +
     theme_minimal()
-  
+  # ggsave('ZoopStacked.png', width=10, height = 5.625, dpi = 300, units = 'in')
   
   # Interesting plot 
   ggplot(zoops_summary, aes(x = net_cast_number, y = percent_zoops, size = percent_zoops, fill = Fraction)) +
@@ -422,12 +427,14 @@ zoops_summary <- zoops_summary %>%
     scale_size(range = c(2, 10)) +
     labs(
       title = "Zooplankton Biomass Gradient by Cast and Size Class",
-      x = "Net Cast Number",
+      x = "Station Number",
       y = "% of Total Biomass",
       fill = "Size Class",
       size = "% Biomass"
     ) +
     theme_minimal()
+  # ggsave('ZoopBubble.png', width=10, height = 5.625, dpi = 300, units = 'in')
+  
   
 # ----------------------------------------------------------------------------
 # zoopsSub <- zoops[which(zoops$net_cast_number== 2),]
