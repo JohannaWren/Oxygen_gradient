@@ -43,7 +43,7 @@ phyto %>%
   xlab('Temperature [°C]')+ ylab('Depth [m]') +
   ggtitle('Temperature Depth Profiles SE2204')
 
-ggsave('PhytoT_scatter.png', width=10, height = 5.625, dpi = 300)
+# ggsave('PhytoT_scatter.png', width=10, height = 5.625, dpi = 300)
 
 # Bar chart for one depth 
 selected_depth <- 0
@@ -54,7 +54,7 @@ ggplot(df_filtered, aes(x = Cast, y=Chlorophyll)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
   geom_bar(stat = "identity", fill = "darkgreen")
 
-ggsave('ChlCast_bar.png', width=10, height = 5.625, dpi = 300)
+# ggsave('ChlCast_bar.png', width=10, height = 5.625, dpi = 300)
 
 # Bar chart for all depths
 ggplot(phyto, aes(x = Depth, y = Chlorophyll)) +
@@ -67,7 +67,7 @@ ggplot(phyto, aes(x = Depth, y = Chlorophyll)) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 90, vjust=0.5))
 
-ggsave('ChlCast_Depth_bar.png', width=10, height = 5.625, dpi = 300)
+# ggsave('ChlCast_Depth_bar.png', width=10, height = 5.625, dpi = 300)
 
 
 ggplot(phyto, aes(x = Cast, y = Chlorophyll)) +
@@ -80,7 +80,7 @@ ggplot(phyto, aes(x = Cast, y = Chlorophyll)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   theme_minimal()
 
-ggsave('ChlDepth_Cast_bar.png', width=10, height = 5.625, dpi = 300)
+# ggsave('ChlDepth_Cast_bar.png', width=10, height = 5.625, dpi = 300)
 
  # Bubble Figure
   a.02 = 
@@ -96,7 +96,7 @@ ggsave('ChlDepth_Cast_bar.png', width=10, height = 5.625, dpi = 300)
      # facet_wrap(Size~., ncol=1)
      theme(axis.text.x = element_text(angle = 45, hjust = 1))
   a.02
-  ggsave('Chl.02_cast_bubble.png', width=10, height = 5.625, dpi = 300)
+  # ggsave('Chl.02_cast_bubble.png', width=10, height = 5.625, dpi = 300)
   
  a.20 = 
      phyto %>% 
@@ -107,7 +107,7 @@ ggsave('ChlDepth_Cast_bar.png', width=10, height = 5.625, dpi = 300)
    xlab('Cast') + ylab('Depth [m])') +
      theme_minimal() +
      theme(axis.text.x = element_text(angle = 45, hjust = 1))
- ggsave('Chl.20_cast_bubble.png', width=10, height = 5.625, dpi = 300)
+ # ggsave('Chl.20_cast_bubble.png', width=10, height = 5.625, dpi = 300)
  
  a20 = 
      phyto %>% 
@@ -118,12 +118,12 @@ ggsave('ChlDepth_Cast_bar.png', width=10, height = 5.625, dpi = 300)
    xlab('Cast') + ylab('Depth [m])') +
      theme_minimal()+
      theme(axis.text.x = element_text(angle = 45, hjust = 1))
- ggsave('Chl20_cast_bubble.png', width=10, height = 5.625, dpi = 300)
+ # ggsave('Chl20_cast_bubble.png', width=10, height = 5.625, dpi = 300)
  
  cowplot::plot_grid(a.02, a.20, a20, nrow = 1)
  
- ggsave('ChlBubblePlot_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
- ggsave('ChlBubblePlot_AllStns.png', width=10, height = 5.625, dpi = 300, units = 'in')
+ # ggsave('ChlBubblePlot_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
+ # ggsave('ChlBubblePlot_AllStns.png', width=10, height = 5.625, dpi = 300, units = 'in')
  
  
  # Heatmap
@@ -155,8 +155,34 @@ phyto %>% filter(Depth == 0) %>%
    ggtitle('Size vs. Abundance for phytoplankton SE2204') +
    theme_bw() + theme(panel.grid = element_blank()) 
   
+ # Section plot of chlorophyll
+phyto_f <- phyto %>%
+  filter(Size!=0.7) %>%
+  mutate(size_class = case_when(
+    Filter == 20 ~ ">20 µm",
+    Filter == 2.0 ~ "19.9-2.0 µm",
+    Filter == 0.2 ~ ".2-1.99 µm",
+    TRUE ~ "Unknown"
+  ))
+
+chl_summary <- phyto_f %>%
+  group_by(Depth, Station, Cast) %>%
+  mutate(total_chl = sum(Chlorophyll, na.rm = TRUE),
+  percent_chl = (Chlorophyll / total_chl) * 100)
  
- 
+# size_class_o <- order(chl_summary$Size)
+
+ggplot(chl_summary, aes(x = Depth, y = percent_chl, fill = size_class_o)) +
+  geom_bar(stat = "identity") +
+  scale_y_continuous(labels = scales::percent_format(scale = 0.05)) +
+  scale_x_reverse(expand = c(0, 0)) + 
+  coord_flip() +
+  labs(title = "Size-fractionated Chlorophyll by Depth",
+       x = "Depth (m)",
+       y = "% of Total Chlorophyll",
+       fill = "Size Class") +
+  theme_minimal()
+
 # --------------------------------- ZOOPLANKTON -------------------------------
 #zoops <- read_xlsx(paste(here(), 'Biomass filter weights.xlsx', sep='/'), sheet = 1) # Emma's
 zoops <- read_xlsx(paste(here(), 'Data/Biomass filter weights.xlsx', sep='/'), sheet = 1)  # Johanna's
