@@ -123,11 +123,6 @@ aou_df <- data.frame(
   AOU = as.vector(aou_interp$z)
 )
 
-aou_points <- data.frame(
-  newLat = aou_data$newLat,
-  Depth = aou_data$Depth
-)
-
 ggplot(data = aou_df, aes(x = newLat, y = Depth)) +
   geom_raster(aes(fill = AOU)) +
   scale_fill_viridis_c(option = "turbo") +
