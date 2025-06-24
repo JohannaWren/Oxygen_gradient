@@ -132,11 +132,13 @@ ggplot(phyto, aes(x = Cast, y = Chlorophyll)) +
    ggplot() +
     geom_tile(aes(x=as.factor(Cast), y=Depth, fill=Chlorophyll)) +
     scale_y_reverse() +
-    scale_fill_gradient(low='white', high='darkgreen') +
+    scale_fill_viridis_c(option = 'turbo') +
+    # scale_fill_gradient(low='white', high='darkgreen') +
     xlab('Cast') + 
     ylab('Depth [m])') +
     theme_minimal()
  p02
+# ggsave('ChlHeatMap_AllStns.png', width=10, height = 5.625, dpi = 300, units = 'in')
  
  # scatter plot
 phyto %>% filter(Depth == 0) %>% 
@@ -155,13 +157,13 @@ phyto %>% filter(Depth == 0) %>%
    ggtitle('Size vs. Abundance for phytoplankton SE2204') +
    theme_bw() + theme(panel.grid = element_blank()) 
   
- # Section plot of chlorophyll
+# Filter Size Breakdown at Each Station 
 phyto_f <- phyto %>%
   filter(Size!=0.7) %>%
   mutate(size_class = case_when(
     Filter == 20 ~ ">20 µm",
-    Filter == 2.0 ~ "19.9-2.0 µm",
-    Filter == 0.2 ~ ".2-1.99 µm",
+    Filter == 2.0 ~ "2.0 - 19.99 µm",
+    Filter == 0.2 ~ "0.2 - 1.99 µm",
     TRUE ~ "Unknown"
   ))
 
@@ -170,22 +172,28 @@ chl_summary <- phyto_f %>%
   mutate(total_chl = sum(Chlorophyll, na.rm = TRUE),
   percent_chl = (Chlorophyll / total_chl) * 100)
  
-# size_class_o <- order(chl_summary$Size)
+chl_summary$size_class <- factor(chl_summary$size_class, levels = c("0.2 - 1.99 µm", "2.0 - 19.99 µm", ">20 µm" ))
 
-ggplot(chl_summary, aes(x = Depth, y = percent_chl, fill = size_class_o)) +
+ggplot(chl_summary, aes(x = Depth, y = percent_chl, fill = size_class)) +
   geom_bar(stat = "identity") +
-  scale_y_continuous(labels = scales::percent_format(scale = 0.05)) +
-  scale_x_reverse(expand = c(0, 0)) + 
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+  # scale_fill_paletteer_d("MetBrewer::Archambault") + 
+  #scale_fill_paletteer_d("vangogh::Bedroom") +
+  scale_fill_manual(values=c('red', 'blue', 'green')) + #CHANGE THIS 
+  scale_x_reverse(expand = c(0,0)) +  
+  facet_wrap(~ Station) + 
   coord_flip() +
   labs(title = "Size-fractionated Chlorophyll by Depth",
        x = "Depth (m)",
        y = "% of Total Chlorophyll",
        fill = "Size Class") +
-  theme_minimal()
+  theme_bw()
+# ggsave('ChlSizeFraction_AllStns.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
 
 # --------------------------------- ZOOPLANKTON -------------------------------
-#zoops <- read_xlsx(paste(here(), 'Biomass filter weights.xlsx', sep='/'), sheet = 1) # Emma's
-zoops <- read_xlsx(paste(here(), 'Data/Biomass filter weights.xlsx', sep='/'), sheet = 1)  # Johanna's
+zoops <- read_xlsx(paste(here(), 'Biomass filter weights.xlsx', sep='/'), sheet = 1) # Emma's
+# zoops <- read_xlsx(paste(here(), 'Data/Biomass filter weights.xlsx', sep='/'), sheet = 1)  # Johanna's
 head(zoops)
 
 # Clean up zooplankton data
@@ -208,7 +216,7 @@ ggplot(zoops, aes( x =net_cast_number, y =size_fraction, size =net_dry_weight)) 
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-ggsave('Zoop_bubble.png', width=10, height = 5.625, dpi = 300, units = 'in')
+# ggsave('Zoop_bubble.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 
 # LM for all Casts
@@ -216,7 +224,7 @@ ggplot(zoops, aes(x=size_fraction, y=net_dry_weight, group=as.factor(net_cast_nu
   scale_color_viridis_d() +
   geom_point() + 
   geom_smooth(method='lm', se=F)
-ggsave('Zoop_LM.png', width=10, height = 5.625, dpi = 300, units = 'in')
+# ggsave('Zoop_LM.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 # Panels for all casts and their linear regression lines/equation
 zoops %>% 
@@ -235,8 +243,8 @@ zoops %>%
   ggtitle('Size vs. Abundance for Zooplankton SE2204') +
   theme_minimal() 
 
-ggsave('SizeAbunPanel_RegLine.pdf', width=11, height = 8, dpi = 300, units = 'in')
-ggsave('ZoopSizeAbun_linearR.png', width=10, height = 5.625, dpi = 300, units = 'in')
+# ggsave('SizeAbunPanel_RegLine.pdf', width=11, height = 8, dpi = 300, units = 'in')
+# ggsave('ZoopSizeAbun_linearR.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 # Log Scale x and y
 zoops %>% 
@@ -254,13 +262,99 @@ zoops %>%
   xlab('Size') + ylab('Abundance (dry weight [g])') +
   ggtitle('Size vs. Abundance for Zooplankton SE2204') +
   theme_minimal() 
-ggsave('ZoopSizeAbun_linearR_log10.png', width=10, height = 5.625, dpi = 300, units = 'in')
+# ggsave('ZoopSizeAbun_linearR_log10.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 zoopsSub <- zoops[which(zoops$net_cast_number== 1),]
 zoopsLm <- lm(net_dry_weight ~ size_fraction, data=zoopsSub)
 zoopsLm$coefficients
 zoopsLm$coefficients[2]
 
+# Size Fractional Plot 
+zoops_f <- zoops %>%
+  mutate(Fraction = case_when(
+    size_fraction == 200 ~ ">200 µm",
+    size_fraction == 500 ~ "200 - 499 µm",
+    size_fraction == 1000 ~ "500 - 999 µm",
+    size_fraction == 2000 ~ "1000 - 1999 µm",
+    size_fraction == 5000 ~ "2000 - 4999 µm",
+    TRUE ~ "Unknown"
+  ))
+
+zoops_summary <- zoops_f %>%
+  group_by(net_cast_number) %>%
+  mutate(total_zoops = sum(net_dry_weight, na.rm = TRUE),
+         percent_zoops = (net_dry_weight / total_zoops) * 100)
+
+zoops_summary <- zoops_summary %>%
+  mutate(net_cast_number = as.numeric(net_cast_number))
+
+# cast_order <- zoops_summary %>%
+#   group_by(net_cast_number) %>%
+#   summarise(total_biomass = sum(net_dry_weight, na.rm = TRUE)) %>%
+#   arrange(desc(total_biomass))
+# 
+# zoops_summary <- zoops_summary %>%
+#   mutate(net_cast_number = factor(net_cast_number,
+#                                   levels = cast_order$net_cast_number))
+
+  ggplot(zoops_summary, aes(x = net_cast_number, y = percent_zoops, fill = Fraction)) +
+    geom_bar(stat = "identity") +
+    scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+    # scale_fill_viridis_d(option = 'mako') +
+    scale_fill_paletteer_d("NatParksPalettes::Banff") +
+    coord_flip() +
+    labs(title = "Size-fractionated Zooplankton by Net Cast Number",
+         x = "Net Cast Number",
+         y = "% of Total Zooplankton",
+         fill = "Size Class") +
+    theme_bw()
+  
+  
+# Heat Maps of Zoops
+  ggplot(zoops_summary, aes(x = Fraction, y = net_cast_number, fill = percent_zoops)) +
+    geom_tile(color = "white") +
+    scale_fill_viridis_c(option = "plasma") +
+    scale_y_reverse() +
+    labs(
+      title = "Heatmap of Zooplankton Biomass by Size and Cast",
+      x = "Size Class",
+      y = "Net Cast Number",
+      fill = "% Biomass"
+    ) +
+    theme_minimal()
+  
+ 
+# Stacked Bar line chart  
+  library(paletteer)
+  ggplot(zoops_summary, aes(x = net_cast_number, y = percent_zoops, fill = Fraction)) +
+    geom_area(stat = "identity", position = "stack", size=.5, colour="white") +
+    # scale_fill_viridis_d(option = 'mako') +
+    scale_fill_paletteer_d("NatParksPalettes::Banff") +
+    scale_x_reverse() +
+    labs(
+      title = "Biomass Distribution Across Net Casts",
+      x = "Net Cast Number",
+      y = "% of Total Zooplankton",
+      fill = "Size Class"
+    ) +
+    theme_minimal()
+  
+  
+  # Interesting plot 
+  ggplot(zoops_summary, aes(x = net_cast_number, y = percent_zoops, size = percent_zoops, fill = Fraction)) +
+    scale_fill_paletteer_d("NatParksPalettes::Banff") +
+    geom_point(shape = 21, color = "black", alpha = 0.7) +
+    scale_size(range = c(2, 10)) +
+    labs(
+      title = "Zooplankton Biomass Gradient by Cast and Size Class",
+      x = "Net Cast Number",
+      y = "% of Total Biomass",
+      fill = "Size Class",
+      size = "% Biomass"
+    ) +
+    theme_minimal()
+  
+# ----------------------------------------------------------------------------
 # zoopsSub <- zoops[which(zoops$net_cast_number== 2),]
 # zoopsLm <- lm(size_fraction ~ net_dry_weight, data=zoopsSub)
 # zoopsLm$coefficients
