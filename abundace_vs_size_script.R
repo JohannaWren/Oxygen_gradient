@@ -20,7 +20,7 @@ head(phyto)
 phyto <- phyto %>% 
   #filter(Filter != 'bulk') %>% 
   mutate(Size=as.numeric(Filter))
-# Turning a character (bulk) into a number produces an NA. To put the size in there instead we run the below line. Bulk filters are 0.7um pore ize
+# Turning a character (bulk) into a number produces an NA. To put the size in there instead we run the below line. Bulk filters are 0.7um pore size
 phyto$Size[is.na(phyto$Size)] <-  0.7
 head(phyto)
 # Make file for nice station plotting
@@ -28,6 +28,12 @@ id.labs <- phyto$Station
 names(id.labs) <- phyto$Cast
 id.labs
 
+#Link Cast labels to the Station ID
+cast_labels <- phyto %>%
+  distinct(Cast, Station) %>%
+  arrange(Cast)
+label_vector <- setNames(cast_labels$Station, cast_labels$Cast)
+  
 # Scatter plots for all casts 
 phyto %>% 
   ggplot(aes(x=Chlorophyll, y=Depth)) + 
@@ -52,21 +58,20 @@ df_filtered <- subset(phyto, Depth == selected_depth)
 ggplot(df_filtered, aes(x = Cast, y=Chlorophyll)) +
   scale_x_continuous(breaks = unique(phyto$Cast)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))+
-  geom_bar(stat = "identity", fill = "darkgreen")
-
+  geom_bar(stat = "identity", fill = "darkgreen") +
+  theme_bw()
 # ggsave('ChlCast_bar.png', width=10, height = 5.625, dpi = 300)
 
 # Bar chart for all depths
 ggplot(phyto, aes(x = Depth, y = Chlorophyll)) +
   geom_bar(stat = "identity", fill = "darkgreen") +
-  facet_wrap(~ Cast, nrow = 1) +
+  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), nrow = 1) +
   # scale_x_discrete(breaks = unique(phyto$Cast)) +
   labs(title = "Chlorophyll at All Depths",
        x = "Depth",
        y = "Chlorophyll (mg/m^3)") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 90, vjust=0.5))
-
 # ggsave('ChlCast_Depth_bar.png', width=10, height = 5.625, dpi = 300)
 
 
@@ -83,7 +88,8 @@ ggplot(phyto, aes(x = Cast, y = Chlorophyll)) +
 # ggsave('ChlDepth_Cast_bar.png', width=10, height = 5.625, dpi = 300)
 
  # Bubble Figure
-  a.02 = 
+  
+a0.2 = 
   phyto %>% 
      filter(Size==0.2) %>% 
    ggplot(aes(x = as.factor(Cast), y = Depth, size = Chlorophyll)) +
@@ -91,23 +97,25 @@ ggplot(phyto, aes(x = Cast, y = Chlorophyll)) +
      scale_y_reverse() +
      theme(axis.text.x = element_text(angle = 45, hjust = 1))+
       xlab('Cast') + ylab('Depth [m])') +
-    ggtitle('Chlorophyll Concentration (bubble size) SE2204') +
+    labs(title = "SE2204 Chlorophyll concentration", subtitle = "Plotted for chlorophyll sampled from 0.2 μm filter") +
      theme_minimal() +
      # facet_wrap(Size~., ncol=1)
      theme(axis.text.x = element_text(angle = 45, hjust = 1))
-  a.02
-  # ggsave('Chl.02_cast_bubble.png', width=10, height = 5.625, dpi = 300)
+  a0.2
+  # ggsave('Chl0.2_cast_bubble.png', width=10, height = 5.625, dpi = 300)
   
- a.20 = 
+ a2.0 = 
      phyto %>% 
     filter(Size==2) %>% 
     ggplot(aes(x = as.factor(Cast), y = Depth, size = Chlorophyll)) +
    geom_point(alpha = 0.6, color ="darkgreen") +
      scale_y_reverse() +
    xlab('Cast') + ylab('Depth [m])') +
+   labs(title = "SE2204 Chlorophyll concentration", subtitle = "Plotted for chlorophyll sampled from 2.0 μm filter") +
      theme_minimal() +
      theme(axis.text.x = element_text(angle = 45, hjust = 1))
- # ggsave('Chl.20_cast_bubble.png', width=10, height = 5.625, dpi = 300)
+ a2.0 
+ # ggsave('Chl2.0_cast_bubble.png', width=10, height = 5.625, dpi = 300)
  
  a20 = 
      phyto %>% 
@@ -116,31 +124,68 @@ ggplot(phyto, aes(x = Cast, y = Chlorophyll)) +
      geom_point(alpha = 0.6, color ="darkgreen") +
      scale_y_reverse() +
    xlab('Cast') + ylab('Depth [m])') +
+   labs(title = "SE2204 Chlorophyll concentration", subtitle = "Plotted for chlorophyll sampled from 20.0 μm filter") +
+   theme_minimal() +
      theme_minimal()+
      theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ a20
  # ggsave('Chl20_cast_bubble.png', width=10, height = 5.625, dpi = 300)
  
- cowplot::plot_grid(a.02, a.20, a20, nrow = 1)
+ cowplot::plot_grid(a0.2, a2.0, a20, nrow = 1)
  
  # ggsave('ChlBubblePlot_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
  # ggsave('ChlBubblePlot_AllStns.png', width=10, height = 5.625, dpi = 300, units = 'in')
  
  
  # Heatmap
- p02 <- phyto %>% 
+ p20 <- phyto %>% 
    filter(Size == 20) %>% 
    ggplot() +
     geom_tile(aes(x=as.factor(Cast), y=Depth, fill=Chlorophyll)) +
     scale_y_reverse() +
+    scale_x_discrete(labels = label_vector) +
     scale_fill_viridis_c(option = 'turbo') +
-    # scale_fill_gradient(low='white', high='darkgreen') +
-    xlab('Cast') + 
-    ylab('Depth [m])') +
-    theme_minimal()
- p02
-# ggsave('ChlHeatMap_AllStns.png', width=10, height = 5.625, dpi = 300, units = 'in')
+    xlab('Station') + 
+    ylab('Depth [m]') +
+    # labs(title = "SE2204 Chlorophyll concentration", subtitle = "Plotted for chlorophyll sampled from 20.0 μm filter") +
+    theme_minimal() +
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ p20
+# ggsave('ChlHeatMap20_AllStns.png', width=10, height = 5.625, dpi = 300, units = 'in')
  
- # scatter plot
+ p2 <- phyto %>% 
+   filter(Size == 2) %>% 
+   ggplot() +
+   geom_tile(aes(x=as.factor(Cast), y=Depth, fill=Chlorophyll)) +
+   scale_y_reverse() +
+   scale_x_discrete(labels = label_vector) +
+   scale_fill_viridis_c(option = 'turbo') +
+   xlab('Station') + 
+   ylab('Depth [m]') +
+   # labs(title = "SE2204 Chlorophyll concentration", subtitle = "Plotted for chlorophyll sampled from 2.0 μm filter") +
+   theme_minimal() +
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ p2
+ # ggsave('ChlHeatMap2_AllStns.png', width=10, height = 5.625, dpi = 300, units = 'in')
+ 
+ p0.2 <- phyto %>% 
+   filter(Size == 0.2) %>% 
+   ggplot() +
+   geom_tile(aes(x=as.factor(Cast), y=Depth, fill=Chlorophyll)) +
+   scale_y_reverse() +
+   scale_x_discrete(labels = label_vector) +
+   scale_fill_viridis_c(option = 'turbo') +
+   xlab('Station') + 
+   ylab('Depth [m]') +
+   # labs(title = "SE2204 Chlorophyll concentration", subtitle = "Plotted for chlorophyll sampled from 0.2 μm filter") +
+   theme_minimal() +
+   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+ p0.2
+ # ggsave('ChlHeatMap0.2_AllStns.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+
+ 
+# scatter plot
 phyto %>% filter(Depth == 0) %>% 
   ggplot(aes(x=Size, y=Chlorophyll)) + 
    geom_point() +
@@ -177,10 +222,8 @@ chl_summary$size_class <- factor(chl_summary$size_class, levels = c("0.2 - 1.99 
 ggplot(chl_summary, aes(x = Depth, y = percent_chl, fill = size_class)) +
   geom_bar(stat = "identity") +
   scale_y_continuous(labels = scales::percent_format(scale = 1)) +
-  # scale_fill_paletteer_d("MetBrewer::Archambault") + 
-  #scale_fill_paletteer_d("vangogh::Bedroom") +
-  # scale_fill_manual(values=c('#9596a5', '#436eb7', '#4d4d5e')) +
-  scale_fill_manual(values=c('#999b82', '#337353', '#39512b')) +
+  scale_fill_manual(values = c("#495d86", "#d9b021", "#d26424")) +
+  # scale_fill_manual(values = c("#646298", "#72a5a9", "#D75739")) +
   scale_x_reverse(expand = c(0,0)) +  
   facet_wrap(~Station, labeller=labeller(Station=id.labs)) + 
   coord_flip() +
@@ -189,7 +232,15 @@ ggplot(chl_summary, aes(x = Depth, y = percent_chl, fill = size_class)) +
        y = "% of Total Chlorophyll",
        fill = "Size Class") +
   theme_bw()
-ggsave('ChlSizeFraction_AllStns.png', width=10, height = 5.625, dpi = 300, units = 'in')
+# ggsave('ChlSizeFraction_AllStns.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+
+
+
+
+
+
+
 
 
 # --------------------------------- ZOOPLANKTON -------------------------------
@@ -205,6 +256,17 @@ zoops <- zoops %>%
   summarise(net_dry_weight=sum(net_dry_weight))
 
 zoopTrend <- lm(size_fraction ~ net_dry_weight, data=zoops)
+head(zoops)
+
+#Link Cast labels to the Station ID
+# id.labs2 <- phyto$Station
+# names(id.labs2) <- zoops$net_cast_number
+# id.labs2 # Missing Cast 1
+# 
+# id.labs2["1"] <- "A (test)"
+
+zoops$Station <- label_vector[as.character(zoops$net_cast_number)]
+head(zoops)
 
 # make zooplankton plots
 # Bubble Figure
