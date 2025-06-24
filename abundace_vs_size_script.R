@@ -179,16 +179,17 @@ ggplot(chl_summary, aes(x = Depth, y = percent_chl, fill = size_class)) +
   scale_y_continuous(labels = scales::percent_format(scale = 1)) +
   # scale_fill_paletteer_d("MetBrewer::Archambault") + 
   #scale_fill_paletteer_d("vangogh::Bedroom") +
-  scale_fill_manual(values=c('red', 'blue', 'green')) + #CHANGE THIS 
+  # scale_fill_manual(values=c('#9596a5', '#436eb7', '#4d4d5e')) +
+  scale_fill_manual(values=c('#999b82', '#337353', '#39512b')) +
   scale_x_reverse(expand = c(0,0)) +  
-  facet_wrap(~ Station) + 
+  facet_wrap(~Station, labeller=labeller(Station=id.labs)) + 
   coord_flip() +
   labs(title = "Size-fractionated Chlorophyll by Depth",
        x = "Depth (m)",
        y = "% of Total Chlorophyll",
        fill = "Size Class") +
   theme_bw()
-# ggsave('ChlSizeFraction_AllStns.png', width=10, height = 5.625, dpi = 300, units = 'in')
+ggsave('ChlSizeFraction_AllStns.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 
 # --------------------------------- ZOOPLANKTON -------------------------------
