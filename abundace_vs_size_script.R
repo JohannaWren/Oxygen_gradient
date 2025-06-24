@@ -10,6 +10,7 @@ library(ggplot2)
 library(lubridate)
 library(tidyr)
 library(data.table)
+library(paletteer)
 
 # load the data
 phyto <- read.csv(paste(here(), 'fluorometry_SE2204.csv', sep='/'))  # Emma's
@@ -265,8 +266,10 @@ head(zoops)
 # 
 # id.labs2["1"] <- "A (test)"
 
-zoops$Station <- label_vector[as.character(zoops$net_cast_number)]
-head(zoops)
+# zoops$Station <- label_vector[as.character(zoops$net_cast_number)]
+# head(zoops)
+# tail(zoops)
+
 
 # make zooplankton plots
 # Bubble Figure
@@ -278,7 +281,6 @@ ggplot(zoops, aes( x =net_cast_number, y =size_fraction, size =net_dry_weight)) 
        y = "Size Fraction (µm)") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
-
 # ggsave('Zoop_bubble.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 
@@ -341,7 +343,15 @@ zoops_f <- zoops %>%
     size_fraction == 2000 ~ "1000 - 1999 µm",
     size_fraction == 5000 ~ "2000 - 4999 µm",
     TRUE ~ "Unknown"
-  ))
+  ))  %>%
+  mutate(Fraction = factor(Fraction, levels = c(
+    ">200 µm",
+    "200 - 499 µm",
+    "500 - 999 µm",
+    "1000 - 1999 µm",
+    "2000 - 4999 µm",
+    "Unknown"
+  )))
 
 zoops_summary <- zoops_f %>%
   group_by(net_cast_number) %>%
@@ -360,6 +370,8 @@ zoops_summary <- zoops_summary %>%
 #   mutate(net_cast_number = factor(net_cast_number,
 #                                   levels = cast_order$net_cast_number))
 
+
+# Size-fractionated Zooplankton stacked bar chart for proportion percentages
   ggplot(zoops_summary, aes(x = net_cast_number, y = percent_zoops, fill = Fraction)) +
     geom_bar(stat = "identity") +
     scale_y_continuous(labels = scales::percent_format(scale = 1)) +
@@ -371,12 +383,13 @@ zoops_summary <- zoops_summary %>%
          y = "% of Total Zooplankton",
          fill = "Size Class") +
     theme_bw()
-  
-  
+# ggsave('ZoopStackedProp.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+
 # Heat Maps of Zoops
   ggplot(zoops_summary, aes(x = Fraction, y = net_cast_number, fill = percent_zoops)) +
     geom_tile(color = "white") +
-    scale_fill_viridis_c(option = "plasma") +
+    scale_fill_viridis_c(option = "turbo") +
     scale_y_reverse() +
     labs(
       title = "Heatmap of Zooplankton Biomass by Size and Cast",
@@ -385,10 +398,9 @@ zoops_summary <- zoops_summary %>%
       fill = "% Biomass"
     ) +
     theme_minimal()
-  
+# ggsave('ZoopHeatMap.png', width=10, height = 5.625, dpi = 300, units = 'in')
  
 # Stacked Bar line chart  
-  library(paletteer)
   ggplot(zoops_summary, aes(x = net_cast_number, y = percent_zoops, fill = Fraction)) +
     geom_area(stat = "identity", position = "stack", size=.5, colour="white") +
     # scale_fill_viridis_d(option = 'mako') +
