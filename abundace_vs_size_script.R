@@ -182,6 +182,7 @@ a0.2 =
    theme_minimal() +
    theme(axis.text.x = element_text(angle = 45, hjust = 1))
  p0.2
+ 
  # ggsave('ChlHeatMap0.2_AllStns.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 
@@ -196,7 +197,7 @@ phyto %>% filter(Depth == 0) %>%
      formula = y ~ x,
      parse = TRUE,
      size = 3) +
-   facet_wrap(.~Cast, nrow = 3) +
+   facet_wrap(.~Cast, labeller=labeller(Cast=id.labs), nrow = 3) +
    scale_x_log10() +
    scale_y_log10() +
    xlab(expression('Size ('*mu*'g)')) + ylab(expression('Chlorophyll ('*mu*'g/L)')) +
@@ -226,7 +227,7 @@ ggplot(chl_summary, aes(x = Depth, y = percent_chl, fill = size_class)) +
   scale_fill_manual(values = c("#495d86", "#d9b021", "#d26424")) +
   # scale_fill_manual(values = c("#646298", "#72a5a9", "#D75739")) +
   scale_x_reverse(expand = c(0,0)) +  
-  facet_wrap(~Station, labeller=labeller(Station=id.labs)) + 
+  facet_wrap(~Cast, labeller=labeller(Cast=id.labs)) + 
   coord_flip() +
   labs(title = "Size-fractionated Chlorophyll by Depth",
        x = "Depth (m)",
