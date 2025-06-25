@@ -314,7 +314,8 @@ ggplot(normalized_biomass, aes(x = log_normalized_size, y = log_normalized_bioma
     title = "Zooplankton Biomass Spectrum by Station"
   ) +
   theme_bw(base_size = 12)
-ggsave('ZoopSizeAbun_linearR_Normlog10.png', width=10, height = 5.625, dpi = 300, units = 'in')
+# ggsave('ZoopSizeAbun_linearR_Normlog10.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
 # -----------------------------------------------------------------------------
 # make zooplankton plots
 # Bubble Figure
