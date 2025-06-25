@@ -15,6 +15,7 @@ library(akima)
 library(MBA)
 library(reshape2)
 
+
 # Set working directory
 myDir <- paste(here(), sep='/') # Emma's file path
 # myDir <- paste(here(), 'CTD', sep='/')  # Johanna's File path
@@ -171,7 +172,7 @@ depthProfile <- function(CTDdata, PlotVar, VarName, figTitle) {
 oxyProfile <- depthProfile(ctdAll, 'Oxygen', 'Oxygen [umol/kg]', 'Oxygen depth profile for SE2204')
 oxyProfile
 #ggsave(plot=oxyProfile, filename='O2DepthProfiles_AllStns_min.pdf', width=11, height = 8, dpi = 300, units = 'in')
-ggsave(plot=oxyProfile, filename='O2DepthProfiles_AllStns_min.png', width=10, height = 5.625, dpi = 300)
+# ggsave(plot=oxyProfile, filename='O2DepthProfiles_AllStns_min.png', width=10, height = 5.625, dpi = 300)
 
 #Thermocline Profiles 
 tempProfile <- depthProfile(ctdAll, "Temperature", 'Temperature [°C]', 'Temerature depth profile for SE2204')
@@ -220,37 +221,56 @@ nut$Date <- as.Date(nut$Date, '%m/%d/%y')
 
 # -----------------------------------------------------------------------------
 # Plot from NutriVis
-nutriDN <- nut %>%
-  select(Latitude, Depth2, Nitrate..Nitrite) %>%
-  rename(NutVar = Nitrate..Nitrite) %>%
-  filter(!is.na(Latitude), !is.na(Depth2), !is.na(NutVar))
+plot_nutrient_section <- function(data, nutrient_col, title_label) {
+  clean_data <- data %>%
+    select(Latitude, Depth2, !!sym(nutrient_col)) %>%
+    rename(Depth = Depth2, NutVar = !!sym(nutrient_col)) %>%
+    filter(!is.na(Latitude), !is.na(Depth), !is.na(NutVar))
+  
+  sample_points <- clean_data
+  
+  # Interpolation with MBA
+  interp <- mba.surf(clean_data, no.X = 300, no.Y = 300, extend = TRUE)
+  dimnames(interp$xyz.est$z) <- list(interp$xyz.est$x, interp$xyz.est$y)
+  
+  # Convert to dataframe
+  interp_df <- melt(interp$xyz.est$z, varnames = c("Latitude", "Depth"), value.name = "NutVar") %>%
+    mutate(NutVar = round(NutVar, 1))
+  
+  # Plot
+  ggplot(data = interp_df, aes(x = Latitude, y = Depth)) +
+    geom_raster(aes(fill = NutVar)) +
+    scale_fill_viridis_c() +
+    scale_y_reverse() +
+    geom_contour(aes(z = NutVar), binwidth = 1, colour = "black", alpha = 0.2) +
+    geom_point(data = sample_points, aes(x = Latitude, y = Depth),
+               colour = "black", size = 0.2, alpha = 0.4, shape = 8) +
+    labs(
+      y = "Depth (m)",
+      x = "Latitude",
+      fill = paste0(title_label, "\n(µmol/L)"),
+      title = paste("SE2204", title_label, "Section Plot"),
+      subtitle = "Interpolated over depth and space; \nblack dots show actual sampling locations."
+    ) +
+    coord_cartesian(expand = 0) 
+}
 
-# Interpolation with MBA
-ctd_mba <- mba.surf(nutriDN, no.X = 300, no.Y = 300, extend = TRUE)
-dimnames(ctd_mba$xyz.est$z) <- list(ctd_mba$xyz.est$x, ctd_mba$xyz.est$y)
+# For Nitrate + Nitrite
+plot_nutrient_section(nut, "Nitrate..Nitrite", "Nitrate + Nitrite")
+# ggsave('NSectionPlot_interp.png', width=10, height = 5.625, dpi = 300)
 
-# Convert to dataframe
-mba_df <- melt(ctd_mba$xyz.est$z, varnames = c("Latitude", "Depth"), value.name = "NutVar") %>%
-  mutate(NutVar = round(NutVar, 1))
+# For Silicate
+plot_nutrient_section(nut, "Silicate", "Silicate")
+# ggsave('SiliSectionPlot_interp.png', width=10, height = 5.625, dpi = 300)
 
-# Plot
-ggplot(data = mba_df, aes(x = Latitude, y = Depth)) +
-  geom_raster(aes(fill = NutVar)) +
-  scale_fill_viridis_c() +
-  scale_x_reverse() +
-  scale_y_reverse() +
-  geom_contour(aes(z = NutVar), binwidth = 1, colour = "black", alpha = 0.2) +
-  geom_point(data = nutriDN, aes(x = Latitude, y = Depth2),
-             colour = "black", size = 0.2, alpha = 0.4, shape = 8) +
-  labs(
-    y = "Depth (m)",
-    x = "Latitude",
-    fill = "Nitrate + Nitrite\n(µmol/L)",
-    title = "SE2204 All Stations",
-    subtitle = "Interpolated over depth and space; \nBlack dots show actual sampling locations.\nUsed lat instead of station numbers"
-  ) +
-  coord_cartesian(expand = 0) +
-  theme_minimal()
+# For Phosphate
+plot_nutrient_section(nut, "Phosphate", "Phosphate")
+# ggsave('PhosSectionPlot_interp.png', width=10, height = 5.625, dpi = 300)
+
+# For Ammonia
+plot_nutrient_section(nut, "Ammonia", "Ammonia")
+# ggsave('AmmonSectionPlot_interp.png', width=10, height = 5.625, dpi = 300)
+
 
 # ---------------------------------------------------------------------------
 interpolate_nutrient_plot <- function(data, lat_col, depth_col, nutrient_col, VarName, figTitle) {
