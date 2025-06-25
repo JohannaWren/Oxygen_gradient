@@ -282,7 +282,7 @@ normalized_biomass <- zoops %>%
     log_normalized_size = log10(size_fraction))
 
 # Plot!
-# Plot of all normalized data together 
+# Plot of all normalized data together, LOG 10********
 ggplot(normalized_biomass, aes(x = log_normalized_size, y = log_normalized_biomass, color = as.factor(net_cast_number))) +
   geom_point() +
   geom_line() +
@@ -309,12 +309,36 @@ ggplot(normalized_biomass, aes(x = log_normalized_size, y = log_normalized_bioma
   ) +
   facet_wrap(~ net_cast_number, ncol = 4) +
   labs(
-    x = expression(log[10]~"Size Fraction [µm)]"),
+    x = expression(log[10]~"Size Fraction [µm]"),
     y = expression(log[10]~"Nomalized Biomass [g]"),
     title = "Zooplankton Biomass Spectrum by Station"
   ) +
   theme_bw(base_size = 12)
 # ggsave('ZoopSizeAbun_linearR_Normlog10.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+
+
+ggplot(normalized_biomass, aes(x = log2(size_fraction), y = log2(normalized_biomass))) +
+  geom_point(color = "#8ab69c") +
+  geom_smooth(method = "lm", se = FALSE, color = "#49755b", linewidth = 0.6) +
+  stat_poly_eq(
+    aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
+    formula = y ~ x,
+    parse = TRUE,
+    size = 3,
+    label.x = "right",
+    label.y = "top"
+  ) +
+  facet_wrap(~ net_cast_number, ncol = 4) +
+  labs(
+    x = expression(log[2]~"Size Fraction [µm]"),
+    y = expression(log[2]~"Nomalized Biomass [g]"),
+    title = "Zooplankton Biomass Spectrum by Station"
+  ) +
+  theme_bw(base_size = 12)
+# ggsave('ZoopSizeAbun_linearR_Normlog2.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+
 
 # -----------------------------------------------------------------------------
 # make zooplankton plots
