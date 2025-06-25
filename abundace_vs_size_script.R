@@ -49,9 +49,70 @@ phyto %>%
         panel.background = element_blank()) +
   xlab('Temperature [°C]')+ ylab('Depth [m]') +
   ggtitle('Temperature Depth Profiles SE2204')
-
 # ggsave('PhytoT_scatter.png', width=10, height = 5.625, dpi = 300)
 
+#------------------------Normalizing Phyto Data--------------------------------
+# Convert phyto$Filter to numeric
+phyto <- phyto %>%
+  mutate(Filter = as.numeric(Filter))
+
+bin_edges2 <- data.frame(
+  Filter = c(0.2, 2, 20),
+  plower_bound = c(0.2, 2, 20),
+  pupper_bound = c(2, 20, 200 )
+) %>%
+  mutate(pbin_width = pupper_bound - plower_bound)
+
+# Merge with zoops data and calculate normalized biomass
+# Create columns with  calculated normalized biomass and then add log biomass and  log size columns 
+pnorm <- phyto %>%
+  left_join(bin_edges2, by = "Filter") %>%
+  mutate(p_normalized_biomass = Chlorophyll / pbin_width)
+
+# Plot!
+library(ggpmisc)
+ggplot(pnorm, aes(x = log10(Filter), y = log10(p_normalized_biomass))) +
+  geom_point(color = "#8ab69c") +
+  geom_smooth(method = "lm", se = FALSE, color = "#49755b", linewidth = 0.6) +
+  stat_poly_eq(
+    aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
+    formula = y ~ x,
+    parse = TRUE,
+    size = 3,
+    label.x = "right",
+    label.y = "top"
+  ) +
+  facet_wrap(~ Station, ncol = 4) +
+  labs(
+    x = expression(log[10]~"Size Fraction [µm]"),
+    y = expression(log[10]~"Nomalized Biomass [g]"),
+    title = "Phytoplankton Biomass Spectrum by Station"
+  ) +
+  theme_bw(base_size = 12)
+# ggsave('ZoopSizeAbun_linearR_Normlog10.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+ggplot(pnorm, aes(x = log2(Filter), y = log2(p_normalized_biomass))) +
+  geom_point(color = "#8ab69c") +
+  geom_smooth(method = "lm", se = FALSE, color = "#49755b", linewidth = 0.6) +
+  stat_poly_eq(
+    aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
+    formula = y ~ x,
+    parse = TRUE,
+    size = 3,
+    label.x = "right",
+    label.y = "top"
+  ) +
+  facet_wrap(~ Station, ncol = 4) +
+  labs(
+    x = expression(log[2]~"Size Fraction [µm]"),
+    y = expression(log[2]~"Nomalized Biomass [g]"),
+    title = "Phytoplankton Biomass Spectrum by Station"
+  ) +
+  theme_bw(base_size = 12)
+# ggsave('ZoopSizeAbun_linearR_Normlog2.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+
+# ----------------------------------------------------------------------------
 # Bar chart for one depth 
 selected_depth <- 0
 df_filtered <- subset(phyto, Depth == selected_depth)
@@ -218,8 +279,14 @@ chl_summary <- phyto_f %>%
   group_by(Depth, Station, Cast) %>%
   mutate(total_chl = sum(Chlorophyll, na.rm = TRUE),
   percent_chl = (Chlorophyll / total_chl) * 100)
- 
+
+# Putting the filter size in chronological order to make plotting easy and clean 
 chl_summary$size_class <- factor(chl_summary$size_class, levels = c("0.2 - 1.99 µm", "2.0 - 19.99 µm", ">20 µm" ))
+
+# filter out Na's
+chl_summary <- chl_summary %>%
+  filter(!is.na(Cast), !is.na(percent_chl), !is.na(size_class))
+
 
 ggplot(chl_summary, aes(x = Depth, y = percent_chl, fill = size_class)) +
   geom_bar(stat = "identity") +
@@ -235,14 +302,6 @@ ggplot(chl_summary, aes(x = Depth, y = percent_chl, fill = size_class)) +
        fill = "Size Class") +
   theme_bw()
 # ggsave('ChlSizeFraction_AllStns.png', width=10, height = 5.625, dpi = 300, units = 'in')
-
-
-
-
-
-
-
-
 
 
 # --------------------------------- ZOOPLANKTON -------------------------------
