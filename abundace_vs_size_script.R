@@ -260,18 +260,62 @@ zoops <- zoops %>%
 zoopTrend <- lm(size_fraction ~ net_dry_weight, data=zoops)
 head(zoops)
 
-#Link Cast labels to the Station ID
-# id.labs2 <- phyto$Station
-# names(id.labs2) <- zoops$net_cast_number
-# id.labs2 # Missing Cast 1
-# 
-# id.labs2["1"] <- "A (test)"
+# -----------------------------------------------------------------------------
+# Normalize the data for abundance vs size using the Normalized Biomass 
+# Spectral Slope (NBSS) per Platt and Denman (1978)
 
-# zoops$Station <- label_vector[as.character(zoops$net_cast_number)]
-# head(zoops)
-# tail(zoops)
+#Create a dataframe using the edges of the bins to calculate bin width 
+bin_edges <- data.frame(
+  size_fraction = c(200, 500, 1000, 2000, 5000),
+  lower_bound = c(200, 500, 1000, 2000, 5000),
+  upper_bound = c(500, 1000, 2000, 5000, 10000)
+) %>%
+  mutate(bin_width = upper_bound - lower_bound)
 
+# Merge with zoops data and calculate normalized biomass
+# Create columns with  calculated normalized biomass and then add log biomass and  log size columns 
+normalized_biomass <- zoops %>%
+  left_join(bin_edges, by = "size_fraction") %>%
+  mutate(
+    normalized_biomass = net_dry_weight / bin_width,
+    log_normalized_biomass = log10(normalized_biomass),
+    log_normalized_size = log10(size_fraction))
 
+# Plot!
+# Plot of all normalized data together 
+ggplot(normalized_biomass, aes(x = log_normalized_size, y = log_normalized_biomass, color = as.factor(net_cast_number))) +
+  geom_point() +
+  geom_line() +
+  scale_color_paletteer_d("ggsci::category20_d3") +
+  labs(
+    x = expression(log[10]~"Size [μm]"),
+    y = expression(log[10]~"Normalized Biomass [g]"),
+    color = "Station",
+    title = "Normalized Zooplankton Biomass Spectrum") +
+  theme_bw()
+# ggsave('ZoopSizeAbun_linearR_log10.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+library(ggpmisc)
+ggplot(normalized_biomass, aes(x = log_normalized_size, y = log_normalized_biomass)) +
+  geom_point(color = "#8ab69c") +
+  geom_smooth(method = "lm", se = FALSE, color = "#49755b", linewidth = 0.6) +
+  stat_poly_eq(
+    aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
+    formula = y ~ x,
+    parse = TRUE,
+    size = 3,
+    label.x = "right",
+    label.y = "top"
+  ) +
+  facet_wrap(~ net_cast_number, ncol = 4) +
+  labs(
+    x = expression(log[10]~"Size Fraction [µm)]"),
+    y = expression(log[10]~"Nomalized Biomass [g]"),
+    title = "Zooplankton Biomass Spectrum by Station"
+  ) +
+  theme_bw(base_size = 12)
+ggsave('ZoopSizeAbun_linearR_Normlog10.png', width=10, height = 5.625, dpi = 300, units = 'in')
+# -----------------------------------------------------------------------------
 # make zooplankton plots
 # Bubble Figure
 ggplot(zoops, aes( x =net_cast_number, y =size_fraction, size =net_dry_weight)) +
