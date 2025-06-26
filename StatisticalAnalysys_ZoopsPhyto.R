@@ -93,9 +93,47 @@ ggplot(df, aes(x = Station, y = Biomass)) +
 # ggsave('PhytoBulkBoxPlot.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 
+BoxP_phyto <- function(data, depth_value) {
+  filtered <- data %>%
+    filter(Depth == depth_value)
+  filtered <- filtered %>%
+    mutate(xnum = as.numeric(factor(Station)))
+  summary_df <- filtered %>%
+    group_by(Station) %>%
+    summarise(
+      p10 = quantile(Chlorophyll, 0.10, na.rm = TRUE),
+      p25 = quantile(Chlorophyll, 0.25, na.rm = TRUE),
+      median = median(Chlorophyll, na.rm = TRUE),
+      p75 = quantile(Chlorophyll, 0.75, na.rm = TRUE),
+      p90 = quantile(Chlorophyll, 0.90, na.rm = TRUE),
+      xnum = unique(as.numeric(factor(Station)))
+    )
+  ggplot(filtered, aes(x = Station, y = Chlorophyll)) +
+    # IQR box
+    geom_rect(data = summary_df,
+              aes(xmin = xnum - 0.2, xmax = xnum + 0.2,
+                  ymin = p25, ymax = p75),
+              fill = "lightgrey", color = "black", alpha = 0.5, inherit.aes = FALSE) +
+    # Mean point
+    stat_summary(fun = mean, geom = "point", color = "blue", size = 1.5) +
+    # Whiskers
+    geom_linerange(data = summary_df,
+                   aes(x = Station, ymin = p10, ymax = p90),
+                   color = "black", size = 0.5, inherit.aes = FALSE) +
+    # Median line
+    geom_segment(data = summary_df,
+                 aes(x = xnum - 0.2, xend = xnum + 0.2,
+                     y = median, yend = median),
+                 color = "red", size = 0.4, inherit.aes = FALSE) +
+    theme_bw() +
+    labs(y = "Chlorophyll Biomass [μg/L]") +
+    ggtitle(
+      label = "SE2204 Chlorophyll variability by station",
+      subtitle = "Blue point = mean; Red line = median; Whiskers = 10–90%; Box = IQR"
+    )
+}
 
-
-
+BoxP_phyto(phyto, 125)
 
 
 # -------------------Depth Integrate the Phyto Data --------------------------
