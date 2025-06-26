@@ -59,19 +59,18 @@ phyto <- phyto %>%
 bin_edges2 <- data.frame(
   Filter = c(0.2, 2, 20),
   plower_bound = c(0.2, 2, 20),
-  pupper_bound = c(2, 20, 200 )
-) %>%
+  pupper_bound = c(2, 20, 200 )) %>%
   mutate(pbin_width = pupper_bound - plower_bound)
 
-# Merge with zoops data and calculate normalized biomass
 # Create columns with  calculated normalized biomass and then add log biomass and  log size columns 
 pnorm <- phyto %>%
   left_join(bin_edges2, by = "Filter") %>%
   mutate(p_normalized_biomass = Chlorophyll / pbin_width)
 
 # Plot!
-library(ggpmisc)
-ggplot(pnorm, aes(x = log10(Filter), y = log10(p_normalized_biomass))) +
+# Individuals plots for depths 
+pnorm %>% filter(Depth == 0) %>% 
+ggplot(aes(x = log10(Filter), y = log10(p_normalized_biomass))) +
   geom_point(color = "#8ab69c") +
   geom_smooth(method = "lm", se = FALSE, color = "#49755b", linewidth = 0.6) +
   stat_poly_eq(
@@ -89,27 +88,61 @@ ggplot(pnorm, aes(x = log10(Filter), y = log10(p_normalized_biomass))) +
     title = "Phytoplankton Biomass Spectrum by Station"
   ) +
   theme_bw(base_size = 12)
-# ggsave('ZoopSizeAbun_linearR_Normlog10.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
-ggplot(pnorm, aes(x = log2(Filter), y = log2(p_normalized_biomass))) +
-  geom_point(color = "#8ab69c") +
-  geom_smooth(method = "lm", se = FALSE, color = "#49755b", linewidth = 0.6) +
-  stat_poly_eq(
-    aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
-    formula = y ~ x,
-    parse = TRUE,
-    size = 3,
-    label.x = "right",
-    label.y = "top"
-  ) +
-  facet_wrap(~ Station, ncol = 4) +
-  labs(
-    x = expression(log[2]~"Size Fraction [µm]"),
-    y = expression(log[2]~"Nomalized Biomass [g]"),
-    title = "Phytoplankton Biomass Spectrum by Station"
-  ) +
-  theme_bw(base_size = 12)
-# ggsave('ZoopSizeAbun_linearR_Normlog2.png', width=10, height = 5.625, dpi = 300, units = 'in')
+#Function
+NBSS_phyto <- function(data, depth_value) {
+  data %>%
+    filter(Depth == depth_value) %>%
+    ggplot(aes(x = log2(Filter), y = log2(p_normalized_biomass))) +
+    geom_point(color = "black") +
+    geom_smooth(method = "lm", se = FALSE, color = "blue", linewidth = 0.4) +
+    stat_poly_eq(
+      aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
+      formula = y ~ x,
+      parse = TRUE,
+      size = 3,
+      label.x = "right",
+      label.y = "top"
+    ) +
+    facet_wrap(~ Station, ncol = 4) +
+    labs(
+      x = expression(log[2]~"Size Fraction [µm]"),
+      y = expression(log[2]~"Normalized Biomass [g]"),
+      title = "SE2204 Phytoplankton Normalized Biomass Size Spectrum",
+      subtitle = paste("Plotted for samples at depth =", depth_value, "[m]"),
+    ) +
+    theme_bw()
+}
+
+NBSS_phyto(pnorm, 0) #should remove 3 
+# ggsave('NBSS_Phyto_0.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+NBSS_phyto(pnorm, 20) #should remove 3 
+# ggsave('NBSS_Phyto_20.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+NBSS_phyto(pnorm, 35) #should remove 1 & 3 
+# ggsave('NBSS_Phyto_35.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+NBSS_phyto(pnorm, 50) #should remove 3 
+# ggsave('NBSS_Phyto_50.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+NBSS_phyto(pnorm, 65) #should remove 3 
+# ggsave('NBSS_Phyto_65.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+NBSS_phyto(pnorm, 80)
+# ggsave('NBSS_Phyto_80.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+NBSS_phyto(pnorm, 100)
+# ggsave('NBSS_Phyto_100.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+NBSS_phyto(pnorm, 125)
+# ggsave('NBSS_Phyto_125.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+NBSS_phyto(pnorm, 150)
+# ggsave('NBSS_Phyto_150.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+NBSS_phyto(pnorm, 200)
+# ggsave('NBSS_Phyto_200.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 
 # ----------------------------------------------------------------------------
@@ -247,7 +280,6 @@ a0.2 =
  # ggsave('ChlHeatMap0.2_AllStns.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 
- 
 # scatter plot
 phyto %>% filter(Depth == 0) %>% 
   ggplot(aes(x=Size, y=Chlorophyll)) + 
@@ -286,7 +318,6 @@ chl_summary$size_class <- factor(chl_summary$size_class, levels = c("0.2 - 1.99 
 # filter out Na's
 chl_summary <- chl_summary %>%
   filter(!is.na(Cast), !is.na(percent_chl), !is.na(size_class))
-
 
 ggplot(chl_summary, aes(x = Depth, y = percent_chl, fill = size_class)) +
   geom_bar(stat = "identity") +
