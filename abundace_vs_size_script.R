@@ -27,7 +27,7 @@ head(phyto)
 # Make file for nice station plotting
 id.labs <- phyto$Station
 names(id.labs) <- phyto$Cast
-id.labs
+head(id.labs)
 
 #Link Cast labels to the Station ID
 cast_labels <- phyto %>%
