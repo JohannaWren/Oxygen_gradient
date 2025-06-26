@@ -20,11 +20,8 @@ head(phyto)
 
 # Clean up the phytoplankton data and make sure and turn filter into sizes
 phyto <- phyto %>% 
-  #filter(Filter != 'bulk') %>% 
   mutate(Size=as.numeric(Filter))
-# Turning a character (bulk) into a number produces an NA. To put the size in there instead we run the below line. Bulk filters are 0.7um pore size
-phyto$Size[is.na(phyto$Size)] <-  0.7
-head(phyto)
+
 # Make file for nice station plotting
 id.labs <- phyto$Station
 names(id.labs) <- phyto$Cast
@@ -53,14 +50,16 @@ pnorm <- phyto %>%
 
 
 # ---------------------- Bulk Phyto Box Plot ----------------------------------
+bulk_phyto <- read.csv(paste(here(), 'fluorometry_SE2204.csv', sep='/'))
+bulk_phyto <- subset(bulk_phyto, Filter == "bulk")
 
-df <- data.frame(
-  Station = normalized_biomass$net_cast_number, 
-  Biomass = normalized_biomass$log_normalized_biomass)
+bulk_df <- data.frame(
+  Station = bulk_phyto$Station, 
+  Biomass = bulk_phyto$Chlorophyll)
 
-df$Station <- factor(df$Station, levels = unique(df$Station))
+bulk_df$Station <- factor(df$Station, levels = unique(df$Station))
 
-summary_df <- df %>%
+bulk_sum <- bulk_df %>%
   group_by(Station) %>%
   summarise(
     mean = mean(Biomass, na.rm = TRUE),
@@ -74,26 +73,24 @@ summary_df <- df %>%
 
 # Create the plot
 ggplot(df, aes(x = Station, y = Biomass)) +
-  stat_summary(fun = mean, geom = "point", color = "blue", size = 1.5) +
-  # Whiskers (10% to 90%)
-  geom_linerange(data = summary_df, aes(x = Station, ymin = p10, ymax = p90), 
-                 color = "black", size = 0.5, inherit.aes = FALSE) +
   # IQR box (25% to 75%)
   geom_rect(data = summary_df,
             aes(xmin = xnum - 0.2, xmax = xnum + 0.2,
                 ymin = p25, ymax = p75),
             fill = "lightgrey", color = "black", alpha = 0.5, inherit.aes = FALSE) +
+  stat_summary(fun = mean, geom = "point", color = "blue", size = 1.5) +
+  # Whiskers (10% to 90%)
+  geom_linerange(data = summary_df, aes(x = Station, ymin = p10, ymax = p90), 
+                 color = "black", size = 0.5, inherit.aes = FALSE) +
   # Median line
   geom_segment(data = summary_df,
                aes(x = xnum - 0.2, xend = xnum + 0.2,
                    y = median, yend = median),
-               color = "red", size = 0.8, inherit.aes = FALSE) +
+               color = "red", size = 0.4, inherit.aes = FALSE) +
   theme_bw() +
-  labs(y = expression(log[10]~"Normalized Biomass [g]")) +
-  ggtitle(label = "SE2204 Zooplankton Normalized Biomass Variability", subtitle = "Blue point is the station mean; the red line is the station median; whiskers are the 10 and 90 % ranges; the box is the 75th and 25th IQR.")
-
-# ggsave('ZoopBoxPlot.png', width=10, height = 5.625, dpi = 300, units = 'in')
-
+  labs(y = "Chlorophyll Biomass [μg/L]") +
+  ggtitle(label = "SE2204 Chlorophyll variability by station", subtitle = "Blue point is the station mean; the red line is the station median; whiskers are the 10% and 90% data percentiles; the box is the 75% and 25% IQR percetiles.")
+# ggsave('PhytoBulkBoxPlot.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 
 
@@ -139,10 +136,6 @@ pnorm_int <- pnorm %>%
   )
 head(pnorm_int)
 
-# Linear model
-
-
-
 # Using Raw Chlorophyll Data not normalized
 phyto_int2 <- phyto %>%
   arrange(Station, Depth) %>%
@@ -164,8 +157,6 @@ ggplot(phyto_int2, aes(x = Station, y = IntegratedBiomass)) +
   theme_minimal() +
   ylab("Phytoplankton Biomass Integrated by depth (g/m²)") +
   ggtitle("Depth-Integrated Phytoplankton Biomass by Station")
-
-
 
 
 
