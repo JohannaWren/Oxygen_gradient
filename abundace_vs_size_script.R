@@ -54,12 +54,13 @@ phyto %>%
 #------------------------Normalizing Phyto Data--------------------------------
 # Convert phyto$Filter to numeric
 phyto <- phyto %>%
+  filter(Size != 0.7) %>% 
   mutate(Filter = as.numeric(Filter))
 
 bin_edges2 <- data.frame(
   Filter = c(0.2, 2, 20),
   plower_bound = c(0.2, 2, 20),
-  pupper_bound = c(2, 20, 200 )) %>%
+  pupper_bound = c(2, 20, 100 )) %>%
   mutate(pbin_width = pupper_bound - plower_bound)
 
 # Create columns with  calculated normalized biomass and then add log biomass and  log size columns 
@@ -81,7 +82,7 @@ ggplot(aes(x = log10(Filter), y = log10(p_normalized_biomass))) +
     label.x = "right",
     label.y = "top"
   ) +
-  facet_wrap(~ Station, ncol = 4) +
+  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs)) +
   labs(
     x = expression(log[10]~"Size Fraction [µm]"),
     y = expression(log[10]~"Nomalized Biomass [g]"),
