@@ -54,13 +54,12 @@ phyto %>%
 #------------------------Normalizing Phyto Data--------------------------------
 # Convert phyto$Filter to numeric
 phyto <- phyto %>%
-  filter(Size != 0.7) %>% 
   mutate(Filter = as.numeric(Filter))
 
 bin_edges2 <- data.frame(
   Filter = c(0.2, 2, 20),
   plower_bound = c(0.2, 2, 20),
-  pupper_bound = c(2, 20, 100 )) %>%
+  pupper_bound = c(2, 20, 200 )) %>%
   mutate(pbin_width = pupper_bound - plower_bound)
 
 # Create columns with  calculated normalized biomass and then add log biomass and  log size columns 
@@ -82,7 +81,7 @@ ggplot(aes(x = log10(Filter), y = log10(p_normalized_biomass))) +
     label.x = "right",
     label.y = "top"
   ) +
-  facet_wrap(.~Cast, labeller=labeller(Cast=id.labs)) +
+  facet_wrap(~ Station, ncol = 4) +
   labs(
     x = expression(log[10]~"Size Fraction [µm]"),
     y = expression(log[10]~"Nomalized Biomass [g]"),
@@ -455,7 +454,7 @@ ggplot(zoops, aes(x=size_fraction, y=net_dry_weight, group=as.factor(net_cast_nu
        y = "Net dry weight [g]", 
        color = "Station") +
   theme_bw()
-ggsave('Zoop_LM.png', width=10, height = 5.625, dpi = 300, units = 'in')
+# ggsave('Zoop_LM.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 # Panels for all casts and their linear regression lines/equation
 zoops %>% 
