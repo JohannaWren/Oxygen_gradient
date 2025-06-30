@@ -96,9 +96,9 @@ ggplot(df, aes(x = Station, y = Biomass)) +
 BoxP_phyto <- function(data, depth_value) {
   filtered <- data %>%
     filter(Depth == depth_value)
-  filtered <- filtered %>%
+ data3 <- filtered %>%
     mutate(xnum = as.numeric(factor(Station)))
-  summary_df <- filtered %>%
+  summary_df <- data3 %>%
     group_by(Station) %>%
     summarise(
       p10 = quantile(Chlorophyll, 0.10, na.rm = TRUE),
@@ -278,43 +278,160 @@ normalized_biomass <- zoops %>%
 
 
 # --------------------------ZOOP Box Plots--------------------------------------
-df <- data.frame(
+Box_df <- data.frame(
   Station = normalized_biomass$net_cast_number, 
   Biomass = normalized_biomass$log_normalized_biomass)
 
-df$Station <- factor(df$Station, levels = unique(df$Station))
+Box_df$Station <- factor(df$Station, levels = unique(df$Station))
 
-  summary_df <- df %>%
-    group_by(Station) %>%
-    summarise(
-      mean = mean(Biomass, na.rm = TRUE),
-      median = median(Biomass, na.rm = TRUE),
-      p10 = quantile(Biomass, 0.10, na.rm = TRUE),
-      p25 = quantile(Biomass, 0.25, na.rm = TRUE),
-      p75 = quantile(Biomass, 0.75, na.rm = TRUE),
-      p90 = quantile(Biomass, 0.90, na.rm = TRUE)
-    ) %>%
-    mutate(xnum = as.numeric(Station))
-  
-  # Create the plot
-  ggplot(df, aes(x = Station, y = Biomass)) +
-    stat_summary(fun = mean, geom = "point", color = "blue", size = 1.5) +
-    # Whiskers (10% to 90%)
-    geom_linerange(data = summary_df, aes(x = Station, ymin = p10, ymax = p90), 
-                   color = "black", size = 0.5, inherit.aes = FALSE) +
-    # IQR box (25% to 75%)
-    geom_rect(data = summary_df,
-              aes(xmin = xnum - 0.2, xmax = xnum + 0.2,
-                  ymin = p25, ymax = p75),
-              fill = "lightgrey", color = "black", alpha = 0.5, inherit.aes = FALSE) +
-    # Median line
-    geom_segment(data = summary_df,
-                 aes(x = xnum - 0.2, xend = xnum + 0.2,
-                     y = median, yend = median),
-                 color = "red", size = 0.8, inherit.aes = FALSE) +
-    theme_bw() +
-    labs(y = expression(log[10]~"Normalized Biomass [g]")) +
-    ggtitle(label = "SE2204 Zooplankton Normalized Biomass Variability", subtitle = "Blue point is the station mean; the red line is the station median; whiskers are the 10 and 90 % ranges; the box is the 75th and 25th IQR.")
+summary_df <- Box_df %>%
+  group_by(Station) %>%
+  summarise(
+    mean = mean(Biomass, na.rm = TRUE),
+    median = median(Biomass, na.rm = TRUE),
+    p10 = quantile(Biomass, 0.10, na.rm = TRUE),
+    p25 = quantile(Biomass, 0.25, na.rm = TRUE),
+    p75 = quantile(Biomass, 0.75, na.rm = TRUE),
+    p90 = quantile(Biomass, 0.90, na.rm = TRUE)
+  )
 
-# ggsave('ZoopBoxPlot.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+ggplot(Box_df, aes(x = Station, y = Biomass)) +
+  geom_crossbar(
+    data = summary_df,
+    aes(x = Station, y = median, ymin = p25, ymax = p75),
+    fill = "lightgrey", color = "black", alpha = 0.5, width = 0.4,
+    inherit.aes = FALSE
+  ) +
+  stat_summary(fun = mean, geom = "point", color = "blue", size = 1.5) +
+  geom_linerange(
+    data = summary_df,
+    aes(x = Station, ymin = p10, ymax = p90),
+    color = "black", size = 0.5, inherit.aes = FALSE
+  ) +
+  geom_segment(
+    data = summary_df,
+    aes(x = as.numeric(Station) - 0.2, xend = as.numeric(Station) + 0.2,
+        y = median, yend = median),
+    color = "red", size = 0.8, inherit.aes = FALSE
+  ) +
+  theme_bw() +
+  labs(y = expression(log[10]~"Normalized Biomass [g]")) +
+  ggtitle(
+    "SE2204 Zooplankton Normalized Biomass Variability",
+    subtitle = "Blue point = mean; red line = median; whiskers = 10–90%; box = IQR"
+  ) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+# -------------------------- ZOOP ANCOVA ----------------------------------------
+# ANCOVA model
+library(emmeans)
+library(broom)
+
+# Read in CTD data 
+ctdAll <- read.csv('CTD_data_forAnalysis.csv')
+stnInfo <- read.csv('CTD_metadata_forAnalysis.csv')
+id.labs <- stnInfo$Station2
+names(id.labs) <- stnInfo$Cast
+
+# Add Station2 column 
+ctdAll_with_station <- left_join(ctdAll, stnInfo, by = "Cast")
+
+# Make sure they are compatible
+zoops_ANCOVA <- normalized_biomass %>% rename(Station2 = net_cast_number)
+zoops_ANCOVA <- zoops_ANCOVA %>%
+  mutate(Station2 = as.character(Station2))
+
+ctdAll_with_station <- ctdAll_with_station %>%
+  mutate(Station2 = as.character(Station2))
+
+# Now summarize
+ctd_summary <- ctdAll_with_station %>%
+  group_by(Station2) %>%
+  summarise(
+    mean_temperature = mean(Temperature, na.rm = TRUE),
+    mean_salinity = mean(Salinity, na.rm = TRUE),
+    mean_depth = mean(Depth.y, na.rm = TRUE)
+  )
+
+# Merge CTD data with zoops data 
+merged_df <- left_join(ctd_summary, zoops_ANCOVA, by = "Station2")
+
+# Run ANCOVA with temperature 
+ancova_model <- lm(log_normalized_biomass ~ Station2 + mean_temperature, data = merged_df)
+summary(ancova_model)
+
+# Test interaction
+ancova_model_interact <- lm(log_normalized_biomass ~ Station2 * mean_temperature, data = merged_df)
+anova(ancova_model, ancova_model_interact)
+
+ancova_model <- lm(log_normalized_biomass ~ Station2 + mean_temperature, data = merged_df)
+summary(ancova_model)
+
+par(mfrow = c(2, 2))
+plot(ancova_model)
+
+# ANOVA table
+anova(ancova_model)
+
+# Post hoc comparisons (to see if Station is significant)
+emmeans(ancova_model, pairwise ~ Station2)
+
+
+# --------------------- Function for ANCOVA and analysis ------------------------
+run_ancova_diagnostics <- function(data, covariate) {
+  # Formula without interaction
+  formula_main <- as.formula(paste0("log_normalized_biomass ~ Station2 + ", covariate))
   
+  # Fit main ANCOVA model
+  ancova_model <- lm(formula_main, data = data)
+  print(summary(ancova_model))
+  
+  # Formula with interaction
+  formula_interact <- as.formula(paste0("log_normalized_biomass ~ Station2 * ", covariate))
+  
+  # Fit interaction model
+  ancova_model_interact <- lm(formula_interact, data = data)
+  
+  # Compare models with and without interaction
+  print(anova(ancova_model, ancova_model_interact))
+  
+  # Diagnostic plots to see if the data is normalized enough to do accurate comparisons 
+  # Plot 1 check linearity and homoscedasticity
+  # Plot 2 To check if residuals are approximately normally distributed
+  # Plot 3 Check for homoscedasticity as equal variance.
+  # Plot 4 To identify influential points that might disproportionately affect the model.
+  par(mfrow = c(2, 2))
+  plot(ancova_model)
+  par(mfrow = c(1, 1))
+  
+  # ANOVA table
+  print(anova(ancova_model))
+  
+  # Post hoc comparisons for Station2 factor
+  emm <- emmeans(ancova_model, pairwise ~ Station2)
+  print(emm)
+  
+  invisible(list(
+    model = ancova_model,
+    interaction_model = ancova_model_interact,
+    emmeans = emm
+  ))
+}
+
+
+run_ancova_diagnostics(merged_df, "mean_temperature")
+# p-value: 0.9115
+# clumped pattern suggests non-constant variance or non-linerity 
+# Large deviations, especially at the tails, suggest normality issues
+
+run_ancova_diagnostics(data = merged_df, covariate = "mean_salinity")
+
+run_ancova_diagnostics(data = merged_df, covariate = "size_fraction")
+
+run_ancova_diagnostics(data = merged_df, covariate = "net_dry_weight")
+
+
+
+
