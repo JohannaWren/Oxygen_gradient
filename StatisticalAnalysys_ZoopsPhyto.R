@@ -53,61 +53,45 @@ pnorm <- phyto %>%
 bulk_phyto <- read.csv(paste(here(), 'fluorometry_SE2204.csv', sep='/'))
 bulk_phyto <- subset(bulk_phyto, Filter == "bulk")
 
-bulk_df <- data.frame(
-  Station = bulk_phyto$Station, 
-  Biomass = bulk_phyto$Chlorophyll)
+# bulk_df <- data.frame(
+#   Station = bulk_phyto$Station, 
+#   Biomass = bulk_phyto$Chlorophyll)
+# 
+# bulk_df$Station <- factor(df$Station, levels = unique(df$Station))
 
-bulk_df$Station <- factor(df$Station, levels = unique(df$Station))
-
-bulk_sum <- bulk_df %>%
-  group_by(Station) %>%
-  summarise(
-    mean = mean(Biomass, na.rm = TRUE),
-    median = median(Biomass, na.rm = TRUE),
-    p10 = quantile(Biomass, 0.10, na.rm = TRUE),
-    p25 = quantile(Biomass, 0.25, na.rm = TRUE),
-    p75 = quantile(Biomass, 0.75, na.rm = TRUE),
-    p90 = quantile(Biomass, 0.90, na.rm = TRUE)
-  ) %>%
-  mutate(xnum = as.numeric(Station))
-
-# Create the plot
-ggplot(df, aes(x = Station, y = Biomass)) +
-  # IQR box (25% to 75%)
-  geom_rect(data = summary_df,
-            aes(xmin = xnum - 0.2, xmax = xnum + 0.2,
-                ymin = p25, ymax = p75),
-            fill = "lightgrey", color = "black", alpha = 0.5, inherit.aes = FALSE) +
-  stat_summary(fun = mean, geom = "point", color = "blue", size = 1.5) +
-  # Whiskers (10% to 90%)
-  geom_linerange(data = summary_df, aes(x = Station, ymin = p10, ymax = p90), 
-                 color = "black", size = 0.5, inherit.aes = FALSE) +
-  # Median line
-  geom_segment(data = summary_df,
-               aes(x = xnum - 0.2, xend = xnum + 0.2,
-                   y = median, yend = median),
-               color = "red", size = 0.4, inherit.aes = FALSE) +
-  theme_bw() +
-  labs(y = "Chlorophyll Biomass [μg/L]") +
-  ggtitle(label = "SE2204 Chlorophyll variability by station", subtitle = "Blue point is the station mean; the red line is the station median; whiskers are the 10% and 90% data percentiles; the box is the 75% and 25% IQR percetiles.")
-# ggsave('PhytoBulkBoxPlot.png', width=10, height = 5.625, dpi = 300, units = 'in')
+# bulk_sum <- bulk_df %>%
+#   group_by(Station) %>%
+#   summarise(
+#     mean = mean(Biomass, na.rm = TRUE),
+#     median = median(Biomass, na.rm = TRUE),
+#     p10 = quantile(Biomass, 0.10, na.rm = TRUE),
+#     p25 = quantile(Biomass, 0.25, na.rm = TRUE),
+#     p75 = quantile(Biomass, 0.75, na.rm = TRUE),
+#     p90 = quantile(Biomass, 0.90, na.rm = TRUE)
+#   ) %>%
+#   mutate(xnum = as.numeric(Station))
 
 
 BoxP_phyto <- function(data, depth_value) {
   filtered <- data %>%
     filter(Depth == depth_value)
- data3 <- filtered %>%
-    mutate(xnum = as.numeric(factor(Station)))
-  summary_df <- data3 %>%
-    group_by(Station) %>%
+  
+  # Create consistent numeric Station order
+  filtered <- filtered %>%
+    mutate(Station = factor(Station),
+           xnum = as.numeric(Station))
+  
+  summary_df <- filtered %>%
+    group_by(Station, xnum) %>%
     summarise(
       p10 = quantile(Chlorophyll, 0.10, na.rm = TRUE),
       p25 = quantile(Chlorophyll, 0.25, na.rm = TRUE),
       median = median(Chlorophyll, na.rm = TRUE),
       p75 = quantile(Chlorophyll, 0.75, na.rm = TRUE),
       p90 = quantile(Chlorophyll, 0.90, na.rm = TRUE),
-      xnum = unique(as.numeric(factor(Station)))
+      .groups = "drop"
     )
+  
   ggplot(filtered, aes(x = Station, y = Chlorophyll)) +
     # IQR box
     geom_rect(data = summary_df,
@@ -129,12 +113,10 @@ BoxP_phyto <- function(data, depth_value) {
     labs(y = "Chlorophyll Biomass [μg/L]") +
     ggtitle(
       label = "SE2204 Chlorophyll variability by station",
-      subtitle = "Blue point = mean; Red line = median; Whiskers = 10–90%; Box = IQR"
-    )
+      subtitle = "Blue point is the station mean; the red line is the station median; whiskers are the 10% and 90% data percentiles; the box is the 75% and 25% IQR percetiles.")
 }
 
-BoxP_phyto(phyto, 125)
-
+BoxP_phyto(bulk_phyto, 125)
 
 # -------------------Depth Integrate the Phyto Data --------------------------
 # Trapezoidal Integration Function
@@ -196,8 +178,33 @@ ggplot(phyto_int2, aes(x = Station, y = IntegratedBiomass)) +
   ylab("Phytoplankton Biomass Integrated by depth (g/m²)") +
   ggtitle("Depth-Integrated Phytoplankton Biomass by Station")
 
+ggplot(phyto, aes(x = factor(Station), y = Chlorophyll)) +
+  geom_boxplot(fill = "lightgreen", alpha = 0.7) +
+  theme_bw() +
+  labs(
+    x = "Station",
+    y = "Chlorophyll Biomass [μg/L]",
+    title = "Variability in Chlorophyll Biomass Between Stations"
+  )
 
+ggplot(phyto, aes(x = factor(Station), y = Chlorophyll)) +
+  geom_col(fill = "lightblue", color = "black") +
+  theme_bw() +
+  labs(
+    x = "Station",
+    y = "Chlorophyll Biomass [μg/L]",
+    title = "Chlorophyll Biomass Across Stations"
+  )
 
+ggplot(phyto, aes(x = factor(Station), y = Chlorophyll)) +
+  geom_boxplot() +
+  facet_wrap(~ Depth) +
+  theme_bw() +
+  labs(
+    x = "Station",
+    y = "Chlorophyll Biomass [μg/L]",
+    title = "Chlorophyll Variability by Station and Depth"
+  )
 
 # -------------------Linear Regression Model Analysis--------------------------
 # the independent variable (X) is plotted on the horizontal axis (x-axis), and the dependent variable (Y) is plotted on the vertical axis (y-axis)
