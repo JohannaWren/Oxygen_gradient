@@ -76,13 +76,8 @@ BoxP_phyto <- function(data, depth_value) {
   filtered <- data %>%
     filter(Depth == depth_value)
   
-  # Create consistent numeric Station order
-  filtered <- filtered %>%
-    mutate(Station = factor(Station),
-           xnum = as.numeric(Station))
-  
   summary_df <- filtered %>%
-    group_by(Station, xnum) %>%
+    group_by(Station, Cast) %>%
     summarise(
       p10 = quantile(Chlorophyll, 0.10, na.rm = TRUE),
       p25 = quantile(Chlorophyll, 0.25, na.rm = TRUE),
@@ -92,31 +87,39 @@ BoxP_phyto <- function(data, depth_value) {
       .groups = "drop"
     )
   
+  # Label stations as Names in chronological order based on cast
+  cast_order <- filtered %>%
+    arrange(Cast) %>%
+    distinct(Station, Cast) %>%
+    pull(Station)
+  
+  filtered <- filtered %>%
+    mutate(Station = factor(Station, levels = cast_order),
+           xnum = as.numeric(Station))
+  
+  #Create Plot
   ggplot(filtered, aes(x = Station, y = Chlorophyll)) +
-    # IQR box
-    geom_rect(data = summary_df,
-              aes(xmin = xnum - 0.2, xmax = xnum + 0.2,
-                  ymin = p25, ymax = p75),
-              fill = "lightgrey", color = "black", alpha = 0.5, inherit.aes = FALSE) +
     # Mean point
-    stat_summary(fun = mean, geom = "point", color = "blue", size = 1.5) +
-    # Whiskers
-    geom_linerange(data = summary_df,
-                   aes(x = Station, ymin = p10, ymax = p90),
-                   color = "black", size = 0.5, inherit.aes = FALSE) +
-    # Median line
-    geom_segment(data = summary_df,
-                 aes(x = xnum - 0.2, xend = xnum + 0.2,
-                     y = median, yend = median),
-                 color = "red", size = 0.4, inherit.aes = FALSE) +
+    stat_summary(fun = mean, geom = "point", color = "black", size = 1.5) +
     theme_bw() +
     labs(y = "Chlorophyll Biomass [μg/L]") +
     ggtitle(
-      label = "SE2204 Chlorophyll variability by station",
-      subtitle = "Blue point is the station mean; the red line is the station median; whiskers are the 10% and 90% data percentiles; the box is the 75% and 25% IQR percetiles.")
+      label = "SE2204 Bulk Chlorophyll by station and depth",
+      subtitle = paste("Plotted for samples at depth =", depth_value, "[m]")) +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
 }
 
+BoxP_phyto(bulk_phyto, 200)
+BoxP_phyto(bulk_phyto, 150)
 BoxP_phyto(bulk_phyto, 125)
+BoxP_phyto(bulk_phyto, 100)
+BoxP_phyto(bulk_phyto, 80)
+BoxP_phyto(bulk_phyto, 65)
+BoxP_phyto(bulk_phyto, 50)
+BoxP_phyto(bulk_phyto, 35)
+BoxP_phyto(bulk_phyto, 20)
+BoxP_phyto(bulk_phyto, 0)
+
 
 # -------------------Depth Integrate the Phyto Data --------------------------
 # Trapezoidal Integration Function
@@ -171,40 +174,69 @@ summary(lm_station)
 anova(lm_station)
 
 
-ggplot(phyto_int2, aes(x = Station, y = IntegratedBiomass)) +
+# --------------------------- Phyto Plots --------------------------------------
+# created a data set that include the integrated chlorophyll
+phyto_integrated <- phyto %>%
+  group_by(Station, Cast, Filter, Size) %>%
+  summarise(
+    integrated_chl = p_int(Depth, Chlorophyll),
+    .groups = "drop"
+  )
+
+# Create Labels for the integrated data set 
+cast_labels <- phyto_integrated %>%
+  arrange(Cast) %>%
+  distinct(Cast, Station)
+
+label_vector <- setNames(cast_labels$Station, cast_labels$Cast)
+
+# Plot
+ggplot(phyto_integrated, aes(x = as.factor(Cast), y = integrated_chl)) +
   geom_boxplot(fill = "lightgreen") +
   geom_jitter(width = 0.2, alpha = 0.6) +
   theme_minimal() +
+  scale_x_discrete(labels = label_vector) +
   ylab("Phytoplankton Biomass Integrated by depth (g/m²)") +
+  xlab("Station") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   ggtitle("Depth-Integrated Phytoplankton Biomass by Station")
 
-ggplot(phyto, aes(x = factor(Station), y = Chlorophyll)) +
+ggplot(phyto_integrated, aes(x = as.factor(Cast), y = integrated_chl)) +
   geom_boxplot(fill = "lightgreen", alpha = 0.7) +
   theme_bw() +
+  scale_x_discrete(labels = label_vector) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   labs(
     x = "Station",
     y = "Chlorophyll Biomass [μg/L]",
     title = "Variability in Chlorophyll Biomass Between Stations"
   )
 
-ggplot(phyto, aes(x = factor(Station), y = Chlorophyll)) +
+ggplot(phyto_integrated, aes(x = as.factor(Cast), y = integrated_chl)) +
   geom_col(fill = "lightblue", color = "black") +
   theme_bw() +
+  scale_x_discrete(labels = label_vector) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   labs(
     x = "Station",
     y = "Chlorophyll Biomass [μg/L]",
     title = "Chlorophyll Biomass Across Stations"
   )
 
-ggplot(phyto, aes(x = factor(Station), y = Chlorophyll)) +
-  geom_boxplot() +
-  facet_wrap(~ Depth) +
-  theme_bw() +
-  labs(
-    x = "Station",
-    y = "Chlorophyll Biomass [μg/L]",
-    title = "Chlorophyll Variability by Station and Depth"
-  )
+# Variability plot needs to be calculated for flow 
+
+# ggplot(phyto, aes(x = factor(Station), y = Chlorophyll)) +
+#   geom_boxplot() +
+#   facet_wrap(~ Depth) +
+#   theme_bw() +
+#   labs(
+#     x = "Station",
+#     y = "Chlorophyll Biomass [μg/L]",
+#     title = "Chlorophyll Variability by Station and Depth"
+#   )
+
+
+
 
 # -------------------Linear Regression Model Analysis--------------------------
 # the independent variable (X) is plotted on the horizontal axis (x-axis), and the dependent variable (Y) is plotted on the vertical axis (y-axis)
