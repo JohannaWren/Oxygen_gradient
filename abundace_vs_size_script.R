@@ -336,7 +336,7 @@ ggplot(chl_summary, aes(x = Depth, y = percent_chl, fill = size_class)) +
 
 
 # --------------------------------- ZOOPLANKTON -------------------------------
-zoops <- read_xlsx(paste(here(), 'Biomass filter weights.xlsx', sep='/'), sheet = 1) # Emma's
+zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
 # zoops <- read_xlsx(paste(here(), 'Data/Biomass filter weights.xlsx', sep='/'), sheet = 1)  # Johanna's
 head(zoops)
 
@@ -428,7 +428,54 @@ ggplot(normalized_biomass, aes(x = log2(size_fraction), y = log2(normalized_biom
   theme_bw(base_size = 12)
 # ggsave('ZoopSizeAbun_linearR_Normlog2.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
+# Day Stations Zooplankton Biomass Spectrum
+# Filter data for only day stations 
+norm_biomass_day <- normalized_biomass %>%
+  filter(net_cast_number %in% c(1, 3, 4, 6, 7, 9, 10, 12))
 
+ggplot(norm_biomass_day, aes(x = log2(size_fraction), y = log2(normalized_biomass))) +
+  geom_point(color = "#8ab69c") +
+  geom_smooth(method = "lm", se = FALSE, color = "#49755b", linewidth = 0.6) +
+  stat_poly_eq(
+    aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
+    formula = y ~ x,
+    parse = TRUE,
+    size = 3,
+    label.x = "right",
+    label.y = "top"
+  ) +
+  facet_wrap(~ net_cast_number, ncol = 4) +
+  labs(
+    x = expression(log[2]~"Size Fraction [µm]"),
+    y = expression(log[2]~"Nomalized Biomass [g]"),
+    title = "Zooplankton Biomass Spectrum by Day Stations"
+  ) +
+  theme_bw(base_size = 12)
+# ggsave('DAYZoopSizeAbun_linearR_Normlog2.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+# Night Stations Zooplankton Biomass Spectrucm
+norm_biomass_night <- normalized_biomass %>%
+  filter(net_cast_number %in% c(2, 5, 8, 11, 13))
+
+ggplot(norm_biomass_night, aes(x = log2(size_fraction), y = log2(normalized_biomass))) +
+  geom_point(color = "#8ab69c") +
+  geom_smooth(method = "lm", se = FALSE, color = "#49755b", linewidth = 0.6) +
+  stat_poly_eq(
+    aes(label = paste(..eq.label.., ..rr.label.., sep = "~~~")),
+    formula = y ~ x,
+    parse = TRUE,
+    size = 3,
+    label.x = "right",
+    label.y = "top"
+  ) +
+  facet_wrap(~ net_cast_number, ncol = 4) +
+  labs(
+    x = expression(log[2]~"Size Fraction [µm]"),
+    y = expression(log[2]~"Nomalized Biomass [g]"),
+    title = "Zooplankton Biomass Spectrum by Night Stations"
+  ) +
+  theme_bw(base_size = 12)
+# ggsave('NIGHTZoopSizeAbun_linearR_Normlog2.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 # -----------------------------------------------------------------------------
 # make zooplankton plots
