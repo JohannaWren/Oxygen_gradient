@@ -198,9 +198,96 @@ FluorProfile
 # ggsave('FluorDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
 # ggsave('FluorDepthProfiles_AllStns.png', width=10, height = 5.625, dpi = 300)
 
+plot_nutrient_section <- function(data, nutrient_col, title_label) {
+  clean_data <- data %>%
+    select(Latitude, Depth2, !!sym(nutrient_col)) %>%
+    rename(Depth = Depth2, NutVar = !!sym(nutrient_col)) %>%
+    filter(!is.na(Latitude), !is.na(Depth), !is.na(NutVar))
+  
+  sample_points <- clean_data
+  
+  # Interpolation with MBA
+  interp <- mba.surf(clean_data, no.X = 300, no.Y = 300, extend = TRUE)
+  dimnames(interp$xyz.est$z) <- list(interp$xyz.est$x, interp$xyz.est$y)
+  
+  # Convert to dataframe
+  interp_df <- melt(interp$xyz.est$z, varnames = c("Latitude", "Depth"), value.name = "NutVar") %>%
+    mutate(NutVar = round(NutVar, 1))
+  
+  # Plot
+  ggplot(data = interp_df, aes(x = Latitude, y = Depth)) +
+    geom_raster(aes(fill = NutVar)) +
+    scale_fill_viridis_c() +
+    scale_y_reverse() +
+    geom_contour(aes(z = NutVar), binwidth = 1, colour = "black", alpha = 0.2) +
+    geom_point(data = sample_points, aes(x = Latitude, y = Depth),
+               colour = "black", size = 0.2, alpha = 0.4, shape = 8) +
+    labs(
+      y = "Depth (m)",
+      x = "Latitude",
+      fill = paste0(title_label, "\n(µmol/L)"),
+      title = paste("SE2204", title_label, "Section Plot"),
+      subtitle = "Interpolated over depth and space; \nblack dots show actual sampling locations."
+    ) +
+    coord_cartesian(expand = 0) 
+}
+
+#---------------------------- OCNG Depth Profiles -----------------------------
+# --------------------- Interpolated Depth Profile Function -------------------
+
+plot_ocng_section <- function(data, ocng_var, title_label) {
+  clean_data <- data %>%
+    select(newLat, Depth, !!sym(ocng_var)) %>%
+    rename(Depth = Depth, OCNVar = !!sym(ocng_var)) %>%
+    filter(!is.na(Depth), !is.na(OCNVar))
+  
+  sample_points <- clean_data
+  
+  # Interpolation with MBA
+  interp <- mba.surf(clean_data, no.X = 100, no.Y = 100, extend = FALSE)
+  dimnames(interp$xyz.est$z) <- list(interp$xyz.est$x, interp$xyz.est$y)
+  
+  # Convert to dataframe
+  interp_df <- melt(interp$xyz.est$z, varnames = c("newLat", "Depth"), value.name = "OCNVar") %>%
+    mutate(OCNVAr = round(OCNVar, 1))
+  
+  # Plot
+  ggplot(data = interp_df, aes(x = newLat, y = Depth)) +
+    geom_raster(aes(fill = OCNVar)) +
+    scale_fill_viridis_c() +
+    scale_y_reverse() +
+    geom_contour(aes(z = OCNVar), binwidth = 1, colour = "black", alpha = 0.2) +
+    labs(
+      y = "Depth (m)",
+      x = "Latitude",
+      fill = paste0(title_label, "\n(µmol/L)"),
+      title = paste("SE2204", title_label, "Section Plot"),
+      subtitle = "Interpolated over depth and space"
+    ) +
+    coord_cartesian(expand = 0) 
+}
+
+plot_ocng_section(data = ctdAll, ocng_var = "Oxygen", title_label = "Oxygen")
 
 
+library(akima)
 
+interp <- akima::interp(
+  x = ctdAll$newLat,
+  y = ctdAll$Depth,
+  z = ctdAll$Oxygen,
+  linear = TRUE,
+  extrap = FALSE
+)
+
+interp_df <- expand.grid(
+  Latitude = interp$x,
+  Depth = interp$y
+) %>%
+  mutate(OCNVar = as.vector(interp$z))
+
+
+# -------------------------------- NUTRIENTS ----------------------------------
 
 # --------------------- Interpolated Depth Profile Function -------------------
 # Read in nutrient data and clean out the '<', 'm', and 'NA's'
