@@ -236,8 +236,6 @@ ggplot(phyto_integrated, aes(x = as.factor(Cast), y = integrated_chl)) +
 #   )
 
 
-
-
 # -------------------Linear Regression Model Analysis--------------------------
 # the independent variable (X) is plotted on the horizontal axis (x-axis), and the dependent variable (Y) is plotted on the vertical axis (y-axis)
 # this is the predictor variable. It's the variable that is thought to influence or cause changes in the other variable. In a graph, it's on the x-axis.  <- lm(y ~ x)
@@ -277,7 +275,7 @@ cat("Regression Sum of Squares (SSreg):", ssreg, "\n")
 summary(model)
 
 #  ------------------- Variability Plots --------------------------------------
-zoops <- read_xlsx(paste(here(), 'Biomass filter weights.xlsx', sep='/'), sheet = 1) # Emma's
+zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
 # zoops <- read_xlsx(paste(here(), 'Data/Biomass filter weights.xlsx', sep='/'), sheet = 1)  # Johanna's
 head(zoops)
 
@@ -311,8 +309,8 @@ normalized_biomass <- zoops %>%
   left_join(bin_edges, by = "size_fraction") %>%
   mutate(
     normalized_biomass = net_dry_weight / bin_width,
-    log_normalized_biomass = log10(normalized_biomass),
-    log_normalized_size = log10(size_fraction))
+    log_normalized_biomass = log2(normalized_biomass),
+    log_normalized_size = log2(size_fraction))
 
 
 
@@ -470,6 +468,77 @@ run_ancova_diagnostics(data = merged_df, covariate = "mean_salinity")
 run_ancova_diagnostics(data = merged_df, covariate = "size_fraction")
 
 run_ancova_diagnostics(data = merged_df, covariate = "net_dry_weight")
+
+
+
+
+
+# ----------------------- DAY/NIGHT ZOOP ANALYSIS ------------------------------
+
+
+# --------------------- NIGHT ANCOVA and ANOVA analysis ------------------------
+# ANOVA 
+# Night Stations Zooplankton
+norm_biomass_night <- normalized_biomass %>%
+  filter(net_cast_number %in% c(2, 5, 8, 11, 13))
+
+
+anova_night <- aov(net_dry_weight ~ as.factor(net_cast_number) * size_fraction, data = norm_biomass_night)
+summary(anova_night)
+#significance in size fraction means that size fraction has a strong effect on biomass — as size increases (or decreases), biomass changes dramatically.
+# This is expected: particle size often has a strong relationship with biomass.
+
+anova_night_log <- aov(log_normalized_biomass ~ as.factor(net_cast_number) * log_normalized_size, data = norm_biomass_night)
+summary(anova_night_log)
+
+# ANCOVA 
+ANCOVA_night <- merged_df %>%
+  filter(Station2 %in% c(1, 3, 4, 6, 7, 9, 10, 12))
+
+
+run_ancova_diagnostics(ANCOVA_night, "mean_temperature")
+# p-value: 0.9115
+# clumped pattern suggests non-constant variance or non-linerity 
+# Large deviations, especially at the tails, suggest normality issues
+
+run_ancova_diagnostics(data = ANCOVA_night, covariate = "mean_salinity")
+
+run_ancova_diagnostics(data = ANCOVA_night, covariate = "size_fraction")
+
+run_ancova_diagnostics(data = ANCOVA_night, covariate = "net_dry_weight")
+
+
+
+# --------------------- DAY ANCOVA and ANOVA analysis ------------------------
+# ANOVA 
+# Day Stations Zooplankton Biomass Spectrum
+# Filter data for only day stations 
+norm_biomass_day <- normalized_biomass %>%
+  filter(net_cast_number %in% c(1, 3, 4, 6, 7, 9, 10, 12))
+
+anova_day <- aov(net_dry_weight ~ as.factor(net_cast_number) * size_fraction, data = norm_biomass_day)
+summary(anova_day)
+
+
+anova_day_log <- aov(log_normalized_biomass ~ as.factor(net_cast_number) * log_normalized_size, data = norm_biomass_day)
+summary(anova_day_log)
+# signifigance for net_cast_number means the mean log-normalized biomass differs across net casts
+# So: Different sampling casts (e.g., locations or times) have different average biomass, even after accounting for size.
+
+# ANCOVA 
+ANCOVA_day <- merged_df %>%
+  filter(Station2 %in% c(1, 3, 4, 6, 7, 9, 10, 12))
+
+run_ancova_diagnostics(ANCOVA_night, "mean_temperature")
+# p-value: 0.9115
+# clumped pattern suggests non-constant variance or non-linerity 
+# Large deviations, especially at the tails, suggest normality issues
+
+run_ancova_diagnostics(data = ANCOVA_day, covariate = "mean_salinity")
+
+run_ancova_diagnostics(data = ANCOVA_day, covariate = "size_fraction")
+
+run_ancova_diagnostics(data = ANCOVA_day, covariate = "net_dry_weight")
 
 
 
