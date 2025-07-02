@@ -550,13 +550,13 @@ run_ancova_diagnostics(data = ANCOVA_day, covariate = "size_fraction")
 # The covariate size_fraction is extremely significant. Its effect is negative (Estimate = -0.001281) 
 # larger size fractions are associated with lower log-normalized biomass.
 # Station2 is now significant overall, unlike in the night data. There is enough between-station variation in biomass after accounting for size_fraction.
-# No interaction 
-# the model explains ~91% of the variation in biomass — this is very strong.
-# Station 12 is signifigantly different than Stations 1, 3, 6, and 9. 
-# Station21 vs. Station212 → p = 0.0464
-# Station212 vs. Station23 → p = 0.0116
-# Station212 vs. Station26 → p = 0.0071
-# Station212 vs. Station29 → p = 0.0486
+# No interaction effect
+# the model explains ~91% of the variation in biomass
+# Station 12 is significantly different than Stations 1, 3, 6, and 9. 
+# Station 1 vs. Station 12 → p = 0.0464
+# Station 12 vs. Station 3 → p = 0.0116
+# Station 12 vs. Station 6 → p = 0.0071
+# Station 12 vs. Station 9 → p = 0.0486
 # This suggests that something unique is happening at Station 12 during the day — possibly local conditions, productivity, or sampling effect.
 
 run_ancova_diagnostics(data = ANCOVA_day, covariate = "net_dry_weight")
@@ -565,7 +565,7 @@ run_ancova_diagnostics(data = ANCOVA_day, covariate = "net_dry_weight")
 # net_dry_weight is a strong positive predictor of biomass.
 # Station 12 shows a significant negative effect (lower biomass than Station 1 even after accounting for net weight), suggesting an ecological or environmental anomaly at this site.
 # No interaction; the relationship between net_dry_weight and biomass is consistent across stations.
-#Station212 shows a noticeably lower mean biomass, consistent with the significant negative coefficient seen earlier.
+# Station212 shows a noticeably lower mean biomass, consistent with the significant negative coefficient seen earlier.
 # Station212 may have unusual environmental conditions (e.g., temperature, salinity, depth) Could reflect species-specific composition such as more small-bodied taxa  = lower biomass
 
 
