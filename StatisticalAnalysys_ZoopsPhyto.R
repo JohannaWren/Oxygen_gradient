@@ -274,6 +274,10 @@ cat("Regression Sum of Squares (SSreg):", ssreg, "\n")
 
 summary(model)
 
+
+
+
+#  ------------------------------- ZOOPS --------------------------------------
 #  ------------------- Variability Plots --------------------------------------
 zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
 # zoops <- read_xlsx(paste(here(), 'Data/Biomass filter weights.xlsx', sep='/'), sheet = 1)  # Johanna's
@@ -372,7 +376,7 @@ stnInfo <- read.csv('CTD_metadata_forAnalysis.csv')
 id.labs <- stnInfo$Station2
 names(id.labs) <- stnInfo$Cast
 
-# Add Station2 column 
+# Add Station2 column
 ctdAll_with_station <- left_join(ctdAll, stnInfo, by = "Cast")
 
 # Make sure they are compatible
@@ -392,10 +396,10 @@ ctd_summary <- ctdAll_with_station %>%
     mean_depth = mean(Depth.y, na.rm = TRUE)
   )
 
-# Merge CTD data with zoops data 
+# Merge CTD data with zoops data
 merged_df <- left_join(ctd_summary, zoops_ANCOVA, by = "Station2")
 
-# Run ANCOVA with temperature 
+# Run ANCOVA with temperature
 ancova_model <- lm(log_normalized_biomass ~ Station2 + mean_temperature, data = merged_df)
 summary(ancova_model)
 
@@ -497,16 +501,21 @@ ANCOVA_night <- merged_df %>%
 
 
 run_ancova_diagnostics(ANCOVA_night, "mean_temperature")
-# p-value: 0.9115
-# clumped pattern suggests non-constant variance or non-linerity 
-# Large deviations, especially at the tails, suggest normality issues
 
 run_ancova_diagnostics(data = ANCOVA_night, covariate = "mean_salinity")
 
 run_ancova_diagnostics(data = ANCOVA_night, covariate = "size_fraction")
+#*** (p < 2e-16)	Strong negative relationship with biomass. As size increases, biomass decreases.
+# * (p = 0.0129)	Biomass varies by station (i.e., there are some significant differences in biomass between stations).
+# No interaction effect 
+# R² = 0.91, Adjusted R² = 0.887; The model explains nearly 91% of the variance in log-normalized biomass.
+# Residuals look well-behaved (range ≈ -1.7 to +1.4), suggesting the assumptions of ANCOVA are reasonably met.
 
 run_ancova_diagnostics(data = ANCOVA_night, covariate = "net_dry_weight")
-
+# Covariate (net_dry_weight): Highly significant: p = 1.93e-06 *** This means net_dry_weight is a strong predictor of log_normalized_biomass.
+# So, there is no strong evidence that differences among stations explain additional variation in biomass after accounting for net_dry_weight.
+# No interaction
+# No significant differences between any stations. Suggests that Station is not influencing biomass after controlling for net_dry_weight.
 
 
 # --------------------- DAY ANCOVA and ANOVA analysis ------------------------
@@ -536,10 +545,26 @@ run_ancova_diagnostics(ANCOVA_night, "mean_temperature")
 
 run_ancova_diagnostics(data = ANCOVA_day, covariate = "mean_salinity")
 
+
 run_ancova_diagnostics(data = ANCOVA_day, covariate = "size_fraction")
+# The covariate size_fraction is extremely significant. Its effect is negative (Estimate = -0.001281) 
+# larger size fractions are associated with lower log-normalized biomass.
+# Station2 is now significant overall, unlike in the night data. There is enough between-station variation in biomass after accounting for size_fraction.
+# No interaction 
+# the model explains ~91% of the variation in biomass — this is very strong.
+# Station 12 is signifigantly different than Stations 1, 3, 6, and 9. 
+# Station21 vs. Station212 → p = 0.0464
+# Station212 vs. Station23 → p = 0.0116
+# Station212 vs. Station26 → p = 0.0071
+# Station212 vs. Station29 → p = 0.0486
+# This suggests that something unique is happening at Station 12 during the day — possibly local conditions, productivity, or sampling effect.
 
 run_ancova_diagnostics(data = ANCOVA_day, covariate = "net_dry_weight")
 
-
+ggplot(ctd_summary, aes(x = Station2, y = mean_temperature)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = round(mean_temperature, 1)), vjust = -0.5) +
+  theme_minimal() +
+  labs(title = "Mean Temperature by Station", y = "°C")
 
 
