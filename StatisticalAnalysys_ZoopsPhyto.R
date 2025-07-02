@@ -393,7 +393,7 @@ ctd_summary <- ctdAll_with_station %>%
   summarise(
     mean_temperature = mean(Temperature, na.rm = TRUE),
     mean_salinity = mean(Salinity, na.rm = TRUE),
-    mean_depth = mean(Depth.y, na.rm = TRUE)
+    mean_depth = mean(Depth.y, na.rm = TRUE), 
   )
 
 # Merge CTD data with zoops data
@@ -560,11 +560,37 @@ run_ancova_diagnostics(data = ANCOVA_day, covariate = "size_fraction")
 # This suggests that something unique is happening at Station 12 during the day — possibly local conditions, productivity, or sampling effect.
 
 run_ancova_diagnostics(data = ANCOVA_day, covariate = "net_dry_weight")
+# Station212 has a statistically significant negative effect on log_normalized_biomass, even after adjusting for net_dry_weight.
+# The model explains ~55% of the variance in biomass, a moderate fit
+# net_dry_weight is a strong positive predictor of biomass.
+# Station 12 shows a significant negative effect (lower biomass than Station 1 even after accounting for net weight), suggesting an ecological or environmental anomaly at this site.
+# No interaction; the relationship between net_dry_weight and biomass is consistent across stations.
+#Station212 shows a noticeably lower mean biomass, consistent with the significant negative coefficient seen earlier.
+# Station212 may have unusual environmental conditions (e.g., temperature, salinity, depth) Could reflect species-specific composition such as more small-bodied taxa  = lower biomass
 
-ggplot(ctd_summary, aes(x = Station2, y = mean_temperature)) +
-  geom_bar(stat = "identity") +
-  geom_text(aes(label = round(mean_temperature, 1)), vjust = -0.5) +
-  theme_minimal() +
-  labs(title = "Mean Temperature by Station", y = "°C")
+
+
+# --------------------- Multiple Linear Regression Model ------------------------
+phyto <- read.csv(paste(here(), 'fluorometry_SE2204.csv', sep='/'))
+head(phyto)
+zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
+head(zoops)
+nut <- read.csv('SE2204_nutrient_metadata_USE_THIS.csv')
+head(nut)
+ctdAll <- read.csv('CTD_data_forAnalysis.csv')
+stnInfo <- read.csv('CTD_metadata_forAnalysis.csv')
+id.labs <- stnInfo$Station2
+names(id.labs) <- stnInfo$Cast
+
+names(zoops)
+names(nut)
+names(phyto)
+names(ctdAll)
+names(stnInfo)
+
+model_env <- lm(log_normalized_biomass ~ nutrients + oxygen + fluorescence + temp + salinity + density, data = your_data)
+summary(model_env)
+
+
 
 
