@@ -278,6 +278,8 @@ summary(model)
 
 
 #  ------------------------------- ZOOPS --------------------------------------
+
+
 #  ------------------- Variability Plots --------------------------------------
 zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
 # zoops <- read_xlsx(paste(here(), 'Data/Biomass filter weights.xlsx', sep='/'), sheet = 1)  # Johanna's
@@ -296,6 +298,7 @@ head(zoops)
 
 
 # ----------------------------ZOOP DATA ---------------------------------
+
 # Normalize the data for abundance vs size using the Normalized Biomass 
 # Spectral Slope (NBSS) per Platt and Denman (1978)
 
@@ -363,7 +366,60 @@ ggplot(Box_df, aes(x = Station, y = Biomass)) +
     subtitle = "Blue point = mean; red line = median; whiskers = 10–90%; box = IQR"
   ) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
+# ggsave('NormZoopV_Boxplot.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
+
+#Plot using the Standardized Phytoplankton (total_net_wt/volume water strained) 
+ggplot(zoops, aes(x = net_cast_number, y = standardized_plankton_volume )) +
+  geom_point() +
+  theme_bw() +
+  labs(y = "Standardized Plankton Volume [ml/m^3]", x = "Station") +
+  ggtitle(
+    "SE2204 Standardized Zooplankton Volumes") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+# ggsave('StnadZoopV_scatter.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+zoops_day <- zoops %>%
+  filter(net_cast_number %in% c(1, 3, 4, 6, 7, 9, 10, 12))
+
+ggplot(zoops_day, aes(x = net_cast_number, y = standardized_plankton_volume )) +
+  geom_point() +
+  theme_bw() +
+  labs(y = "Standardized Plankton Volume [ml/m^3]", x = "Day Stations") +
+  ggtitle(
+    "SE2204 Standardized Zooplankton Volumes") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+zoops_night <- zoops %>%
+  filter(net_cast_number %in% c(2,5,8,11,13))
+
+ggplot(zoops_night, aes(x = net_cast_number, y = standardized_plankton_volume )) +
+  geom_point() +
+  theme_bw() +
+  labs(y = "Standardized Plankton Volume [ml/m^3]", x = "Night Stations") +
+  ggtitle(
+    "SE2204 Standardized Zooplankton Volumes") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+# Plot for SHF
+ggplot(zoops, aes(x = net_cast_number, y = standard_haul_factor)) +
+  geom_point()
+
+# Plot for VWS
+ggplot(zoops, aes(x = net_cast_number, y = volume_water_strained)) +
+  geom_point()
+
+
+# SHF and VWS plotted side by side 
+zoops_long <- zoops %>%
+  pivot_longer(cols = c(standard_haul_factor, volume_water_strained),
+               names_to = "variable", values_to = "value")
+
+ggplot(zoops_long, aes(x = net_cast_number, y = value)) +
+  geom_point() +
+  facet_wrap(~ variable, scales = "free_y") +
+  labs(y = "Value") +
+  theme_minimal()
 
 # -------------------------- ZOOP ANCOVA ----------------------------------------
 # ANCOVA model
@@ -571,26 +627,44 @@ run_ancova_diagnostics(data = ANCOVA_day, covariate = "net_dry_weight")
 
 
 # --------------------- Multiple Linear Regression Model ------------------------
-phyto <- read.csv(paste(here(), 'fluorometry_SE2204.csv', sep='/'))
-head(phyto)
-zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
-head(zoops)
-nut <- read.csv('SE2204_nutrient_metadata_USE_THIS.csv')
-head(nut)
-ctdAll <- read.csv('CTD_data_forAnalysis.csv')
-stnInfo <- read.csv('CTD_metadata_forAnalysis.csv')
-id.labs <- stnInfo$Station2
-names(id.labs) <- stnInfo$Cast
+env_data <- read.csv("SE2204_PhyZo_Nuts.csv")
 
-names(zoops)
-names(nut)
-names(phyto)
-names(ctdAll)
-names(stnInfo)
 
-model_env <- lm(log_normalized_biomass ~ nutrients + oxygen + fluorescence + temp + salinity + density, data = your_data)
+model_env <- lm(Station ~ Pressure + Temperature + Conductivity + Flourescence + Density + Salinity + Oxygen + newLat + phyto_bulk + phosphate + silicate + nitrate...nitrite + ammonia, data = env_data)
 summary(model_env)
 
+env_vars <- env_data[, c("Pressure", "Temperature", "Conductivity", "Flourescence", "Density", "Salinity", 
+                         "Oxygen", "newLat", "phyto_bulk", "phosphate", "silicate", "nitrate...nitrite", "ammonia")]
 
+
+# ---------------------------------- PCA -------------------------------------
+
+# Standardize and run PCA
+env_pca <- prcomp(env_vars, scale. = TRUE)
+
+# Adding 2 PCs
+env_data$PC1 <- env_pca$x[, 1]
+env_data$PC2 <- env_pca$x[, 2]
+
+#Create PCA using PCs
+model_env <- lm(Station ~ PC1 + PC2, data = env_data)
+summary(model_env)
+# Significant — PC2 has a negative effect on Station
+
+loadings <- env_pca$rotation
+print(loadings[, 1:2])
+# Nutrients (N, P, Si), Phytoplankton	Nutrient-productivity gradient
+# Lower-numbered stations (like Station 1 or 2) are associated with higher PC2, i.e.: Higher phyto_bulk and Lower nutrient concentrations
+# Higher-numbered stations (like Station 10 or 18) are associated with lower PC2, i.e.: Higher nutrient levels and Lower phytoplankton biomass
+# Higher-numbered stations are more nutrient-rich and less productive (in terms of phytoplankton biomass), while lower-numbered stations are more productive but nutrient-depleted.
+# Zooplankton and station variation are more strongly linked to ecological productivity conditions than to physical water properties such as phytoplankton ?
+
+biplot(env_pca, scale = 0)
+
+ggplot(env_data, aes(x = PC1, y = PC2, label = Station)) +
+  geom_point() +
+  geom_text(vjust = -0.5) +
+  theme_minimal() +
+  labs(title = "PCA of Environmental Variables")
 
 
