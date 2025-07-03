@@ -337,7 +337,7 @@ ggplot(chl_summary, aes(x = Depth, y = percent_chl, fill = size_class)) +
 
 # --------------------------------- ZOOPLANKTON -------------------------------
 zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
-# zoops <- read_xlsx(paste(here(), 'Data/Biomass filter weights.xlsx', sep='/'), sheet = 1)  # Johanna's
+# zoops <- read_xlsx(paste(here(), 'Data/Biomass filter weights_USE_THIS .xlsx', sep='/'), sheet = 1)  # Johanna's
 head(zoops)
 
 # Clean up zooplankton data
@@ -476,6 +476,70 @@ ggplot(norm_biomass_night, aes(x = log2(size_fraction), y = log2(normalized_biom
   ) +
   theme_bw(base_size = 12)
 # ggsave('NIGHTZoopSizeAbun_linearR_Normlog2.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+# Add latitude, Day/Night, and NorthS/outh
+bongoMeta <- read_xlsx('Data/Bongo data.xlsx', sheet = 1)
+bongoStn <- data.frame(StationID=bongoMeta$station_id, Lat=bongoMeta$mouth_underwater_lat_dd)
+bongoStn$DayNight <- ifelse(bongoStn$StationID %in% c(2, 5, 8, 11, 13), 'Night', 'Day')
+bongoStn$NorthSouth <- ifelse(bongoStn$StationID > 9, 'South', 'North')
+# join with zoopl data
+ancovaDat <- normalized_biomass %>% 
+  mutate(Station = as.factor(net_cast_number)) %>% 
+  left_join(bongoStn, by=c('net_cast_number'='StationID')) %>% 
+  ungroup()
+  
+
+# Run ANCOVA (from https://www.datanovia.com/en/lessons/ancova-in-r/)
+# One way with just North/South
+# Check data assumptions
+## Linearity
+ggscatter(ancovaDat, x = "log_normalized_size", y = "log_normalized_biomass", color = "NorthSouth", add = "reg.line") +
+  stat_regline_equation(aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = NorthSouth))
+## Homogeneity of regression slopes
+ancovaDat %>% anova_test(log_normalized_biomass ~ NorthSouth * log_normalized_size). # no significant interaction between the covariate and the grouping variable
+## Normality of residuals
+# Fit the model, the covariate goes first
+model <- lm(log_normalized_biomass ~ log_normalized_size + NorthSouth, data=ancovaDat)
+# Inspect the model diagnostic metrics
+model.metrics <- augment(model) %>%
+  select(-.hat, -.sigma, -.fitted) # Remove details
+head(model.metrics, 3)
+# Assess normality of residuals using shapiro wilk test
+shapiro_test(model.metrics$.resid)  # not significant so we can assume normality of residuals
+## Homogeneity of variances
+model.metrics %>% 
+  levene_test(.resid ~ NorthSouth)  # not significant so can assume homogeneity of the residual variances for all groups
+## Outliers
+model.metrics %>% 
+  filter(abs(.std.resid) > 3) %>%
+  as.data.frame(). # no outliers
+
+# Calculate your one way ANCOVA
+res.aov <- ancovaDat %>% 
+  anova_test(log_normalized_biomass ~ log_normalized_size + NorthSouth)
+get_anova_table(res.aov)
+
+# Post-hoc test
+# Pairwise comparisons
+library(emmeans)
+pwc <- ancovaDat %>% 
+  emmeans_test(
+    log_normalized_biomass ~ NorthSouth, covariate = log_normalized_size,
+    p.adjust.method = "bonferroni"
+  )
+pwc
+# Display the adjusted means of each group
+# Also called as the estimated marginal means (emmeans)
+get_emmeans(pwc)
+# Visualization: line plots with p-values
+pwc <- pwc %>% 
+  add_xy_position(x = "NorthSouth", fun = "mean_se")
+ggline(get_emmeans(pwc), x = "NorthSouth", y = "emmean") +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2) + 
+  stat_pvalue_manual(pwc, hide.ns = TRUE, tip.length = FALSE) +
+  labs(
+    subtitle = get_test_label(res.aov, detailed = TRUE),
+    caption = get_pwc_label(pwc))
 
 # -----------------------------------------------------------------------------
 # make zooplankton plots
