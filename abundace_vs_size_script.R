@@ -297,43 +297,43 @@ phyto %>% filter(Depth == 0) %>%
    ggtitle('Size vs. Abundance for phytoplankton SE2204') +
    theme_bw() + theme(panel.grid = element_blank()) 
   
-# Filter Size Breakdown at Each Station 
-phyto_f <- phyto %>%
-  filter(Size!=0.7) %>%
-  mutate(size_class = case_when(
-    Filter == 20 ~ ">20 µm",
-    Filter == 2.0 ~ "2.0 - 19.99 µm",
-    Filter == 0.2 ~ "0.2 - 1.99 µm",
-    TRUE ~ "Unknown"
-  ))
 
-chl_summary <- phyto_f %>%
-  group_by(Depth, Station, Cast) %>%
-  mutate(total_chl = sum(Chlorophyll, na.rm = TRUE),
-  percent_chl = (Chlorophyll / total_chl) * 100)
+#  -------------------------------- pie chart --------------------------------
+# Create new data set with original phyto data 
+phytoSizeStn <- phytoSizeStn %>% group_by(Cast) %>% summarise(ChlTotalStn=sum(ChlAllDepth)) %>% left_join(phytoSizeStn)
+head(phytoSizeStn)
 
-# Putting the filter size in chronological order to make plotting easy and clean 
-chl_summary$size_class <- factor(chl_summary$size_class, levels = c("0.2 - 1.99 µm", "2.0 - 19.99 µm", ">20 µm" ))
+# Adding a percent collumn to the dataset 
+phytoSizeStn <- phytoSizeStn %>% mutate(Percent = ChlAllDepth / ChlTotalStn * 100)
+head(phytoSizeStn)
 
-# filter out Na's
-chl_summary <- chl_summary %>%
-  filter(!is.na(Cast), !is.na(percent_chl), !is.na(size_class))
+phytoSizeStn_labeled <- phytoSizeStn %>%
+  group_by(Cast) %>%
+  arrange(desc(Size)) %>%
+  mutate(
+    cumulative = cumsum(Percent),
+    midpoint = cumulative - Percent / 2,
+    label = paste0(round(Percent), "%")
+  )
 
-ggplot(chl_summary, aes(x = Depth, y = percent_chl, fill = size_class)) +
-  geom_bar(stat = "identity") +
-  scale_y_continuous(labels = scales::percent_format(scale = 1)) +
+ggplot(phytoSizeStn, aes(x = "", y = Percent, fill = factor(Size))) +
+  geom_col(width = 1) +
+  coord_polar(theta = "y") +
+  facet_wrap(~ Cast, labeller = labeller(Cast = id.labs)) +
   scale_fill_manual(values = c("#495d86", "#d9b021", "#d26424")) +
-  # scale_fill_manual(values = c("#646298", "#72a5a9", "#D75739")) +
-  scale_x_reverse(expand = c(0,0)) +  
-  facet_wrap(~Cast, labeller=labeller(Cast=id.labs)) + 
-  coord_flip() +
-  labs(title = "Size-fractionated Chlorophyll by Depth",
-       x = "Depth (m)",
-       y = "% of Total Chlorophyll",
-       fill = "Size Class") +
-  theme_bw()
-# ggsave('ChlSizeFraction_AllStns.png', width=10, height = 5.625, dpi = 300, units = 'in')
+  labs(title = "Pie Chart by Size", fill = "Size") +
+  theme_void()
 
+ggplot(phytoSizeStn_labeled, aes(x = "", y = Percent, fill = factor(Size))) +
+  geom_col(width = 1) +
+  coord_polar(theta = "y") +
+  facet_wrap(~ Cast, labeller = labeller(Cast = id.labs)) +
+  scale_fill_manual(values = c("#495d86", "#d9b021", "#d26424")) +
+  labs(title = "Pie Chart by Size", fill = "Size") +
+  theme_void()
+
+# A Night: 0.2 = 79.6% ; 2 = 15.2% ; 20 = 5.12%
+# Station E Night: 0.2 = 74.2%; 2 = 20.3% ; 20 = 4.58%
 
 # --------------------------------- ZOOPLANKTON -------------------------------
 zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
