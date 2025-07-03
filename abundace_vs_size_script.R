@@ -491,28 +491,28 @@ ancovaDat <- normalized_biomass %>%
 
 # Run ANCOVA (from https://www.datanovia.com/en/lessons/ancova-in-r/)
 # One way with just North/South
-# Check data assumptions
-## Linearity
-ggscatter(ancovaDat, x = "log_normalized_size", y = "log_normalized_biomass", color = "NorthSouth", add = "reg.line") +
-  stat_regline_equation(aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = NorthSouth))
-## Homogeneity of regression slopes
-ancovaDat %>% anova_test(log_normalized_biomass ~ NorthSouth * log_normalized_size). # no significant interaction between the covariate and the grouping variable
-## Normality of residuals
-# Fit the model, the covariate goes first
-model <- lm(log_normalized_biomass ~ log_normalized_size + NorthSouth, data=ancovaDat)
-# Inspect the model diagnostic metrics
-model.metrics <- augment(model) %>%
-  select(-.hat, -.sigma, -.fitted) # Remove details
-head(model.metrics, 3)
-# Assess normality of residuals using shapiro wilk test
-shapiro_test(model.metrics$.resid)  # not significant so we can assume normality of residuals
-## Homogeneity of variances
-model.metrics %>% 
-  levene_test(.resid ~ NorthSouth)  # not significant so can assume homogeneity of the residual variances for all groups
-## Outliers
-model.metrics %>% 
-  filter(abs(.std.resid) > 3) %>%
-  as.data.frame(). # no outliers
+# # Check data assumptions (these don't have to be run every time but I wanted to code them up just the same)
+# ## Linearity
+# ggscatter(ancovaDat, x = "log_normalized_size", y = "log_normalized_biomass", color = "NorthSouth", add = "reg.line") +
+#   stat_regline_equation(aes(label =  paste(..eq.label.., ..rr.label.., sep = "~~~~"), color = NorthSouth))
+# ## Homogeneity of regression slopes
+# ancovaDat %>% anova_test(log_normalized_biomass ~ NorthSouth * log_normalized_size)  # no significant interaction between the covariate and the grouping variable
+# ## Normality of residuals
+# # Fit the model, the covariate goes first
+# model <- lm(log_normalized_biomass ~ log_normalized_size + NorthSouth, data=ancovaDat)
+# # Inspect the model diagnostic metrics
+# model.metrics <- augment(model) %>%
+#   select(-.hat, -.sigma, -.fitted) # Remove details
+# head(model.metrics, 3)
+# # Assess normality of residuals using shapiro wilk test
+# shapiro_test(model.metrics$.resid)  # not significant so we can assume normality of residuals
+# ## Homogeneity of variances
+# model.metrics %>% 
+#   levene_test(.resid ~ NorthSouth)  # not significant so can assume homogeneity of the residual variances for all groups
+# ## Outliers
+# model.metrics %>% 
+#   filter(abs(.std.resid) > 3) %>%
+#   as.data.frame()  # no outliers
 
 # Calculate your one way ANCOVA
 res.aov <- ancovaDat %>% 
