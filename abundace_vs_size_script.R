@@ -323,15 +323,7 @@ ggplot(phytoSizeStn, aes(x = "", y = Percent, fill = factor(Size))) +
   scale_fill_manual(values = c("#495d86", "#d9b021", "#d26424")) +
   labs(title = "Pie Chart by Size", fill = "Size") +
   theme_void()
-
-ggplot(phytoSizeStn_labeled, aes(x = "", y = Percent, fill = factor(Size))) +
-  geom_col(width = 1) +
-  coord_polar(theta = "y") +
-  facet_wrap(~ Cast, labeller = labeller(Cast = id.labs)) +
-  scale_fill_manual(values = c("#495d86", "#d9b021", "#d26424")) +
-  labs(title = "Pie Chart by Size", fill = "Size") +
-  theme_void()
-
+# ggsave('ChlPieChart.2_AllStns.png', width=10, height = 5.625, dpi = 300, units = 'in')
 # A Night: 0.2 = 79.6% ; 2 = 15.2% ; 20 = 5.12%
 # Station E Night: 0.2 = 74.2%; 2 = 20.3% ; 20 = 4.58%
 
