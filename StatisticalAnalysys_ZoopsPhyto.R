@@ -285,6 +285,24 @@ zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/'))
 # zoops <- read_xlsx(paste(here(), 'Data/Biomass filter weights.xlsx', sep='/'), sheet = 1)  # Johanna's
 head(zoops)
 
+ggplot(zoops, aes(x = net_cast_number, y = standard_haul_factor)) +
+  geom_point()
+
+# Plot for VWS
+ggplot(zoops, aes(x = net_cast_number, y = volume_water_strained)) +
+  geom_point()
+
+
+# SHF and VWS plotted side by side 
+zoops_long <- zoops %>%
+  pivot_longer(cols = c(standard_haul_factor, volume_water_strained),
+               names_to = "variable", values_to = "value")
+
+ggplot(zoops_long, aes(x = net_cast_number, y = value)) +
+  geom_point() +
+  facet_wrap(~ variable, scales = "free_y") +
+  labs(y = "Value") +
+  theme_minimal()
 # Clean up zooplankton data
 zoops <- zoops %>% 
   filter(net_cast_number <= 13) %>% 
