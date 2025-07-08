@@ -342,6 +342,7 @@ ggplot(phytoSizeStn13, aes(x = "", y = Percent, fill = factor(Size))) +
   scale_fill_manual(values = c("#495d86", "#d9b021", "#d26424")) +
   labs(title = "Phytoplankton Size Composition", fill = "Size [µm]") +
   theme_void()
+# ggsave('PhytoDayPie13_presentation.png', width = 10, height = 4, dpi = 300, units = "in") #for presentation
 
 
 
@@ -484,7 +485,10 @@ plot_ocng_section <- function(data, ocng_var, Res1, Res2, title_label, Units) {
 
 plot_ocng_section(data = bulk, ocng_var = "Chlorophyll", Res1 = 250, Res2 = 250, title_label = "Bulk Chlorophyll", Units = " [µg/L]")
 # ggsave('BulkSectionPlots_poster.png', width = 24, height = 36, units = "in") #for poster
-ggsave('BulkSectionPlots_presentation.png', width = 10, height = 5, dpi = 300, units = "in") #for presentation
+# ggsave('BulkSectionPlots_presentation.png', width = 10, height = 5, dpi = 300, units = "in") #for presentation
+
+
+
 
 # --------------------------------- ZOOPLANKTON -------------------------------
 zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
@@ -519,8 +523,8 @@ normalized_biomass <- zoops %>%
   left_join(bin_edges, by = "size_fraction") %>%
   mutate(
     normalized_biomass = net_dry_weight / bin_width,
-    log_normalized_biomass = log10(normalized_biomass),
-    log_normalized_size = log10(size_fraction))
+    log_normalized_biomass = log2(normalized_biomass),
+    log_normalized_size = log2(size_fraction))
 
 # Plot!
 # Plot of all normalized data together, LOG 10********
@@ -550,8 +554,8 @@ ggplot(normalized_biomass, aes(x = log_normalized_size, y = log_normalized_bioma
   ) +
   facet_wrap(~ net_cast_number, ncol = 4) +
   labs(
-    x = expression(log[10]~"Size Fraction [µm]"),
-    y = expression(log[10]~"Nomalized Biomass [g]"),
+    x = expression(log[2]~"Size Fraction [µm]"),
+    y = expression(log[2]~"Nomalized Biomass [g]"),
     title = "Zooplankton Biomass Spectrum by Station"
   ) +
   theme_bw(base_size = 12)
