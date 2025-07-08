@@ -124,21 +124,33 @@ aou_df <- data.frame(
   AOU = as.vector(aou_interp$z)
 )
 
-ggplot(data = aou_df, aes(x = newLat, y = Depth)) +
+AOUVis <- ggplot(data = aou_df, aes(x = newLat, y = Depth)) +
   geom_raster(aes(fill = AOU)) +
-  scale_fill_viridis_c(option = "turbo") +
   scale_y_reverse() +
+  scale_fill_viridis_c(option = "turbo") +
   geom_contour(aes(z = AOU), binwidth = 10, colour = "black", alpha = 0.3) +
+  guides(size = "none", 
+         fill = guide_colourbar(title.position = "right"), 
+         title.theme = element_text(angle = 270, hjust = 0.5, vjust = 0.5)) +
   labs(
-    y = "Depth [m]",
-    x = "Latitude",
+    # y = "Depth [m]",
+    # x = "Latitude",
+    y = NULL, 
+    x = NULL,
     fill = "AOU [µmol/kg]",
-    title = "Apparent Oxygen Utilization (AOU)",
-    subtitle = "Interpolated across Latitude and Depth"
+    # title = "Apparent Oxygen Utilization (AOU)",
+    # subtitle = "Interpolated across Latitude and Depth"
   ) +
   coord_cartesian(expand = 0) +
-  theme_minimal()
+  theme(legend.title = element_text(angle = 90, hjust=0.5), 
+        legend.direction = "vertical",
+        legend.key.height = unit(1, 'null'), 
+        legend.key.width = unit(0.5, 'cm'), 
+        legend.margin = margin(0,0,0,0))
 
+
+
+AOUVis
 
 # --------------------- Depth Profile Function ---------------------------------
 
@@ -168,6 +180,7 @@ depthProfile <- function(CTDdata, PlotVar, VarName, figTitle) {
 }
 
 
+
 # Make oxygen profile with oxygen min marked with line
 oxyProfile <- depthProfile(ctdAll, 'Oxygen', 'Oxygen [umol/kg]', 'Oxygen depth profile for SE2204')
 oxyProfile
@@ -193,99 +206,10 @@ DensProfile
 # ggsave('DensityDepthProfiles_AllStns.png', width=10, height = 5.625, dpi = 300)
 
 # Fluorescence Profiles 
-FluorProfile <- depthProfile(ctdAll, "Florescence", 'Fluorescence [ug/L]', 'Temerature depth profile for SE2204')
+FluorProfile <- depthProfile(ctdAll, "Flourescence", 'Fluorescence [ug/L]', 'Temerature depth profile for SE2204')
 FluorProfile
 # ggsave('FluorDepthProfiles_AllStns.pdf', width=11, height = 8, dpi = 300, units = 'in')
 # ggsave('FluorDepthProfiles_AllStns.png', width=10, height = 5.625, dpi = 300)
-
-plot_nutrient_section <- function(data, nutrient_col, title_label) {
-  clean_data <- data %>%
-    select(Latitude, Depth2, !!sym(nutrient_col)) %>%
-    rename(Depth = Depth2, NutVar = !!sym(nutrient_col)) %>%
-    filter(!is.na(Latitude), !is.na(Depth), !is.na(NutVar))
-  
-  sample_points <- clean_data
-  
-  # Interpolation with MBA
-  interp <- mba.surf(clean_data, no.X = 300, no.Y = 300, extend = TRUE)
-  dimnames(interp$xyz.est$z) <- list(interp$xyz.est$x, interp$xyz.est$y)
-  
-  # Convert to dataframe
-  interp_df <- melt(interp$xyz.est$z, varnames = c("Latitude", "Depth"), value.name = "NutVar") %>%
-    mutate(NutVar = round(NutVar, 1))
-  
-  # Plot
-  ggplot(data = interp_df, aes(x = Latitude, y = Depth)) +
-    geom_raster(aes(fill = NutVar)) +
-    scale_fill_viridis_c() +
-    scale_y_reverse() +
-    geom_contour(aes(z = NutVar), binwidth = 1, colour = "black", alpha = 0.2) +
-    geom_point(data = sample_points, aes(x = Latitude, y = Depth),
-               colour = "black", size = 0.2, alpha = 0.4, shape = 8) +
-    labs(
-      y = "Depth (m)",
-      x = "Latitude",
-      fill = paste0(title_label, "\n(µmol/L)"),
-      title = paste("SE2204", title_label, "Section Plot"),
-      subtitle = "Interpolated over depth and space; \nblack dots show actual sampling locations."
-    ) +
-    coord_cartesian(expand = 0) 
-}
-
-#---------------------------- OCNG Depth Profiles -----------------------------
-# --------------------- Interpolated Depth Profile Function -------------------
-
-plot_ocng_section <- function(data, ocng_var, title_label) {
-  clean_data <- data %>%
-    select(newLat, Depth, !!sym(ocng_var)) %>%
-    rename(Depth = Depth, OCNVar = !!sym(ocng_var)) %>%
-    filter(!is.na(Depth), !is.na(OCNVar))
-  
-  sample_points <- clean_data
-  
-  # Interpolation with MBA
-  interp <- mba.surf(clean_data, no.X = 100, no.Y = 100, extend = FALSE)
-  dimnames(interp$xyz.est$z) <- list(interp$xyz.est$x, interp$xyz.est$y)
-  
-  # Convert to dataframe
-  interp_df <- melt(interp$xyz.est$z, varnames = c("newLat", "Depth"), value.name = "OCNVar") %>%
-    mutate(OCNVAr = round(OCNVar, 1))
-  
-  # Plot
-  ggplot(data = interp_df, aes(x = newLat, y = Depth)) +
-    geom_raster(aes(fill = OCNVar)) +
-    scale_fill_viridis_c() +
-    scale_y_reverse() +
-    geom_contour(aes(z = OCNVar), binwidth = 1, colour = "black", alpha = 0.2) +
-    labs(
-      y = "Depth (m)",
-      x = "Latitude",
-      fill = paste0(title_label, "\n(µmol/L)"),
-      title = paste("SE2204", title_label, "Section Plot"),
-      subtitle = "Interpolated over depth and space"
-    ) +
-    coord_cartesian(expand = 0) 
-}
-
-plot_ocng_section(data = ctdAll, ocng_var = "Oxygen", title_label = "Oxygen")
-
-
-library(akima)
-
-interp <- akima::interp(
-  x = ctdAll$newLat,
-  y = ctdAll$Depth,
-  z = ctdAll$Oxygen,
-  linear = TRUE,
-  extrap = FALSE
-)
-
-interp_df <- expand.grid(
-  Latitude = interp$x,
-  Depth = interp$y
-) %>%
-  mutate(OCNVar = as.vector(interp$z))
-
 
 # -------------------------------- NUTRIENTS ----------------------------------
 
@@ -332,18 +256,29 @@ plot_nutrient_section <- function(data, nutrient_col, title_label) {
     geom_contour(aes(z = NutVar), binwidth = 1, colour = "black", alpha = 0.2) +
     geom_point(data = sample_points, aes(x = Latitude, y = Depth),
                colour = "black", size = 0.2, alpha = 0.4, shape = 8) +
+    guides(size = "none", 
+           fill = guide_colourbar(title.position = "right"), 
+           title.theme = element_text(angle = 270, hjust = 0.5, vjust = 0.5)) +
     labs(
-      y = "Depth (m)",
-      x = "Latitude",
-      fill = paste0(title_label, "\n(µmol/L)"),
-      title = paste("SE2204", title_label, "Section Plot"),
-      subtitle = "Interpolated over depth and space; \nblack dots show actual sampling locations."
+      # y = "Depth [m]",
+      # x = "Latitude",
+      x = NULL, 
+      y = NULL, 
+      fill = paste0(title_label, " [µmol/L]"),
+      # title = paste("SE2204", title_label, "Section Plot"),
+      # subtitle = "Interpolated over depth and space; \nblack dots show actual sampling locations."
     ) +
-    coord_cartesian(expand = 0) 
+    coord_cartesian(expand = 0) +
+    theme(legend.title = element_text(angle = 90, hjust=0.5), 
+          legend.direction = "vertical",
+          legend.key.height = unit(1, 'null'), 
+          legend.key.width = unit(0.5, 'cm'), 
+          legend.margin = margin(0,0,0,0))
 }
 
 # For Nitrate + Nitrite
-plot_nutrient_section(nut, "Nitrate..Nitrite", "Nitrate + Nitrite")
+NSectionPlot <- plot_nutrient_section(nut, "Nitrate..Nitrite", "Nitrate + Nitrite")
+NSectionPlot
 # ggsave('NSectionPlot_interp.png', width=10, height = 5.625, dpi = 300)
 
 # For Silicate
@@ -357,6 +292,55 @@ plot_nutrient_section(nut, "Phosphate", "Phosphate")
 # For Ammonia
 plot_nutrient_section(nut, "Ammonia", "Ammonia")
 # ggsave('AmmonSectionPlot_interp.png', width=10, height = 5.625, dpi = 300)
+
+
+
+
+
+# ----------------------   Test Fluorescence Plots  --------------------------
+
+plot_nutrient_section <- function(data, nutrient_col, title_label) {
+  clean_data <- data %>%
+    select(newLat, Depth, !!sym(nutrient_col)) %>%
+    rename(Depth = Depth, NutVar = !!sym(nutrient_col)) %>%
+    filter(!is.na(newLat), !is.na(Depth), !is.na(NutVar))
+  
+  sample_points <- clean_data
+  
+  # Interpolation with MBA
+  interp <- mba.surf(clean_data, no.X = 300, no.Y = 300, extend = TRUE)
+  dimnames(interp$xyz.est$z) <- list(interp$xyz.est$x, interp$xyz.est$y)
+  
+  # Convert to dataframe
+  interp_df <- melt(interp$xyz.est$z, varnames = c("newLat", "Depth"), value.name = "NutVar") %>%
+    mutate(NutVar = round(NutVar, 1))
+  
+  # Plot
+  ggplot(data = interp_df, aes(x = newLat, y = Depth)) +
+    geom_raster(aes(fill = NutVar)) +
+    scale_fill_viridis_c() +
+    scale_y_reverse() +
+    geom_contour(aes(z = NutVar), binwidth = 1, colour = "black", alpha = 0.2) +
+    geom_point(data = sample_points, aes(x = newLat, y = Depth),
+               colour = "black", size = 0.2, alpha = 0.4, shape = 8) +
+    labs(
+      y = "Depth (m)",
+      x = "Latitude",
+      fill = paste0(title_label, "\n(µmol/L)"),
+      title = paste("SE2204", title_label, "Section Plot"),
+      subtitle = "Interpolated over depth and space; \nblack dots show actual sampling locations."
+    ) +
+    coord_cartesian(expand = 0) 
+}
+
+
+ctd200 <- ctdAll %>% filter(!Depth > 300)
+plot_nutrient_section(ctd200, "Flourescence", "Fluorescence")
+
+
+ctd200 <- ctdAll %>% filter(!Depth > 400)
+plot_ocng_section(data = ctd200, ocng_var = "Flourescence", title_label = "Fluorescence")
+
 
 
 # ---------------------------------------------------------------------------
@@ -501,7 +485,7 @@ ggplot() +
         panel.background = element_blank()) +
   ggtitle('Oxygen Concentration: WOA and SE2204 CTD Observations')
 # ggsave('O2WOA_pan.png', width=10, height = 5.6, dpi = 300)
-ggsave('O2WOA_nrow1.png', width=10, height = 5.6, dpi = 300)
+# ggsave('O2WOA_nrow1.png', width=10, height = 5.6, dpi = 300)
 
 #------------------------------ Anomaly ---------------------------------------
 # First we need the depths to be the same for both datasets
@@ -541,7 +525,7 @@ ggplot(oxyAnomAll, aes(OxygenAnom, Depth)) +
         panel.border = element_blank(),
         panel.background = element_blank()) +
   ggtitle('GLORYS Daily vs Climatology Oxygen Anomalies')
-ggsave('Anom_GLORYSDM_AllStns(panel).png', width=10, height = 5.625, dpi = 300)
+# ggsave('Anom_GLORYSDM_AllStns(panel).png', width=10, height = 5.625, dpi = 300)
 
 
 # Anomaly for WOA and CTD Data
@@ -583,7 +567,7 @@ ggplot(oxyAnomAll, aes(OxygenAnom, Depth)) +
         panel.border = element_blank(),
         panel.background = element_blank()) +
   ggtitle('GLORYS Daily vs Climatology Oxygen Anomalies')
-ggsave('Anom_GLORYSDM_AllStns(panel).png', width=10, height = 5.625, dpi = 300)
+# ggsave('Anom_GLORYSDM_AllStns(panel).png', width=10, height = 5.625, dpi = 300)
 
 
 # Anomaly for CTD and Monthly
@@ -627,5 +611,166 @@ ggplot(oxyAnomAll, aes(OxygenAnom, Depth)) +
         panel.background = element_blank()) +
   ggtitle('Climatology GLORYS vs SE2204 CTD Oxygen Anomalies')
 # ggsave('Anom_GLorClimCTD_AllStns(panel).png', width=10, height = 5.625, dpi = 300)
-ggsave('Anom_GLorClimCTD_AllStns(nrow1).png', width=10, height = 5.625, dpi = 300)
+# ggsave('Anom_GLorClimCTD_AllStns(nrow1).png', width=10, height = 5.625, dpi = 300)
 
+
+
+
+
+
+#------------------------------ Final Figures ---------------------------------------
+#---------------------------- OCNG Depth Profiles -----------------------------
+# --------------------- Interpolated Depth Profile Function -------------------
+
+plot_ocng_section_nocont <- function(data, ocng_var, Res1, Res2, title_label, Units, Color) {
+  clean_data <- data %>%
+    select(newLat, Depth, !!sym(ocng_var)) %>%
+    rename(Depth = Depth, OCNVar = !!sym(ocng_var)) %>%
+    filter(!is.na(Depth), !is.na(OCNVar))
+  
+  sample_points <- clean_data
+  
+  # Interpolation with MBA
+  interp <- mba.surf(clean_data, no.X = Res1, no.Y = Res2, extend = FALSE)
+  dimnames(interp$xyz.est$z) <- list(interp$xyz.est$x, interp$xyz.est$y)
+  
+  # Convert to dataframe
+  interp_df <- melt(interp$xyz.est$z, varnames = c("newLat", "Depth"), value.name = "OCNVar") %>%
+    mutate(OCNVAr = round(OCNVar, 1))
+  
+  # Plot
+  ggplot(data = interp_df, aes(x = newLat, y = Depth)) +
+    geom_raster(aes(fill = OCNVar)) +
+    scale_fill_viridis_c( option = Color) +
+    scale_y_reverse() +
+    guides(size = "none", 
+           fill = guide_colourbar(title.position = "right"), 
+           title.theme = element_text(angle = 270, hjust = 0.5, vjust = 0.5)) +
+    labs(
+      # y = "Depth [m]",
+      # x = "Latitude",
+      x = NULL, 
+      y = NULL, 
+      fill = paste0(title_label, Units),
+      # title = paste("SE2204", title_label, "Section Plot"),
+      # subtitle = "Interpolated over depth and space"
+    ) +
+    coord_cartesian(expand = 0) +
+    theme(legend.title = element_text(angle = 90, hjust=0.5), 
+          legend.direction = "vertical",
+          legend.key.height = unit(1, 'null'), 
+          legend.key.width = unit(0.5, 'cm'), 
+          legend.margin = margin(0,0,0,0))
+}
+
+OSPlot <- plot_ocng_section_nocont(data = ctdAll, ocng_var = "Oxygen", Res1 = 400, Res2 = 400 , title_label = "Oxygen", Units = " [μmol/kg]", Color = "inferno")
+OSPlot
+
+
+
+
+# Panel Plot of Temp, Salinity, Oxygen, Nitrate, Fluorescence 
+
+plot_ocng_section <- function(data, ocng_var, Res1, Res2, title_label, Units) {
+  clean_data <- data %>%
+    select(newLat, Depth, !!sym(ocng_var)) %>%
+    rename(Depth = Depth, OCNVar = !!sym(ocng_var)) %>%
+    filter(!is.na(Depth), !is.na(OCNVar))
+  
+  sample_points <- clean_data
+  
+  # Interpolation with MBA
+  interp <- mba.surf(clean_data, no.X = Res1, no.Y = Res2, extend = FALSE)
+  dimnames(interp$xyz.est$z) <- list(interp$xyz.est$x, interp$xyz.est$y)
+  
+  # Convert to dataframe
+  interp_df <- melt(interp$xyz.est$z, varnames = c("newLat", "Depth"), value.name = "OCNVar") %>%
+    mutate(OCNVAr = round(OCNVar, 1))
+  
+  # Plot
+  ggplot(data = interp_df, aes(x = newLat, y = Depth)) +
+    geom_raster(aes(fill = OCNVar)) +
+    scale_fill_viridis_c(option = "turbo") +
+    scale_y_reverse() +
+    geom_contour(aes(z = OCNVar), binwidth = 1, colour = "black", alpha = 0.2) +
+    guides(size = "none", 
+           fill = guide_colourbar(title.position = "right"), 
+           title.theme = element_text(angle = 270, hjust = 0.5, vjust = 0.5)) +
+    labs(
+      # y = "Depth [m]",
+      # x = "Latitude",
+      x = NULL, 
+      y = NULL, 
+      fill = paste0(title_label, Units),
+      # title = paste("SE2204", title_label, "Section Plot"),
+      # subtitle = "Interpolated over depth and space"
+    ) +
+    coord_cartesian(expand = 0) +
+    theme(legend.title = element_text(angle = 90, hjust=0.5), 
+          legend.direction = "vertical",
+          legend.key.height = unit(1, 'null'), 
+          legend.key.width = unit(0.5, 'cm'), 
+          legend.margin = margin(0,0,0,0))
+}
+TempSPlot <- plot_ocng_section(data = ctdAll, ocng_var = "Temperature", Res1 = 100, Res2 = 100, title_label = "Temperature", Units = ' [°C]' )
+TempSPlot
+
+
+# SalinitySPlot
+SalinitySPlot <- plot_ocng_section_nocont(data = ctdAll, ocng_var = "Salinity", Res1 = 1000, Res2 = 1000, title_label = "Salinity", Units = " [PSU]", Color = "viridis")
+SalinitySPlot
+
+# OSPlot
+OSPlot <- plot_ocng_section_nocont(data = ctdAll, ocng_var = "Oxygen", Res1 = 400, Res2 = 400 , title_label = "Oxygen", Units = " [μmol/kg]", Color = "turbo")
+OSPlot
+
+# AOU
+AOUVis
+
+
+# NSectionPlot
+NSectionPlot
+
+# Create the stitched plots 
+library(patchwork)
+combined_plot <- TempSPlot / SalinitySPlot / OSPlot / NSectionPlot
+print(combined_plot)
+
+library(cowplot)
+combined_plotV <- plot_grid(TempSPlot / SalinitySPlot / OSPlot / NSectionPlot, ncol = 1, align = "v")
+combined_plotV
+
+final_plot <- ggdraw(combined_plotV) +
+  draw_label("Latitude", x = 0.5, y = 0.01, vjust = 0, angle = 0, size = 12) +  
+  draw_label("Depth [m]", x = 0.0009, y = 0.5, vjust = 1, angle = 90, size = 12) 
+
+final_plot
+# ggsave('SectionPlots_poster.png', width = 24, height = 36, units = "in") #for poster
+# ggsave('SectionPlots_presentation.png', width = 10, height = 7.5, dpi = 300, units = "in") #for presentation
+
+# wrap_elements(panel = combined_plot) +
+#   labs(tag = "Latitude") +
+#   theme(
+#     plot.tag = element_text(size = rel(1)),
+#     plot.tag.position = "bottom"
+#   )
+#   
+# wrap_elements(panel = combined_plot) +
+#   labs(tag = "Depth [m]") +
+#   theme(
+#     plot.tag = element_text(size = rel(1), angle = 90),
+#     plot.tag.position = "left"
+#   )
+
+
+
+combined_plotV <- plot_grid(OSPlot / AOUVis / NSectionPlot, ncol = 1, align = "v")
+combined_plotV
+
+final_plot <- ggdraw(combined_plotV) +
+  draw_label("Latitude", x = 0.5, y = 0.01, vjust = 0, angle = 0, size = 12) +  
+  draw_label("Depth [m]", x = 0.0009, y = 0.5, vjust = 1, angle = 90, size = 12) 
+
+final_plot
+# ggsave('SectionPlotAOU_poster.png', width = 24, height = 36, units = "in") #for poster
+# ggsave('SectionPlotAOU_presentation.png', width = 10, height = 7.5, dpi = 300, units = "in") #for presentation
