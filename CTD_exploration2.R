@@ -638,6 +638,27 @@ plot_ocng_section_nocont <- function(data, ocng_var, Res1, Res2, title_label, Un
   interp_df <- melt(interp$xyz.est$z, varnames = c("newLat", "Depth"), value.name = "OCNVar") %>%
     mutate(OCNVAr = round(OCNVar, 1))
   
+  ####-----JOHANNA TESTING NEW INTERPOLATION-----####
+  temp.interp = akima::interp(x = clean_data$newLat, 
+                              y = clean_data$Depth, 
+                              z = clean_data$Oxygen_Raw,
+                              duplicate = "mean", nx = 500, ny = 500)
+  temp.interp = akima::interp(x = ctd.tb.all$latitude, 
+                              y = ctd.tb.all$pressure, 
+                              z = unlist(ctd.tb.all[,idx]),
+                              duplicate = "mean", nx = 500, ny = 300)
+  # Look at the interpolation
+  image(temp.interp)
+  # Put it in a ggplot friendly format and limit it to the top 1,000 meters
+  # Choose which variable you want to plot
+  interp_df = akima::interp2xyz(temp.interp) %>%
+    as.tibble() %>%
+    rename(newLat = x, Depth = y, OCNVar = z) %>%
+    na.omit() %>%
+    filter(Depth <=1300 & Depth > 4)
+  ####-----JOHANNA TESTING NEW INTERPOLATION-----####
+  
+  
   # Plot
   ggplot(data = interp_df, aes(x = newLat, y = Depth)) +
     geom_raster(aes(fill = OCNVar)) +
