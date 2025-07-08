@@ -490,6 +490,11 @@ ancovaDat <- normalized_biomass %>%
   
 
 # Run ANCOVA (from https://www.datanovia.com/en/lessons/ancova-in-r/)
+library(emmeans)
+library(rstatix)
+library(broom)
+library(ggpubr)
+library(tidyverse)
 # One way with just North/South
 # # Check data assumptions (these don't have to be run every time but I wanted to code them up just the same)
 # ## Linearity
@@ -521,7 +526,6 @@ get_anova_table(res.aov)
 
 # Post-hoc test
 # Pairwise comparisons
-library(emmeans)
 pwc <- ancovaDat %>% 
   emmeans_test(
     log_normalized_biomass ~ NorthSouth, covariate = log_normalized_size,
