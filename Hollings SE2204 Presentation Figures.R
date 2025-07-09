@@ -12,6 +12,8 @@ library(lubridate)
 library(tidyr)
 library(data.table)
 library(paletteer)
+library(MBA)
+library(reshape2)
 
 # ---------------------------------- DATA --------------------------------------
 # Set working directory
@@ -59,7 +61,7 @@ plot_ocng_section_nocont <- function(data, ocng_var, Res1, Res2, title_label, Un
   dimnames(interp$xyz.est$z) <- list(interp$xyz.est$x, interp$xyz.est$y)
   
   # Convert to dataframe
-  interp_df <- melt(interp$xyz.est$z, varnames = c("newLat", "Depth"), value.name = "OCNVar") %>%
+  interp_df <- reshape2::melt(interp$xyz.est$z, varnames = c("newLat", "Depth"), value.name = "OCNVar") %>%
     mutate(OCNVAr = round(OCNVar, 1))
   
   # Plot
@@ -148,6 +150,50 @@ OSPlot <- plot_ocng_section_nocont(data = ctdAll, ocng_var = "Oxygen", Res1 = 40
 OSPlot
 
 # NSectionPlot
+plot_nutrient_section <- function(data, nutrient_col, title_label) {
+  clean_data <- data %>%
+    select(Latitude, Depth2, !!sym(nutrient_col)) %>%
+    rename(Depth = Depth2, NutVar = !!sym(nutrient_col)) %>%
+    filter(!is.na(Latitude), !is.na(Depth), !is.na(NutVar))
+  
+  sample_points <- clean_data
+  
+  # Interpolation with MBA
+  interp <- mba.surf(clean_data, no.X = 300, no.Y = 300, extend = TRUE)
+  dimnames(interp$xyz.est$z) <- list(interp$xyz.est$x, interp$xyz.est$y)
+  
+  # Convert to dataframe
+  interp_df <- melt(interp$xyz.est$z, varnames = c("Latitude", "Depth"), value.name = "NutVar") %>%
+    mutate(NutVar = round(NutVar, 1))
+  
+  # Plot
+  ggplot(data = interp_df, aes(x = Latitude, y = Depth)) +
+    geom_raster(aes(fill = NutVar)) +
+    scale_fill_viridis_c() +
+    scale_y_reverse() +
+    geom_contour(aes(z = NutVar), binwidth = 1, colour = "black", alpha = 0.2) +
+    geom_point(data = sample_points, aes(x = Latitude, y = Depth),
+               colour = "black", size = 0.2, alpha = 0.4, shape = 8) +
+    guides(size = "none", 
+           fill = guide_colourbar(title.position = "right"), 
+           title.theme = element_text(angle = 270, hjust = 0.5, vjust = 0.5)) +
+    labs(
+      # y = "Depth [m]",
+      # x = "Latitude",
+      x = NULL, 
+      y = NULL, 
+      fill = paste0(title_label, " [µmol/L]"),
+      # title = paste("SE2204", title_label, "Section Plot"),
+      # subtitle = "Interpolated over depth and space; \nblack dots show actual sampling locations."
+    ) +
+    coord_cartesian(expand = 0) +
+    theme(legend.title = element_text(angle = 90, hjust=0.5), 
+          legend.direction = "vertical",
+          legend.key.height = unit(1, 'null'), 
+          legend.key.width = unit(0.5, 'cm'), 
+          legend.margin = margin(0,0,0,0))
+}
+NSectionPlot <- plot_nutrient_section(nut, "Nitrate..Nitrite", "Nitrate + Nitrite")
 NSectionPlot
 
 # Create the stitched plots 
@@ -310,6 +356,7 @@ ggplot(phytoSizeStn, aes(x = "", y = Percent, fill = factor(Size))) +
 selected_casts <- c(8,9,10,17,18,19,26,27,28,35,36,37,38)
 phytoSizeStn13 <- phytoSizeStn %>% filter(Cast %in% selected_casts)
 
+
 ggplot(phytoSizeStn13, aes(x = "", y = Percent, fill = factor(Size))) +
   geom_col(width = 1) +
   coord_polar(theta = "y") +
@@ -460,13 +507,61 @@ ggplot(norm_biomass_night, aes(x = log2(size_fraction), y = log2(normalized_biom
   theme_bw(base_size = 12)
 # ggsave('NIGHTZoopSizeAbun_linearR_Normlog2.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
+zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
+# zoops <- read_xlsx(paste(here(), 'Data/Biomass filter weights.xlsx', sep='/'), sheet = 1)  # Johanna's
+head(zoops)
+
+ggplot(zoops, aes(x = net_cast_number, y = standard_haul_factor)) +
+  geom_point()
+
+# Plot for VWS
+ggplot(zoops, aes(x = net_cast_number, y = volume_water_strained)) +
+  geom_point()
 
 
+# SHF and VWS plotted side by side 
+zoops_long <- zoops %>%
+  pivot_longer(cols = c(standard_haul_factor, volume_water_strained),
+               names_to = "variable", values_to = "value")
+
+# Group by Region
+zoops$Region <- ifelse(zoops$net_cast_number %in% 1:8, "North", "South")
+
+#Plot using the Standardized Phytoplankton (total_net_wt/volume water strained) 
+ggplot(zoops, aes(x = net_cast_number, y = standardized_SHF, fill = Region )) +
+  geom_col() +
+  geom_point(aes(y = standardized_plankton_volume * 1000, color = "Plankton Volume"), size = 2) +
+  theme_bw() +
+  labs(y = "Standard Haul Factor", 
+       x = "Station", 
+       color = "",
+       fill = "Region") +
+  ggtitle(
+    "Standard Haul Factor for Zooplankton") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values = c("North" = "#3288bd", "South" = "#d53e4f")) +
+  scale_color_manual(values = c("Plankton Volume" = "black"))
+# ggsave('SHFZoop_scatter.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 
+zoops$region <- ifelse(zoops$net_cast_number %in% 1:8, "North", "South")
 
-
-
-
+ggplot() +
+  geom_col(data = zoops, aes(x = net_cast_number, y = standardized_SHF, fill = region)) +
+  geom_point(data = zoops,
+             aes(x = net_cast_number, y = standardized_plankton_volume * 1000, color = atop("Standardized Plankton Volume", "[ml/m³]")),
+             size = 2,
+             inherit.aes = FALSE) +
+  theme_bw() +
+  labs(
+    y = "Standard Haul Factor",
+    x = "Station",
+    fill = "Region",
+    color = ""
+  ) +
+  ggtitle("Standard Haul Factor for Zooplankton") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_manual(values = c("North" = "#3288bd", "South" = "#d53e4f")) +
+  scale_color_manual(values = c(atop("Standardized Plankton Volume", "[ml/m³]") = "black"))
 
 
