@@ -22,6 +22,7 @@ setwd(myDir)
 # Read in files 
 ctdAll <- read.csv('CTD_data_forAnalysis.csv')
 stnInfo <- read.csv('CTD_metadata_forAnalysis.csv')
+ctdMeta <- read.csv('CTD_log.csv')
 
 # Make a table with labels you want and the index that we can use for plotting
 id.labs <- stnInfo$Station2
@@ -46,6 +47,36 @@ nut$Date <- as.Date(nut$Date, '%m/%d/%y')
 # -------------------------------------------------------------------------------
 
 #------------------------------ Final Figures ---------------------------------------
+# Track line map
+# Read in waypoints
+all_wpts <- ctdMeta
+all_wpts_short <- all_wpts %>% 
+  select(LonDecimalDegree, LatDecimalDegree, StnType) %>% 
+  rename(lon=LonDecimalDegree, lat=LatDecimalDegree)
+
+# Make acctual track line plot
+ggplot() +
+  borders("world", 
+          xlim = c(-160, -145), 
+          ylim = c(18, 25),
+          fill="gray",colour="grey40", size=0.25) +
+  coord_map() +
+  geom_path(data=all_wpts_short, aes(lon, lat), color='gray30') +
+  geom_point(data=all_wpts, aes(LonDecimalDegree, LatDecimalDegree, color=StnType)) + 
+  scale_color_manual(values = c('base'='orange', 'extended'='steelblue'), name='Station') +
+  geom_text(data=all_wpts[which(all_wpts$StnType == 'extended')[c(2,8,14,20,26)],], aes(LonDecimalDegree, LatDecimalDegree, label=LETTERS[1:5]), hjust = 0, nudge_x = 0.85, size=3) +
+  geom_text(data=all_wpts[which(all_wpts$StnType == 'base'),], aes(LonDecimalDegree, LatDecimalDegree, label=1:13), hjust = 0, nudge_x = -1.25, size=3) +
+  #geom_hline(yintercept = 17.6, linetype='dashed', color='gray', linewidth=0.5) + 
+  scale_x_continuous(breaks=seq(-160,-145,by=5), labels=seq(160,145,by=-5), limits=c(-160,-145)) +
+  theme_bw() +
+  theme(legend.position = "none") +
+  xlab('Longitude (°W)') +
+  ylab('Latitude (°N)') +
+  ylim(c(8,32)) 
+
+
+
+# Section plots
 plot_ocng_section_nocont <- function(data, ocng_var, Res1, Res2, title_label, Units, Color) {
   clean_data <- data %>%
     select(newLat, Depth, !!sym(ocng_var)) %>%
