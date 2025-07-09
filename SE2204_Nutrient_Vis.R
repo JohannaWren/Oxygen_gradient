@@ -165,3 +165,10 @@ ggplot(data = cyto_mba, aes(x = Latitude, y = Depth)) +
   ggtitle('SE2204 All stations', subtitle = 'Interpolated over depth and space just to give an idea of patterns.\nBlack dots show actual sampling locations.Used lat instead of station numbers')
 
 ggsave('SE2204_flowcytometry_HBACT.png', width=8, height=8)
+
+
+# Fiow cytometry compositions
+cytoAllDepth <- cyto %>% 
+  group_by(Station, Longitude, Latitude, Date) %>% 
+  summarise(PRO_per_mL_allDepth=sum(PRO_per_mL, na.rm=T), SYN_per_mL_allDepth=sum(SYN_per_mL, na.rm=T), PEUK_per_mL_allDepth=sum(PEUK_per_mL, na.rm=T), HBACT_per_mL_allDepth=sum(HBACT_per_mL, na.rm=T)) 
+cytoAllDepth$TotalCounts <- rowSums(cytoAllDepth[,5:8])
