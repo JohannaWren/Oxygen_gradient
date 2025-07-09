@@ -16,9 +16,10 @@ library(stringr)
 # colnames(nutrients)[1] <- 'index'
 # nutrients$index <- as.numeric(nutrients$index)
 # str(nutrients)
-nutmeta <- read.csv('SE2204_nutrient_metadata.csv')  # If using the file where you put the nutrients into the metadata file, no need to merge datasets
+nutmeta <- read.csv('SE2204_nutrient_metadata_USE_THIS.csv') 
+# nutmeta <- read.csv('SE2204_nutrient_metadata.csv')  # If using the file where you put the nutrients into the metadata file, no need to merge datasets
 nutmeta$Depth <- as.numeric(str_sub(nutmeta$Depth, start=1, end=-2))
-nutmeta$index <- 1:nrow(nutmeta)
+nutmeta$SampleNo <- 1:nrow(nutmeta)
 nutmeta <- nutmeta[-28,]
 nut <- nutmeta #full_join(nutrients, nutmeta)
 nut
@@ -135,7 +136,7 @@ cytometa <- read.csv('SE2204_flowcytometry_metadata.csv')
 cytometa$Depth <- as.numeric(str_sub(cytometa$Depth, start=1, end=-2))
 cytometa$SampleNo <- 1:nrow(cytometa)
 cytometa <- cytometa[-28,]
-meta <- left_join(cytometa, nutmeta[,c(2:6)], by=c('Station', 'Depth'))
+meta <- left_join(cytometa, nutmeta[,c(3, 4, 5, 12)], by= 'SampleNo')
 cyto <- full_join(cytoraw, meta)
 
 cytoDN <- cyto %>% 
@@ -164,7 +165,7 @@ ggplot(data = cyto_mba, aes(x = Latitude, y = Depth)) +
   coord_cartesian(expand = 0) +
   ggtitle('SE2204 All stations', subtitle = 'Interpolated over depth and space just to give an idea of patterns.\nBlack dots show actual sampling locations.Used lat instead of station numbers')
 
-ggsave('SE2204_flowcytometry_HBACT.png', width=8, height=8)
+# ggsave('SE2204_flowcytometry_HBACT.png', width=8, height=8)
 
 
 # Fiow cytometry compositions
@@ -172,3 +173,13 @@ cytoAllDepth <- cyto %>%
   group_by(Station, Longitude, Latitude, Date) %>% 
   summarise(PRO_per_mL_allDepth=sum(PRO_per_mL, na.rm=T), SYN_per_mL_allDepth=sum(SYN_per_mL, na.rm=T), PEUK_per_mL_allDepth=sum(PEUK_per_mL, na.rm=T), HBACT_per_mL_allDepth=sum(HBACT_per_mL, na.rm=T)) 
 cytoAllDepth$TotalCounts <- rowSums(cytoAllDepth[,5:8])
+
+
+
+
+
+
+
+
+
+
