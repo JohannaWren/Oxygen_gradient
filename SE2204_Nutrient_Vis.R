@@ -18,7 +18,7 @@ library(stringr)
 # str(nutrients)
 nutmeta <- read.csv('SE2204_nutrient_metadata.csv')  # If using the file where you put the nutrients into the metadata file, no need to merge datasets
 nutmeta$Depth <- as.numeric(str_sub(nutmeta$Depth, start=1, end=-2))
-nutmeta$index <- 1:nrow(nutmeta)
+nutmeta$SampleNo <- 1:nrow(nutmeta)
 nutmeta <- nutmeta[-28,]
 nut <- nutmeta #full_join(nutrients, nutmeta)
 nut
