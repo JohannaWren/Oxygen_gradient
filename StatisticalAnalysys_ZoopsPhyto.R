@@ -298,6 +298,72 @@ zoops_long <- zoops %>%
   pivot_longer(cols = c(standard_haul_factor, volume_water_strained),
                names_to = "variable", values_to = "value")
 
+
+#Plot using the Standardized Phytoplankton (total_net_wt/volume water strained) 
+ggplot(zoops, aes(x = net_cast_number, y = standardized_plankton_volume )) +
+  geom_point() +
+  theme_bw() +
+  labs(y = "Standardized Plankton Volume [ml/m³]", x = "Station") +
+  ggtitle(
+    "SE2204 Standardized Zooplankton Volumes") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+# ggsave('StnadZoopV_scatter.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+omit6 <- zoops %>% filter(!net_cast_number == 6)
+  
+ggplot(omit6, aes(x = net_cast_number, y = standardized_SHF )) +
+  geom_point() +
+  theme_bw() +
+  labs(y = "Standardized Haul Factor", x = "Station") +
+  ggtitle(
+    "SE2204 Standardized Haul Factor Zooplankton") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+# ggsave('StnadZoopV_scatter.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+
+zoops_day <- zoops %>%
+  filter(net_cast_number %in% c(1, 3, 4, 6, 7, 9, 10, 12))
+
+ggplot(zoops_day, aes(x = net_cast_number, y = standardized_plankton_volume )) +
+  geom_point() +
+  theme_bw() +
+  labs(y = "Standardized Plankton Volume [ml/m^3]", x = "Day Stations") +
+  ggtitle(
+    "SE2204 Standardized Zooplankton Volumes") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+zoops_night <- zoops %>%
+  filter(net_cast_number %in% c(2,5,8,11,13))
+
+ggplot(zoops_night, aes(x = net_cast_number, y = standardized_plankton_volume )) +
+  geom_point() +
+  theme_bw() +
+  labs(y = "Standardized Plankton Volume [ml/m^3]", x = "Night Stations") +
+  ggtitle(
+    "SE2204 Standardized Zooplankton Volumes") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
+
+# Plot for SHF
+ggplot(zoops, aes(x = net_cast_number, y = standard_haul_factor)) +
+  geom_point()
+
+# Plot for VWS
+ggplot(zoops, aes(x = net_cast_number, y = volume_water_strained)) +
+  geom_point()
+
+
+# SHF and VWS plotted side by side 
+zoops_long <- zoops %>%
+  pivot_longer(cols = c(standard_haul_factor, volume_water_strained),
+               names_to = "variable", values_to = "value")
+
+ggplot(zoops_long, aes(x = net_cast_number, y = value)) +
+  geom_point() +
+  facet_wrap(~ variable, scales = "free_y") +
+  labs(y = "Value") +
+  theme_minimal()
+
+
 ggplot(zoops_long, aes(x = net_cast_number, y = value)) +
   geom_point() +
   facet_wrap(~ variable, scales = "free_y") +
@@ -386,58 +452,6 @@ ggplot(Box_df, aes(x = Station, y = Biomass)) +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 # ggsave('NormZoopV_Boxplot.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
-
-#Plot using the Standardized Phytoplankton (total_net_wt/volume water strained) 
-ggplot(zoops, aes(x = net_cast_number, y = standardized_plankton_volume )) +
-  geom_point() +
-  theme_bw() +
-  labs(y = "Standardized Plankton Volume [ml/m^3]", x = "Station") +
-  ggtitle(
-    "SE2204 Standardized Zooplankton Volumes") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
-# ggsave('StnadZoopV_scatter.png', width=10, height = 5.625, dpi = 300, units = 'in')
-
-zoops_day <- zoops %>%
-  filter(net_cast_number %in% c(1, 3, 4, 6, 7, 9, 10, 12))
-
-ggplot(zoops_day, aes(x = net_cast_number, y = standardized_plankton_volume )) +
-  geom_point() +
-  theme_bw() +
-  labs(y = "Standardized Plankton Volume [ml/m^3]", x = "Day Stations") +
-  ggtitle(
-    "SE2204 Standardized Zooplankton Volumes") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
-
-zoops_night <- zoops %>%
-  filter(net_cast_number %in% c(2,5,8,11,13))
-
-ggplot(zoops_night, aes(x = net_cast_number, y = standardized_plankton_volume )) +
-  geom_point() +
-  theme_bw() +
-  labs(y = "Standardized Plankton Volume [ml/m^3]", x = "Night Stations") +
-  ggtitle(
-    "SE2204 Standardized Zooplankton Volumes") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) 
-
-# Plot for SHF
-ggplot(zoops, aes(x = net_cast_number, y = standard_haul_factor)) +
-  geom_point()
-
-# Plot for VWS
-ggplot(zoops, aes(x = net_cast_number, y = volume_water_strained)) +
-  geom_point()
-
-
-# SHF and VWS plotted side by side 
-zoops_long <- zoops %>%
-  pivot_longer(cols = c(standard_haul_factor, volume_water_strained),
-               names_to = "variable", values_to = "value")
-
-ggplot(zoops_long, aes(x = net_cast_number, y = value)) +
-  geom_point() +
-  facet_wrap(~ variable, scales = "free_y") +
-  labs(y = "Value") +
-  theme_minimal()
 
 # -------------------------- ZOOP ANCOVA ----------------------------------------
 # ANCOVA model
