@@ -80,6 +80,9 @@ label_vector <- setNames(cast_labels$Station, cast_labels$Cast)
 # -------------------------------------------------------------------------------
 
 #------------------------------ Final Figures ---------------------------------------
+
+# -------------------------------------------------------------------------------
+
 # Track line map
 # Read in waypoints
 all_wpts <- ctdMeta
@@ -99,7 +102,7 @@ ggplot() +
   scale_color_manual(values = c('base'='orange', 'extended'='steelblue'), name='Station') +
   geom_text(data=all_wpts[which(all_wpts$StnType == 'extended')[c(2,8,14,20,26)],], aes(LonDecimalDegree, LatDecimalDegree, label=LETTERS[1:5]), hjust = 0, nudge_x = 0.85, size=3) +
   geom_text(data=all_wpts[which(all_wpts$StnType == 'base'),], aes(LonDecimalDegree, LatDecimalDegree, label=1:13), hjust = 0, nudge_x = -1.25, size=3) +
-  #geom_hline(yintercept = 17.6, linetype='dashed', color='gray', linewidth=0.5) + 
+  geom_hline(yintercept = 17.6, linetype='dashed', color='gray', linewidth=0.5) + 
   scale_x_continuous(breaks=seq(-160,-145,by=5), labels=seq(160,145,by=-5), limits=c(-160,-145)) +
   theme_bw() +
   theme(legend.position = "none") +
@@ -107,7 +110,16 @@ ggplot() +
   ylab('Latitude (°N)') +
   ylim(c(8,32)) 
 
+# ggsave('Map_line.png', width = 24, height = 36, units = "in") #for poster
+# ggsave('Map_line_presentation.png', width = 10, height = 7.5, dpi = 300, units = "in") #for presentation
 
+# ggsave('Map.png', width = 24, height = 36, units = "in") #for poster
+# ggsave('Map_presentation.png', width = 10, height = 7.5, dpi = 300, units = "in") #for presentation
+
+
+
+
+# -------------------------------------------------------------------------------
 
 # Section plots
 plot_ocng_section_nocont <- function(data, ocng_var, Res1, Res2, title_label, Units, Color) {
