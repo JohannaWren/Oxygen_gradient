@@ -561,24 +561,6 @@ zoops$time_of_day <- ifelse(zoops$net_cast_number %in% c(2, 5, 8, 11, 13), "Nigh
 zoops <- zoops %>% 
   select(4,5,10,11,18,19,22,23,24,36,37)
 
-#Plot using the Standardized Phytoplankton (total_net_wt/volume water strained) 
-ggplot(zoops, aes(x = net_cast_number, y = standardized_SHF, fill = Region )) +
-  geom_col() +
-  geom_point(aes(y = standardized_plankton_volume * 1000, color = "Standardized Plankton Volume [ml/m³]")) +
-  theme_bw() +
-  labs(y = "Standard Haul Factor", 
-       x = "Station", 
-       color = "",
-       fill = "Region") +
-  ggtitle(
-    "Standard Haul Factor for Zooplankton") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  scale_fill_manual(values = c("North" = "#3288bd", "South" = "#d53e4f")) +
-  scale_color_manual(values = c("Standardized Plankton Volume [ml/m³]"= "black")) +
-  theme(legend.position = "bottom")
-# ggsave('SHFZoop_scatter.png', width=10, height = 5.625, dpi = 300, units = 'in')
-
-
 
 # Calculate scale factor to standardize the new y-axis to the pre-existing y-axis 
 scale_factor <- max(zoops$standardized_SHF, na.rm = TRUE) / 
@@ -604,7 +586,7 @@ ggplot(zoops, aes(x = factor(net_cast_number))) +
   scale_fill_manual(values = c("North" = "#3288bd", "South" = "#d53e4f")) +
   theme(panel.grid.minor = element_blank(), 
         panel.grid.major.x = element_blank())
-# ggsave('SHFZoop_doubleyaxis.png', width=10, height = 5.625, dpi = 300, units = 'in')
+ggsave('SHFZoop_doubleyaxis.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 
 
