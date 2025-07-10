@@ -557,11 +557,12 @@ zoops_long <- zoops %>%
 
 # Group by Region
 zoops$Region <- ifelse(zoops$net_cast_number %in% 1:8, "North", "South")
+zoops$time_of_day <- ifelse(zoops$net_cast_number %in% c(2, 5, 8, 11, 13), "Night", "Day")
 
 #Plot using the Standardized Phytoplankton (total_net_wt/volume water strained) 
 ggplot(zoops, aes(x = net_cast_number, y = standardized_SHF, fill = Region )) +
   geom_col() +
-  geom_point(aes(y = standardized_plankton_volume * 1000, color = "Plankton Volume"), size = 2) +
+  geom_point(aes(y = standardized_plankton_volume * 1000, color = "Standardized Plankton Volume [ml/m³]")) +
   theme_bw() +
   labs(y = "Standard Haul Factor", 
        x = "Station", 
@@ -571,28 +572,40 @@ ggplot(zoops, aes(x = net_cast_number, y = standardized_SHF, fill = Region )) +
     "Standard Haul Factor for Zooplankton") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   scale_fill_manual(values = c("North" = "#3288bd", "South" = "#d53e4f")) +
-  scale_color_manual(values = c("Plankton Volume" = "black"))
+  scale_color_manual(values = c("Standardized Plankton Volume [ml/m³]"= "black")) +
+  theme(legend.position = "bottom")
 # ggsave('SHFZoop_scatter.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 
-zoops$region <- ifelse(zoops$net_cast_number %in% 1:8, "North", "South")
 
-ggplot() +
-  geom_col(data = zoops, aes(x = net_cast_number, y = standardized_SHF, fill = region)) +
-  geom_point(data = zoops,
-             aes(x = net_cast_number, y = standardized_plankton_volume * 1000, color = atop("Standardized Plankton Volume", "[ml/m³]")),
-             size = 2,
-             inherit.aes = FALSE) +
+# Calculate scale factor to standardize the new y-axis to the pre-existing y-axis 
+scale_factor <- max(zoops$standardized_SHF, na.rm = TRUE) / 
+  max(zoops$standardized_plankton_volume * 1000, na.rm = TRUE)
+
+# Omit na's in the net_cast_number added by the excel sheet, no data lost
+zoops <- zoops[!is.na(zoops$net_cast_number), ]
+
+# Plot
+ggplot(zoops, aes(x = factor(net_cast_number))) +
+  geom_col(aes(y = standardized_SHF, fill = Region)) +
+  geom_point(aes(y = standardized_plankton_volume * 1000 * scale_factor),
+             color = "black",
+             size = 2) +
   theme_bw() +
   labs(
-    y = "Standard Haul Factor",
     x = "Station",
-    fill = "Region",
-    color = ""
-  ) +
+    y = "Standard Haul Factor",
+    fill = "Region") +
+  scale_y_continuous(
+    name = "Standard Haul Factor",
+    sec.axis = sec_axis(~ . / scale_factor, breaks=seq(0,20,by=5), labels = seq(0,0.0304,by=0.0061),
+                        name = expression("Standardized Plankton Volume [kg/m"^3*"]"))) +
   ggtitle("Standard Haul Factor for Zooplankton") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   scale_fill_manual(values = c("North" = "#3288bd", "South" = "#d53e4f")) +
-  scale_color_manual(values = c(atop("Standardized Plankton Volume", "[ml/m³]") = "black"))
+  # scale_shape_manual(values = c("Day" = 16, "Night" = 17))
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "right")
+# ggsave('SHFZoop_doubleyaxis.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
 
 
