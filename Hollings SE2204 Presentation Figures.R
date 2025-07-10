@@ -47,6 +47,7 @@ nut$Phosphate <- ifelse(nut$Phosphate == "<0.008", 0.007, as.numeric(nut$Phospha
 nut$Silicate <- as.numeric(nut$Silicate)
 nut$Date <- as.Date(nut$Date, '%m/%d/%y') 
 
+
 # Phytoplankton data
 phyto <- read.csv(paste(here(), 'fluorometry_SE2204.csv', sep='/'))  # Emma's
 # phyto <- read.csv(paste(here(), 'Data/fluorometry_SE2204.csv', sep='/'))  # Johanna's
@@ -87,8 +88,8 @@ head(cytoAllDepth)
 
 
 # Zooplankton data
-zoops <- read.csv('Biomass filter weights_USE_THIS.csv', sep='/') # Emma's
-# zoops <- read.csv('../Data/Biomass filter weights_USE_THIS.csv')  # Johanna's
+zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
+# zoops <- read.csv(paste(here(), 'Data/Biomass filter weights_USE_THIS .csv', sep='/'))  # Johanna's
 head(zoops)
 
 
