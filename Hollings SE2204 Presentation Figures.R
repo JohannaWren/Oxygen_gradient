@@ -48,12 +48,7 @@ nut$Silicate <- as.numeric(nut$Silicate)
 nut$Date <- as.Date(nut$Date, '%m/%d/%y') 
 
 
-# Zooplankton data
-zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
-# zoops <- read.csv(paste(here(), 'Data/Biomass filter weights_USE_THIS .csv', sep='/'))  # Johanna's
-head(zoops)
-
-
+# Phytoplankton data
 phyto <- read.csv(paste(here(), 'fluorometry_SE2204.csv', sep='/'))  # Emma's
 # phyto <- read.csv(paste(here(), 'Data/fluorometry_SE2204.csv', sep='/'))  # Johanna's
 head(phyto)
@@ -75,6 +70,28 @@ cast_labels <- phyto %>%
   distinct(Cast, Station) %>%
   arrange(Cast)
 label_vector <- setNames(cast_labels$Station, cast_labels$Cast)
+
+# Add flow cytometry data
+cyto <- read.csv('cytometry_summary.csv')
+cytoAllDepth <- cyto %>% 
+  group_by(Station, Longitude, Latitude, Date) %>% 
+  summarise(PRO=sum(PRO_per_mL, na.rm=T), SYN=sum(SYN_per_mL, na.rm=T), PEUK=sum(PEUK_per_mL, na.rm=T), HBACT=sum(HBACT_per_mL, na.rm=T)) 
+cytoAllDepth$TotalCounts <- rowSums(cytoAllDepth[,5:8])
+# Add casts so can merge with other data
+cytoAllDepth$Cast <- c(8,35,36,37,38,9,10,17,18,19,26,27,28,5,2,14,11,23,20,32,29,39,43)
+# make wide for easier plotting in ggplot
+cytoAllDepth <- cytoAllDepth %>% 
+  pivot_longer(PRO:HBACT, names_to = 'Phytos', values_to = 'Count') %>% 
+  select(Station, Cast, Date, Longitude, Latitude, Phytos, Count, TotalCounts) %>% 
+  mutate(Percent=Count/TotalCounts*100)
+head(cytoAllDepth)
+
+
+# Zooplankton data
+zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
+# zoops <- read.csv(paste(here(), 'Data/Biomass filter weights_USE_THIS .csv', sep='/'))  # Johanna's
+head(zoops)
+
 
 
 # -------------------------------------------------------------------------------
@@ -297,53 +314,50 @@ bulk <- bulk %>% left_join(stnInfo, by = "Cast")
 
 
 
-plot_section <- function(data, nutrient_col, title_label) {
-  clean_data <- data %>%
-    select(Lat, Depth.x, !!sym(nutrient_col)) %>%
-    rename(Depth.x = Depth.x, NutVar = !!sym(nutrient_col)) %>%
-    filter(!is.na(Lat), !is.na(Depth.x), !is.na(NutVar))
-  
-  sample_points <- clean_data
-  
-  # Interpolation with MBA
-  interp <- mba.surf(clean_data, no.X = 500, no.Y = 500, extend = TRUE)
-  dimnames(interp$xyz.est$z) <- list(interp$xyz.est$x, interp$xyz.est$y)
-  
-  # Convert to dataframe
-  interp_df <- melt(interp$xyz.est$z, varnames = c("Lat", "Depth.x"), value.name = "NutVar") %>%
-    mutate(NutVar = round(NutVar, 1))
-  
-  # Plot
-  ggplot(data = interp_df, aes(x = Lat, y = Depth.x)) +
-    geom_raster(aes(fill = NutVar)) +
-    scale_fill_viridis_c(breaks = c(0.02, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5)) +
-    scale_y_reverse() +
-    geom_contour(aes(z = NutVar), binwidth = 1, colour = "black", alpha = 0.2) +
-    geom_point(data = sample_points, aes(x = Lat, y = Depth.x),
-               colour = "black", size = 0.2, alpha = 0.4, shape = 8) +
-    guides(size = "none", 
-           fill = guide_colourbar(title.position = "right"), 
-           title.theme = element_text(angle = 270, hjust = 0.5, vjust = 0.5)) +
-    labs(
-      # y = "Depth [m]",
-      # x = "Latitude",
-      x = NULL, 
-      y = NULL, 
-      fill = "Bulk Chlorophyll [µg/L]"
-      # title = paste("SE2204", title_label, "Section Plot"),
-      # subtitle = "Interpolated over depth and space; \nblack dots show actual sampling locations."
-    ) +
-    coord_cartesian(expand = 0) +
-    theme(legend.title = element_text(angle = 90, hjust=0.5), 
-          legend.direction = "vertical",
-          legend.key.height = unit(1, 'null'), 
-          legend.key.width = unit(0.5, 'cm'), 
-          legend.margin = margin(0,0,0,0))
-}
-
-
-
-plot_section(data = bulk, nutrient_col = "Chlorophyll", title_label = "Bulk")
+# plot_section <- function(data, nutrient_col, title_label) {
+#   clean_data <- data %>%
+#     select(Lat, Depth.x, !!sym(nutrient_col)) %>%
+#     rename(Depth.x = Depth.x, NutVar = !!sym(nutrient_col)) %>%
+#     filter(!is.na(Lat), !is.na(Depth.x), !is.na(NutVar))
+#   
+#   sample_points <- clean_data
+#   
+#   # Interpolation with MBA
+#   interp <- mba.surf(clean_data, no.X = 500, no.Y = 500, extend = TRUE)
+#   dimnames(interp$xyz.est$z) <- list(interp$xyz.est$x, interp$xyz.est$y)
+#   
+#   # Convert to dataframe
+#   interp_df <- melt(interp$xyz.est$z, varnames = c("Lat", "Depth.x"), value.name = "NutVar") %>%
+#     mutate(NutVar = round(NutVar, 1))
+#   
+#   # Plot
+#   ggplot(data = interp_df, aes(x = Lat, y = Depth.x)) +
+#     geom_raster(aes(fill = NutVar)) +
+#     scale_fill_viridis_c(breaks = c(0.02, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5)) +
+#     scale_y_reverse() +
+#     geom_contour(aes(z = NutVar), binwidth = 1, colour = "black", alpha = 0.2) +
+#     geom_point(data = sample_points, aes(x = Lat, y = Depth.x),
+#                colour = "black", size = 0.2, alpha = 0.4, shape = 8) +
+#     guides(size = "none", 
+#            fill = guide_colourbar(title.position = "right"), 
+#            title.theme = element_text(angle = 270, hjust = 0.5, vjust = 0.5)) +
+#     labs(
+#       # y = "Depth [m]",
+#       # x = "Latitude",
+#       x = NULL, 
+#       y = NULL, 
+#       fill = "Bulk Chlorophyll [µg/L]"
+#       # title = paste("SE2204", title_label, "Section Plot"),
+#       # subtitle = "Interpolated over depth and space; \nblack dots show actual sampling locations."
+#     ) +
+#     coord_cartesian(expand = 0) +
+#     theme(legend.title = element_text(angle = 90, hjust=0.5), 
+#           legend.direction = "vertical",
+#           legend.key.height = unit(1, 'null'), 
+#           legend.key.width = unit(0.5, 'cm'), 
+#           legend.margin = margin(0,0,0,0))
+# }
+# plot_section(data = bulk, nutrient_col = "Chlorophyll", title_label = "Bulk")
 
 
 plot_ocng_section <- function(data, ocng_var, Res1, Res2, title_label, Units) {
@@ -475,7 +489,20 @@ ggplot(phytoSizeStn13, aes(x = "", y = Percent, fill = factor(Size))) +
   theme_void()
 
 
-
+# Pythoplankton composition and chlorophyll
+# Ryan requested figure
+phytoSizeStn %>% 
+  mutate(NS=if_else(Cast > 28, 'South', 'North')) %>% 
+  filter(Size > 0.2) %>% 
+  ggplot(aes(ChlAllDepth, Percent)) + 
+  geom_smooth(method='lm', se = T, color='darkgray', alpha=0.2) +
+    geom_point(aes(color=NS), size=2) + 
+    scale_color_manual(values = c("North" = "#3288bd", "South" = "#d53e4f"), name='') +
+    theme_bw() +
+    theme(panel.grid = element_blank()) +
+    xlab('Total Chlorophyll-a [µg/L]') + 
+    ylab('Percent of total chlorophyll-a')
+  
 
 # -------------------------------------------------------------------------------
 
