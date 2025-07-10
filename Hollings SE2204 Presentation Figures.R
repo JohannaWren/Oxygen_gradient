@@ -97,6 +97,9 @@ head(zoops)
 # -------------------------------------------------------------------------------
 
 #------------------------------ Final Figures ---------------------------------------
+
+# -------------------------------------------------------------------------------
+
 # Track line map
 # Read in waypoints
 all_wpts <- ctdMeta
@@ -116,7 +119,7 @@ ggplot() +
   scale_color_manual(values = c('base'='orange', 'extended'='steelblue'), name='Station') +
   geom_text(data=all_wpts[which(all_wpts$StnType == 'extended')[c(2,8,14,20,26)],], aes(LonDecimalDegree, LatDecimalDegree, label=LETTERS[1:5]), hjust = 0, nudge_x = 0.85, size=3) +
   geom_text(data=all_wpts[which(all_wpts$StnType == 'base'),], aes(LonDecimalDegree, LatDecimalDegree, label=1:13), hjust = 0, nudge_x = -1.25, size=3) +
-  #geom_hline(yintercept = 17.6, linetype='dashed', color='gray', linewidth=0.5) + 
+  geom_hline(yintercept = 17.6, linetype='dashed', color='gray', linewidth=0.5) + 
   scale_x_continuous(breaks=seq(-160,-145,by=5), labels=seq(160,145,by=-5), limits=c(-160,-145)) +
   theme_bw() +
   theme(legend.position = "none") +
@@ -124,7 +127,16 @@ ggplot() +
   ylab('Latitude (°N)') +
   ylim(c(8,32)) 
 
+# ggsave('Map_line.png', width = 24, height = 36, units = "in") #for poster
+# ggsave('Map_line_presentation.png', width = 10, height = 7.5, dpi = 300, units = "in") #for presentation
 
+# ggsave('Map.png', width = 24, height = 36, units = "in") #for poster
+# ggsave('Map_presentation.png', width = 10, height = 7.5, dpi = 300, units = "in") #for presentation
+
+
+
+
+# -------------------------------------------------------------------------------
 
 # Section plots
 plot_ocng_section_nocont <- function(data, ocng_var, Res1, Res2, title_label, Units, Color) {
@@ -488,9 +500,12 @@ phytoSizeStn %>%
     scale_color_manual(values = c("North" = "#3288bd", "South" = "#d53e4f"), name='') +
     theme_bw() +
     theme(panel.grid = element_blank()) +
-    xlab('Total Chlorophyll-a [µg/L]') + 
+    xlab('Total chlorophyll-a [µg/L]') + 
     ylab('Percent of total chlorophyll-a')
   
+# ggsave('Percent_TotalChl_poster.png', width = 24, height = 36, units = "in") #for poster
+# ggsave('Percent_TotalChl__presentation.png', width = 10, height = 4, dpi = 300, units = "in") #for presentation
+
 
 # -------------------------------------------------------------------------------
 
@@ -599,11 +614,15 @@ zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/'))
 head(zoops)
 
 ggplot(zoops, aes(x = net_cast_number, y = standard_haul_factor)) +
-  geom_point()
+  geom_col(fill = '#414487FF')+ 
+  theme_bw()
+# ggsave('SHF_Stn6.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 # Plot for VWS
 ggplot(zoops, aes(x = net_cast_number, y = volume_water_strained)) +
-  geom_point()
+  geom_col(fill = '#440154FF') + 
+  theme_bw()
+# ggsave('VWS_Stn6.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 
 # SHF and VWS plotted side by side 
@@ -643,5 +662,69 @@ ggplot(zoops, aes(x = factor(net_cast_number))) +
   theme(panel.grid.minor = element_blank(), 
         panel.grid.major.x = element_blank())
 # ggsave('SHFZoop_doubleyaxis.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+
+
+
+# -----------------------------------------------------------------------------
+
+# -------------------------------- FlowCytometry ------------------------------
+
+
+ggplot(cytoAllDepth, aes(x = "", y = Percent, fill = factor(Phytos))) +
+  geom_col(width = 1) +
+  coord_polar(theta = "y") +
+  facet_wrap(~ Cast, labeller = labeller(Cast = id.labs)) +
+  scale_fill_manual(values = c("#495d86", "#d9b021", "#d26424", "#414487FF")) +
+  labs(title = "Phytoplankton Size Composition", fill = "") +
+  theme_void()
+
+
+
+PS <- cyto %>% group_by(Station, Longitude, Latitude, Date) %>% 
+  summarise(SYN=sum(SYN_per_mL, na.rm=T), PEUK=sum(PEUK_per_mL, na.rm=T)) 
+
+PS$TotalCounts <- rowSums(PS[,5:6])
+# Add casts so can merge with other data
+PS$Cast <- c(8,35,36,37,38,9,10,17,18,19,26,27,28,5,2,14,11,23,20,32,29,39,43)
+PS <- PS %>% 
+  pivot_longer(SYN:PEUK, names_to = 'Phytos', values_to = 'Count') %>% 
+  select(Station, Cast, Date, Longitude, Latitude, Phytos, Count, TotalCounts) %>% 
+  mutate(Percent=Count/TotalCounts*100)
+head(PS)
+
+
+ggplot(PS, aes(x = "", y = Percent, fill = factor(Phytos))) +
+  geom_col(width = 1) +
+  coord_polar(theta = "y") +
+  facet_wrap(~ Cast, labeller = labeller(Cast = id.labs)) +
+  scale_fill_manual(values = c("#d9b021", "#414487FF")) +
+  labs(title = "Phytoplankton Size Composition", fill = "") +
+  theme_void()
+# ggsave('PeukSyn_Pie.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+
+
+# Not helpful
+ProPS <- cyto %>% group_by(Station, Longitude, Latitude, Date) %>% 
+  summarise(PRO=sum(PRO_per_mL, na.rm=T), SYN=sum(SYN_per_mL, na.rm=T), PEUK=sum(PEUK_per_mL, na.rm=T)) 
+
+ProPS$TotalCounts <- rowSums(ProPS[,5:7])
+# Add casts so can merge with other data
+ProPS$Cast <- c(8,35,36,37,38,9,10,17,18,19,26,27,28,5,2,14,11,23,20,32,29,39,43)
+ProPS <- ProPS %>% 
+  pivot_longer(PRO:PEUK, names_to = 'Phytos', values_to = 'Count') %>% 
+  select(Station, Cast, Date, Longitude, Latitude, Phytos, Count, TotalCounts) %>% 
+  mutate(Percent=Count/TotalCounts*100)
+head(ProPS)
+
+
+ggplot(ProPS, aes(x = "", y = Percent, fill = factor(Phytos))) +
+  geom_col(width = 1) +
+  coord_polar(theta = "y") +
+  facet_wrap(~ Cast, labeller = labeller(Cast = id.labs)) +
+  scale_fill_manual(values = c("#d9b021", "#414487FF", "#d26424")) +
+  labs(title = "Phytoplankton Size Composition", fill = "Size [µm]") +
+  theme_void()
 
 
