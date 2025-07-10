@@ -25,6 +25,9 @@ setwd(myDir)
 ctdAll <- read.csv('CTD_data_forAnalysis.csv')
 stnInfo <- read.csv('CTD_metadata_forAnalysis.csv')
 ctdMeta <- read.csv('CTD_log.csv')
+ctdCNV <- read.csv('SE2204_CTDdata_fromCNVfile.csv')
+ctdCNV <- ctdCNV %>%  
+  mutate(newLat = latitude, Depth=depth) # change column names to work with function for plotting section plots
 
 # Make a table with labels you want and the index that we can use for plotting
 id.labs <- stnInfo$Station2
@@ -138,56 +141,57 @@ ggplot() +
 
 # -------------------------------------------------------------------------------
 
-# Section plots
-plot_ocng_section_nocont <- function(data, ocng_var, Res1, Res2, title_label, Units, Color) {
-  clean_data <- data %>%
-    select(newLat, Depth, !!sym(ocng_var)) %>%
-    rename(Depth = Depth, OCNVar = !!sym(ocng_var)) %>%
-    filter(!is.na(Depth), !is.na(OCNVar))
-  
-  sample_points <- clean_data
-  
-  # Interpolation with MBA
-  interp <- mba.surf(clean_data, no.X = Res1, no.Y = Res2, extend = FALSE)
-  dimnames(interp$xyz.est$z) <- list(interp$xyz.est$x, interp$xyz.est$y)
-  
-  # Convert to dataframe
-  interp_df <- reshape2::melt(interp$xyz.est$z, varnames = c("newLat", "Depth"), value.name = "OCNVar") %>%
-    mutate(OCNVAr = round(OCNVar, 1))
-  
-  # Plot
-  ggplot(data = interp_df, aes(x = newLat, y = Depth)) +
-    geom_raster(aes(fill = OCNVar)) +
-    scale_fill_viridis_c( option = Color) +
-    scale_y_reverse() +
-    guides(size = "none", 
-           fill = guide_colourbar(title.position = "right"), 
-           title.theme = element_text(angle = 270, hjust = 0.5, vjust = 0.5)) +
-    labs(
-      # y = "Depth [m]",
-      # x = "Latitude",
-      x = NULL, 
-      y = NULL, 
-      fill = paste0(title_label, Units),
-      # title = paste("SE2204", title_label, "Section Plot"),
-      # subtitle = "Interpolated over depth and space"
-    ) +
-    coord_cartesian(expand = 0) +
-    theme(legend.title = element_text(angle = 90, hjust=0.5), 
-          legend.direction = "vertical",
-          legend.key.height = unit(1, 'null'), 
-          legend.key.width = unit(0.5, 'cm'), 
-          legend.margin = margin(0,0,0,0))
-}
-
-OSPlot <- plot_ocng_section_nocont(data = ctdAll, ocng_var = "Oxygen", Res1 = 400, Res2 = 400 , title_label = "Oxygen", Units = " [μmol/kg]", Color = "inferno")
-OSPlot
+# # Section plots
+# plot_ocng_section_nocont <- function(data, ocng_var, Res1, Res2, title_label, Units, Color) {
+#   clean_data <- data %>%
+#     select(newLat, Depth, !!sym(ocng_var)) %>%
+#     rename(Depth = Depth, OCNVar = !!sym(ocng_var)) %>%
+#     filter(!is.na(Depth), !is.na(OCNVar))
+#   
+#   sample_points <- clean_data
+#   
+#   # Interpolation with MBA
+#   interp <- mba.surf(clean_data, no.X = Res1, no.Y = Res2, extend = FALSE)
+#   dimnames(interp$xyz.est$z) <- list(interp$xyz.est$x, interp$xyz.est$y)
+#   
+#   # Convert to dataframe
+#   interp_df <- reshape2::melt(interp$xyz.est$z, varnames = c("newLat", "Depth"), value.name = "OCNVar") %>%
+#     mutate(OCNVAr = round(OCNVar, 1))
+#   
+#   # Plot
+#   ggplot(data = interp_df, aes(x = newLat, y = Depth)) +
+#     geom_raster(aes(fill = OCNVar)) +
+#     scale_fill_viridis_c( option = Color) +
+#     scale_y_reverse() +
+#     guides(size = "none", 
+#            fill = guide_colourbar(title.position = "right"), 
+#            title.theme = element_text(angle = 270, hjust = 0.5, vjust = 0.5)) +
+#     labs(
+#       # y = "Depth [m]",
+#       # x = "Latitude",
+#       x = NULL, 
+#       y = NULL, 
+#       fill = paste0(title_label, Units),
+#       # title = paste("SE2204", title_label, "Section Plot"),
+#       # subtitle = "Interpolated over depth and space"
+#     ) +
+#     coord_cartesian(expand = 0) +
+#     theme(legend.title = element_text(angle = 90, hjust=0.5), 
+#           legend.direction = "vertical",
+#           legend.key.height = unit(1, 'null'), 
+#           legend.key.width = unit(0.5, 'cm'), 
+#           legend.margin = margin(0,0,0,0))
+# }
+# 
+# #OSPlot <- plot_ocng_section_nocont(data = ctdAll, ocng_var = "Oxygen", Res1 = 400, Res2 = 400 , title_label = "Oxygen", Units = " [μmol/kg]", Color = "inferno")
+# OSPlot <- plot_ocng_section_nocont(data = ctdCNV, ocng_var = "oxygen", Res1 = 400, Res2 = 400 , title_label = "Oxygen", Units = " [μmol/kg]", Color = "inferno")
+# OSPlot
 
 
 
 # Panel Plot of Temp, Salinity, Oxygen, Nitrate, Fluorescence 
 
-plot_ocng_section <- function(data, ocng_var, Res1, Res2, title_label, Units) {
+plot_ocng_section <- function(data, ocng_var, Res1, Res2, title_label, Units, Color='turbo', ContourLine=F) {
   clean_data <- data %>%
     select(newLat, Depth, !!sym(ocng_var)) %>%
     rename(Depth = Depth, OCNVar = !!sym(ocng_var)) %>%
@@ -204,11 +208,10 @@ plot_ocng_section <- function(data, ocng_var, Res1, Res2, title_label, Units) {
     mutate(OCNVAr = round(OCNVar, 1))
   
   # Plot
-  ggplot(data = interp_df, aes(x = newLat, y = Depth)) +
+  p <- ggplot(data = interp_df, aes(x = newLat, y = Depth)) +
     geom_raster(aes(fill = OCNVar)) +
-    scale_fill_viridis_c(option = "turbo") +
+    scale_fill_viridis_c(option = Color) +
     scale_y_reverse() +
-    geom_contour(aes(z = OCNVar), binwidth = 1, colour = "black", alpha = 0.2) +
     guides(size = "none", 
            fill = guide_colourbar(title.position = "right"), 
            title.theme = element_text(angle = 270, hjust = 0.5, vjust = 0.5)) +
@@ -227,14 +230,26 @@ plot_ocng_section <- function(data, ocng_var, Res1, Res2, title_label, Units) {
           legend.key.height = unit(1, 'null'), 
           legend.key.width = unit(0.5, 'cm'), 
           legend.margin = margin(0,0,0,0))
+    
+    if (ContourLine == T) {
+      p <- p + geom_contour(aes(z = OCNVar), binwidth = 1, colour = "black", alpha = 0.2)
+    }
+  return(p)
 }
-TempSPlot <- plot_ocng_section(data = ctdAll, ocng_var = "Temperature", Res1 = 100, Res2 = 100, title_label = "Temperature", Units = ' [°C]' )
+
+#TempSPlot <- plot_ocng_section(data = ctdAll, ocng_var = "Temperature", Res1 = 100, Res2 = 100, title_label = "Temperature", Units = ' [°C]' )
+OSPlot <- plot_ocng_section(data = ctdCNV, ocng_var = "oxygen", Res1 = 400, Res2 = 400 , title_label = "Oxygen", Units = " [μmol/kg]", Color = "inferno", ContourLine = F )
+
+
+TempSPlot <- plot_ocng_section(data = ctdCNV, ocng_var = "temperature", Res1 = 100, Res2 = 100, title_label = "Temperature", Units = ' [°C]', ContourLine = T )
 TempSPlot
-
-
-# SalinitySPlot
-SalinitySPlot <- plot_ocng_section_nocont(data = ctdAll, ocng_var = "Salinity", Res1 = 1000, Res2 = 1000, title_label = "Salinity", Units = " [PSU]", Color = "viridis")
+SalinitySPlot <- plot_ocng_section(data = ctdCNV, ocng_var = "salinity", Res1 = 1000, Res2 = 1000, title_label = "Salinity", Units = " [PSU]", Color = "viridis", ContourLine = F )
 SalinitySPlot
+
+
+# # SalinitySPlot
+# SalinitySPlot <- plot_ocng_section_nocont(data = ctdAll, ocng_var = "Salinity", Res1 = 1000, Res2 = 1000, title_label = "Salinity", Units = " [PSU]", Color = "viridis")
+# SalinitySPlot
 
 # OSPlot
 OSPlot <- plot_ocng_section_nocont(data = ctdAll, ocng_var = "Oxygen", Res1 = 400, Res2 = 400 , title_label = "Oxygen", Units = " [μmol/kg]", Color = "turbo")
