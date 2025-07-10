@@ -18,7 +18,7 @@ library(reshape2)
 # ---------------------------------- DATA --------------------------------------
 # Set working directory
 myDir <- paste(here(), sep='/') # Emma's file path
-# myDir <- paste(here(), 'CTD', sep='/')  # Johanna's File path
+# myDir <- paste(here(), 'Data', sep='/')  # Johanna's File path
 setwd(myDir)
 
 # Read in files 
@@ -36,15 +36,21 @@ nut <- read.csv('SE2204_nutrient_metadata_USE_THIS.csv')
 nut <- nut %>% 
   left_join(stnInfo[,c('Station2', 'Cast')], by=c('Station'='Station2'))
 head(nut)
-
+# Remove the m from nutrient file depths and create a new column with numeric depth only
 nut$Depth2 <- as.numeric(substr(nut$Depth, 1, nchar(nut$Depth)-1))
 head(nut)
-# Remove the m from nutrient file depths and create a new column with numeric depth only
+# Remove the contaminated data point
+nut[49,8:11] <- NA
 
 nut$Ammonia <- ifelse(nut$Ammonia == "<0.02", 0.01, as.numeric(nut$Ammonia))
 nut$Phosphate <- ifelse(nut$Phosphate == "<0.008", 0.007, as.numeric(nut$Phosphate))
 nut$Silicate <- as.numeric(nut$Silicate)
 nut$Date <- as.Date(nut$Date, '%m/%d/%y') 
+
+# Zooplankton data
+zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
+# zoops <- read.csv(paste(here(), 'Data/Biomass filter weights_USE_THIS .csv', sep='/'))  # Johanna's
+head(zoops)
 
 # -------------------------------------------------------------------------------
 
@@ -435,10 +441,6 @@ ggplot(phytoSizeStn13, aes(x = "", y = Percent, fill = factor(Size))) +
 # -------------------------------------------------------------------------------
 
 # -------------------------------- ZOOPS ---------------------------------------
-
-zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
-# zoops <- read_xlsx(paste(here(), 'Data/Biomass filter weights_USE_THIS .xlsx', sep='/'), sheet = 1)  # Johanna's
-head(zoops)
 
 # Clean up zooplankton data
 zoops <- zoops %>% 
