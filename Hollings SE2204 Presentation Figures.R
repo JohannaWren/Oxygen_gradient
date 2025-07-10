@@ -46,6 +46,30 @@ nut$Phosphate <- ifelse(nut$Phosphate == "<0.008", 0.007, as.numeric(nut$Phospha
 nut$Silicate <- as.numeric(nut$Silicate)
 nut$Date <- as.Date(nut$Date, '%m/%d/%y') 
 
+
+
+phyto <- read.csv(paste(here(), 'fluorometry_SE2204.csv', sep='/'))  # Emma's
+# phyto <- read.csv(paste(here(), 'Data/fluorometry_SE2204.csv', sep='/'))  # Johanna's
+head(phyto)
+
+# Clean up the phytoplankton data and make sure and turn filter into sizes
+phyto <- phyto %>% 
+  #filter(Filter != 'bulk') %>% 
+  mutate(Size=as.numeric(Filter))
+# Turning a character (bulk) into a number produces an NA. To put the size in there instead we run the below line. Bulk filters are 0.7um pore size
+phyto$Size[is.na(phyto$Size)] <-  0.7
+head(phyto)
+# Make file for nice station plotting
+id.labs <- phyto$Station
+names(id.labs) <- phyto$Cast
+head(id.labs)
+
+#Link Cast labels to the Station ID
+cast_labels <- phyto %>%
+  distinct(Cast, Station) %>%
+  arrange(Cast)
+label_vector <- setNames(cast_labels$Station, cast_labels$Cast)
+
 # -------------------------------------------------------------------------------
 
 #------------------------------ Final Figures ---------------------------------------
@@ -247,8 +271,9 @@ final_plot
 
 # -------------------------------------------------------------------------------
 # -------------------------------- PHYTO ---------------------------------------
-
+head(phyto)
 bulk <- phyto %>% filter(Filter == "bulk")
+head(bulk)
 bulk <- bulk %>% left_join(stnInfo, by = "Cast")
 
 
@@ -296,6 +321,7 @@ plot_section <- function(data, nutrient_col, title_label) {
           legend.key.width = unit(0.5, 'cm'), 
           legend.margin = margin(0,0,0,0))
 }
+
 
 
 plot_section(data = bulk, nutrient_col = "Chlorophyll", title_label = "Bulk")
@@ -586,7 +612,6 @@ ggplot(zoops, aes(x = factor(net_cast_number))) +
   scale_fill_manual(values = c("North" = "#3288bd", "South" = "#d53e4f")) +
   theme(panel.grid.minor = element_blank(), 
         panel.grid.major.x = element_blank())
-ggsave('SHFZoop_doubleyaxis.png', width=10, height = 5.625, dpi = 300, units = 'in')
-
+# ggsave('SHFZoop_doubleyaxis.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 
