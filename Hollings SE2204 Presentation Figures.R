@@ -539,7 +539,7 @@ ggplot(norm_biomass_night, aes(x = log2(size_fraction), y = log2(normalized_biom
 # ggsave('NIGHTZoopSizeAbun_linearR_Normlog2.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
-# zoops <- read_xlsx(paste(here(), 'Data/Biomass filter weights.xlsx', sep='/'), sheet = 1)  # Johanna's
+# zoops <- read.csv(paste(here(), 'Data/Biomass filter weights_USE_THIS.csv', sep='/'))  # Johanna's
 head(zoops)
 
 ggplot(zoops, aes(x = net_cast_number, y = standard_haul_factor)) +
@@ -558,6 +558,8 @@ zoops_long <- zoops %>%
 # Group by Region
 zoops$Region <- ifelse(zoops$net_cast_number %in% 1:8, "North", "South")
 zoops$time_of_day <- ifelse(zoops$net_cast_number %in% c(2, 5, 8, 11, 13), "Night", "Day")
+zoops <- zoops %>% 
+  select(4,5,10,11,18,19,22,23,24,36,37)
 
 #Plot using the Standardized Phytoplankton (total_net_wt/volume water strained) 
 ggplot(zoops, aes(x = net_cast_number, y = standardized_SHF, fill = Region )) +
@@ -588,23 +590,20 @@ zoops <- zoops[!is.na(zoops$net_cast_number), ]
 # Plot
 ggplot(zoops, aes(x = factor(net_cast_number))) +
   geom_col(aes(y = standardized_SHF, fill = Region)) +
-  geom_point(aes(y = standardized_plankton_volume * 1000 * scale_factor),
-             color = "black",
-             size = 2) +
+  geom_point(aes(y = standardized_plankton_volume * 1000 * scale_factor, shape=time_of_day), color = "black", size = 2.5) +
   theme_bw() +
   labs(
     x = "Station",
     y = "Standard Haul Factor",
-    fill = "Region") +
+    fill = "Region", shape='') +
   scale_y_continuous(
     name = "Standard Haul Factor",
-    sec.axis = sec_axis(~ . / scale_factor, breaks=seq(0,20,by=5), labels = seq(0,0.0304,by=0.0061),
-                        name = expression("Standardized Plankton Volume [kg/m"^3*"]"))) +
-  ggtitle("Standard Haul Factor for Zooplankton") +
+    sec.axis = sec_axis(~ . / (scale_factor*1000), 
+                        name = expression("Standardized Plankton Biomass [g/m"^3*"]"))) +
+  ggtitle("Standardized Zooplankton Biomass") +
   scale_fill_manual(values = c("North" = "#3288bd", "South" = "#d53e4f")) +
-  # scale_shape_manual(values = c("Day" = 16, "Night" = 17))
-  theme(axis.text.x = element_text(angle = 45, hjust = 1),
-        legend.position = "right")
+  theme(panel.grid.minor = element_blank(), 
+        panel.grid.major.x = element_blank())
 # ggsave('SHFZoop_doubleyaxis.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 
