@@ -138,6 +138,7 @@ cytometa$SampleNo <- 1:nrow(cytometa)
 cytometa <- cytometa[-28,]
 meta <- left_join(cytometa, nutmeta[,c(3, 4, 5, 12)], by= 'SampleNo')
 cyto <- full_join(cytoraw, meta)
+# write.csv(cyto, 'cytometry_summary.csv', quote = F, row.names = F)
 
 cytoDN <- cyto %>% 
   dplyr::select(Latitude, Depth, HBACT_per_mL) %>% 
