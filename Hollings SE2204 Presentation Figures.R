@@ -54,7 +54,6 @@ zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/'))
 head(zoops)
 
 
-
 phyto <- read.csv(paste(here(), 'fluorometry_SE2204.csv', sep='/'))  # Emma's
 # phyto <- read.csv(paste(here(), 'Data/fluorometry_SE2204.csv', sep='/'))  # Johanna's
 head(phyto)
