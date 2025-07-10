@@ -49,8 +49,8 @@ nut$Date <- as.Date(nut$Date, '%m/%d/%y')
 
 
 # Phytoplankton data
-phyto <- read.csv(paste(here(), 'fluorometry_SE2204.csv', sep='/'))  # Emma's
-# phyto <- read.csv(paste(here(), 'Data/fluorometry_SE2204.csv', sep='/'))  # Johanna's
+#phyto <- read.csv(paste(here(), 'fluorometry_SE2204.csv', sep='/'))  # Emma's
+phyto <- read.csv('fluorometry_SE2204.csv')  # Johanna's
 head(phyto)
 
 # Clean up the phytoplankton data and make sure and turn filter into sizes
@@ -88,8 +88,8 @@ head(cytoAllDepth)
 
 
 # Zooplankton data
-zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
-# zoops <- read.csv(paste(here(), 'Data/Biomass filter weights_USE_THIS .csv', sep='/'))  # Johanna's
+#zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
+zoops <- read.csv('Biomass filter weights_USE_THIS.csv')  # Johanna's
 head(zoops)
 
 
