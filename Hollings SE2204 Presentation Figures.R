@@ -47,10 +47,36 @@ nut$Phosphate <- ifelse(nut$Phosphate == "<0.008", 0.007, as.numeric(nut$Phospha
 nut$Silicate <- as.numeric(nut$Silicate)
 nut$Date <- as.Date(nut$Date, '%m/%d/%y') 
 
+
 # Zooplankton data
 zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
 # zoops <- read.csv(paste(here(), 'Data/Biomass filter weights_USE_THIS .csv', sep='/'))  # Johanna's
 head(zoops)
+
+
+
+phyto <- read.csv(paste(here(), 'fluorometry_SE2204.csv', sep='/'))  # Emma's
+# phyto <- read.csv(paste(here(), 'Data/fluorometry_SE2204.csv', sep='/'))  # Johanna's
+head(phyto)
+
+# Clean up the phytoplankton data and make sure and turn filter into sizes
+phyto <- phyto %>% 
+  #filter(Filter != 'bulk') %>% 
+  mutate(Size=as.numeric(Filter))
+# Turning a character (bulk) into a number produces an NA. To put the size in there instead we run the below line. Bulk filters are 0.7um pore size
+phyto$Size[is.na(phyto$Size)] <-  0.7
+head(phyto)
+# Make file for nice station plotting
+id.labs <- phyto$Station
+names(id.labs) <- phyto$Cast
+head(id.labs)
+
+#Link Cast labels to the Station ID
+cast_labels <- phyto %>%
+  distinct(Cast, Station) %>%
+  arrange(Cast)
+label_vector <- setNames(cast_labels$Station, cast_labels$Cast)
+
 
 # -------------------------------------------------------------------------------
 
@@ -253,8 +279,9 @@ final_plot
 
 # -------------------------------------------------------------------------------
 # -------------------------------- PHYTO ---------------------------------------
-
+head(phyto)
 bulk <- phyto %>% filter(Filter == "bulk")
+head(bulk)
 bulk <- bulk %>% left_join(stnInfo, by = "Cast")
 
 
@@ -302,6 +329,7 @@ plot_section <- function(data, nutrient_col, title_label) {
           legend.key.width = unit(0.5, 'cm'), 
           legend.margin = margin(0,0,0,0))
 }
+
 
 
 plot_section(data = bulk, nutrient_col = "Chlorophyll", title_label = "Bulk")
@@ -563,24 +591,6 @@ zoops$time_of_day <- ifelse(zoops$net_cast_number %in% c(2, 5, 8, 11, 13), "Nigh
 zoops <- zoops %>% 
   select(4,5,10,11,18,19,22,23,24,36,37)
 
-#Plot using the Standardized Phytoplankton (total_net_wt/volume water strained) 
-ggplot(zoops, aes(x = net_cast_number, y = standardized_SHF, fill = Region )) +
-  geom_col() +
-  geom_point(aes(y = standardized_plankton_volume * 1000, color = "Standardized Plankton Volume [ml/m³]")) +
-  theme_bw() +
-  labs(y = "Standard Haul Factor", 
-       x = "Station", 
-       color = "",
-       fill = "Region") +
-  ggtitle(
-    "Standard Haul Factor for Zooplankton") +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
-  scale_fill_manual(values = c("North" = "#3288bd", "South" = "#d53e4f")) +
-  scale_color_manual(values = c("Standardized Plankton Volume [ml/m³]"= "black")) +
-  theme(legend.position = "bottom")
-# ggsave('SHFZoop_scatter.png', width=10, height = 5.625, dpi = 300, units = 'in')
-
-
 
 # Calculate scale factor to standardize the new y-axis to the pre-existing y-axis 
 scale_factor <- max(zoops$standardized_SHF, na.rm = TRUE) / 
@@ -607,6 +617,5 @@ ggplot(zoops, aes(x = factor(net_cast_number))) +
   theme(panel.grid.minor = element_blank(), 
         panel.grid.major.x = element_blank())
 # ggsave('SHFZoop_doubleyaxis.png', width=10, height = 5.625, dpi = 300, units = 'in')
-
 
 
