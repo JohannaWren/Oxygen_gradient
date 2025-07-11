@@ -633,6 +633,7 @@ ggplot(norm_biomass_night, aes(x = log2(size_fraction), y = log2(normalized_biom
 # ggsave('NIGHTZoopSizeAbun_linearR_Normlog2.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 # Add latitude, Day/Night, and NorthS/outh
+bongoMeta <- read.csv('Bongo data.csv')
 bongoMeta <- read_xlsx('Data/Bongo data.xlsx', sheet = 1)
 bongoStn <- data.frame(StationID=bongoMeta$station_id, Lat=bongoMeta$mouth_underwater_lat_dd)
 bongoStn$DayNight <- ifelse(bongoStn$StationID %in% c(2, 5, 8, 11, 13), 'Night', 'Day')
@@ -645,6 +646,8 @@ ancovaDat <- normalized_biomass %>%
   
 
 # Run ANCOVA (from https://www.datanovia.com/en/lessons/ancova-in-r/)
+library(ggpubr)
+library(rstatix)
 library(emmeans)
 library(rstatix)
 library(broom)
@@ -699,6 +702,7 @@ ggline(get_emmeans(pwc), x = "NorthSouth", y = "emmean") +
   labs(
     subtitle = get_test_label(res.aov, detailed = TRUE),
     caption = get_pwc_label(pwc))
+# ggsave('NS_ANCOVA.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 # -----------------------------------------------------------------------------
 # make zooplankton plots
