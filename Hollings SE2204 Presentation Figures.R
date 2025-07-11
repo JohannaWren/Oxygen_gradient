@@ -182,7 +182,7 @@ TempSPlot
 SalinitySPlot <- plot_ocng_section(data = ctdCNV, ocng_var = "salinity", Res1 = 1000, Res2 = 1000, title_label = "Salinity", Units = " [PSU]", Color = "viridis", ContourLine = T)
 SalinitySPlot
 # Oxygen
-OSPlot <- plot_ocng_section(data = ctdCNV, ocng_var = "oxygen", Res1 = 400, Res2 = 400 , title_label = "Oxygen", Units = " [μmol/kg]", Color = "inferno", ContourLine = T)
+OSPlot <- plot_ocng_section(data = ctdCNV, ocng_var = "oxygen", Res1 = 400, Res2 = 400 , title_label = "Oxygen", Units = " [μmol/kg]", Color = "turbo", ContourLine = T)
 OSPlot
 # Nutrients
 NSectionPlot <- plot_ocng_section(data = nut, ocng_var = "Nitrate..Nitrite", Res1 = 300, Res2 = 300 , title_label = "Nitrate + Nitrite", Units = " [μmol/L]", Color = "viridis", ContourLine = T)
@@ -193,7 +193,7 @@ NSectionPlot
 
 # Stitch images together into one plot
 library(cowplot)
-combined_plotV <- plot_grid(TempSPlot / SalinitySPlot / OSPlot / NSectionPlot, ncol = 1, align = "v")
+combined_plotV <- plot_grid(TempSPlot , SalinitySPlot , OSPlot , NSectionPlot, ncol = 1, align = "v")
 combined_plotV
 
 # MAke final plot and add labels
@@ -203,7 +203,7 @@ final_plot <- ggdraw(combined_plotV) +
 
 final_plot
 # ggsave('SectionPlots_poster.png', width = 24, height = 36, units = "in") #for poster
-# ggsave('SectionPlots_presentation.png', width = 10, height = 7.5, dpi = 300, units = "in") #for presentation
+# ggsave('SectionPlots_presentation_square.png', width = 10, height = 7.5, dpi = 300, units = "in") #for presentation
 
 
 
