@@ -101,14 +101,8 @@ head(zoops)
 # -------------------------------------------------------------------------------
 
 # Track line map
-# Read in waypoints
-all_wpts <- ctdMeta
-all_wpts_short <- all_wpts %>% 
-  select(LonDecimalDegree, LatDecimalDegree, StnType) %>% 
-  rename(lon=LonDecimalDegree, lat=LatDecimalDegree)
-
-# Make acctual track line plot
 ggplot() +
+  basemap(ocean = TRUE, limits = c(-180, 180, -90, 90)) +
   borders("world", 
           xlim = c(-160, -145), 
           ylim = c(18, 25),
@@ -132,8 +126,6 @@ ggplot() +
 
 # ggsave('Map.png', width = 24, height = 36, units = "in") #for poster
 # ggsave('Map_presentation.png', width = 10, height = 7.5, dpi = 300, units = "in") #for presentation
-
-
 
 
 # -------------------------------------------------------------------------------
@@ -381,6 +373,7 @@ plot_ocng_section <- function(data, ocng_var, Res1, Res2, title_label, Units) {
     geom_raster(aes(fill = OCNVar)) +
     scale_fill_viridis_c() +
     scale_y_reverse() +
+    scale_x_reverse() +
     geom_contour(aes(z = OCNVar), binwidth = 1, colour = "black", alpha = 0.2) +
     geom_point(data = sample_points, aes(x = Lat, y = Depth.x),
                colour = "black", size = 0.2, alpha = 0.4, shape = 8) +
@@ -460,11 +453,11 @@ ggplot(phytoSizeStn13, aes(x = "", y = Percent, fill = factor(Size))) +
 
 # Day
 selected_casts_day <- c(8,10,17,19,26,28,35,37)
-reversed_casts_day <- rev(selected_casts_day)
+# reversed_casts_day <- rev(selected_casts_day)
 
 phyto_subset_day <- phytoSizeStn %>%
   filter(Cast %in% selected_casts_day) %>%
-  mutate(Cast = factor(Cast, levels = reversed_casts_day))
+  mutate(Cast = factor(Cast, levels = selected_casts_day))
 
 ggplot(phyto_subset_day, aes(x = "", y = Percent, fill = factor(Size))) +
   geom_col(width = 1) +
@@ -669,6 +662,69 @@ ggplot(zoops, aes(x = factor(net_cast_number))) +
 # -----------------------------------------------------------------------------
 
 # -------------------------------- FlowCytometry ------------------------------
+library(tidyverse)
+
+# Assuming your dataset is called `phyto_data`
+# Here's how you could reshape and plot it:
+
+# Step 1: Pivot longer to get Phytos in one column
+phyto_long <- cyto %>%
+  pivot_longer(
+    cols = c(PRO_per_mL, SYN_per_mL, PEUK_per_mL),
+    names_to = "Phytos",
+    values_to = "Abundance_per_mL"
+  ) %>%
+  mutate(
+    Abundance_10e3 = Abundance_per_mL / 1000,  # Convert to x10³ ml⁻¹
+    Phytos = recode(Phytos,
+                    "PRO" = "Prochlorococcus",
+                    "SYN" = "Synechococcus",
+                    "PEUK" = "Photosynthetic Eukaryotes")
+  )
+
+# Step 2: Plot
+ggplot(phyto_long, aes(x = Abundance_10e3, y = Depth)) +
+  geom_point() +
+  scale_y_reverse() +  # Depth increases downward
+  facet_wrap(~ Station, scales = "free_x") +
+  labs(
+    title = "Phytoplankton abundance (×10³ ml⁻¹) vs Depth",
+    x = "Abundance (×10³ ml⁻¹)",
+    y = "Depth (m)"
+  ) +
+  theme_minimal()
+
+library(tidyverse)
+
+# Step 1: Reshape to long format
+phyto_long <- cyto %>%
+  pivot_longer(
+    cols = c(PRO_per_mL, SYN_per_mL, PEUK_per_mL),
+    names_to = "Phytos",
+    values_to = "Abundance_per_mL"
+  ) %>%
+  mutate(
+    Abundance_10e3 = Abundance_per_mL / 1000,
+    Phytos = recode(Phytos,
+                    "PRO_per_mL" = "Prochlorococcus",
+                    "SYN_per_mL" = "Synechococcus",
+                    "PEUK_per_mL" = "Photosynthetic Eukaryotes")
+  )
+
+# Step 2: Plot — facet by Station, shape by Phytos
+ggplot(phyto_long, aes(x = Abundance_10e3, y = Depth, shape = Phytos)) +
+  geom_point(size = 3) +
+  geom_line(aes(group = Phytos), linetype = "dotted") +
+  scale_y_reverse() +
+  facet_wrap(~ Station) +
+  labs(
+    title = "Phytoplankton abundance (×10³ ml−1) vs Depth by Station",
+    x = "Abundance (×10³ml³)",
+    y = "Depth (m)",
+    shape = "Phytoplankton"
+  ) +
+  theme_minimal() +
+  theme(strip.text = element_text(face = "bold"))
 
 
 ggplot(cytoAllDepth, aes(x = "", y = Percent, fill = factor(Phytos))) +
@@ -728,3 +784,24 @@ ggplot(ProPS, aes(x = "", y = Percent, fill = factor(Phytos))) +
   theme_void()
 
 
+PS <- cyto %>% group_by(Station, Longitude, Latitude, Date) %>% 
+  summarise(SYN=sum(SYN_per_mL, na.rm=T), PEUK=sum(PEUK_per_mL, na.rm=T)) 
+
+PS$TotalCounts <- rowSums(PS[,5:6])
+# Add casts so can merge with other data
+PS$Cast <- c(8,35,36,37,38,9,10,17,18,19,26,27,28,5,2,14,11,23,20,32,29,39,43)
+PS <- PS %>% 
+  pivot_longer(SYN:PEUK, names_to = 'Phytos', values_to = 'Count') %>% 
+  select(Station, Cast, Date, Longitude, Latitude, Phytos, Count, TotalCounts) %>% 
+  mutate(Percent=Count/TotalCounts*100)
+head(PS)
+
+
+ggplot(PS, aes(x = "", y = Percent, fill = factor(Phytos))) +
+  geom_col(width = 1) +
+  coord_polar(theta = "y") +
+  facet_wrap(~ Cast, labeller = labeller(Cast = id.labs)) +
+  scale_fill_manual(values = c("#d9b021", "#414487FF")) +
+  labs(title = "Phytoplankton Size Composition", fill = "") +
+  theme_void()
+# ggsave('PeukSyn_Pie.png', width=10, height = 5.625, dpi = 300, units = 'in')
