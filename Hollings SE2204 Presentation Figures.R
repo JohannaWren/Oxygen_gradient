@@ -509,7 +509,7 @@ ggplot(phytoSizeStn13, aes(x = "", y = Percent, fill = factor(Size))) +
 phytoSizeStn %>% 
   mutate(NS=if_else(Cast > 28, 'South', 'North')) %>% 
   filter(Size > 0.2) %>% 
-  ggplot(aes(ChlAllDepth, Percent)) + 
+  ggplot(aes(x = ChlAllDepth, y = Percent)) + 
   geom_smooth(method='lm', se = T, color='darkgray', alpha=0.2) +
     geom_point(aes(color=NS), size=2) + 
     scale_color_manual(values = c("North" = "#3288bd", "South" = "#d53e4f"), name='') +
