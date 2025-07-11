@@ -106,7 +106,6 @@ head(zoops)
 
 # Track line map
 ggplot() +
-  basemap(ocean = TRUE, limits = c(-180, 180, -90, 90)) +
   borders("world", 
           xlim = c(-160, -145), 
           ylim = c(18, 25),
