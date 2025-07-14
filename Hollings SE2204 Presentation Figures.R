@@ -92,7 +92,7 @@ head(cytoAllDepth)
 
 
 # Zooplankton data
-#zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
+# zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
 zoops <- read.csv('Data/Biomass filter weights_USE_THIS.csv')  # Johanna's
 head(zoops)
 
@@ -105,6 +105,25 @@ head(zoops)
 # -------------------------------------------------------------------------------
 
 # Track line map
+# Read in files 
+ctdAll <- read.csv('CTD_data_forAnalysis.csv')
+stnInfo <- read.csv('CTD_metadata_forAnalysis.csv')
+ctdMeta <- read.csv('CTD_log.csv')
+
+# Make a table with labels you want and the index that we can use for plotting
+id.labs <- stnInfo$Station2
+@@ -46,6 +47,36 @@ nut$Date <- as.Date(nut$Date, '%m/%d/%y')
+# -------------------------------------------------------------------------------
+
+#------------------------------ Final Figures ---------------------------------------
+# Track line map
+# Read in waypoints
+all_wpts <- ctdMeta
+all_wpts_short <- all_wpts %>% 
+  select(LonDecimalDegree, LatDecimalDegree, StnType) %>% 
+  rename(lon=LonDecimalDegree, lat=LatDecimalDegree)
+
+# Make acctual track line plot
 ggplot() +
   borders("world", 
           xlim = c(-160, -145), 
@@ -116,14 +135,13 @@ ggplot() +
   scale_color_manual(values = c('base'='orange', 'extended'='steelblue'), name='Station') +
   geom_text(data=all_wpts[which(all_wpts$StnType == 'extended')[c(2,8,14,20,26)],], aes(LonDecimalDegree, LatDecimalDegree, label=LETTERS[1:5]), hjust = 0, nudge_x = 0.85, size=3) +
   geom_text(data=all_wpts[which(all_wpts$StnType == 'base'),], aes(LonDecimalDegree, LatDecimalDegree, label=1:13), hjust = 0, nudge_x = -1.25, size=3) +
-  geom_hline(yintercept = 17.6, linetype='dashed', color='gray', linewidth=0.5) + 
+  #geom_hline(yintercept = 17.6, linetype='dashed', color='gray', linewidth=0.5) + 
   scale_x_continuous(breaks=seq(-160,-145,by=5), labels=seq(160,145,by=-5), limits=c(-160,-145)) +
   theme_bw() +
   theme(legend.position = "none") +
   xlab('Longitude (°W)') +
   ylab('Latitude (°N)') +
   ylim(c(8,32)) 
-
 # ggsave('Map_line.png', width = 24, height = 36, units = "in") #for poster
 # ggsave('Map_line_presentation.png', width = 10, height = 7.5, dpi = 300, units = "in") #for presentation
 
@@ -134,7 +152,6 @@ ggplot() +
 # -------------------------------------------------------------------------------
 # ----------------------------- OCEANOGRAPHY ------------------------------------
 # Panel Plot of Temp, Salinity, Oxygen, Nitrate, Fluorescence 
-library("MBA")
 plot_ocng_section <- function(data, ocng_var, Res1, Res2, title_label, Units, Color='turbo', ContourLine=F) {
   clean_data <- data %>%
     select(newLat, Depth, !!sym(ocng_var)) %>%
@@ -197,17 +214,26 @@ NSectionPlot <- NSectionPlot + geom_point(data = nut, aes(x = Latitude, y = Dept
 NSectionPlot
 
 # Stitch images together into one plot
-# library(cowplot)
-# combined_plotV <- plot_grid(TempSPlot , SalinitySPlot , OSPlot , NSectionPlot, ncol = 1, align = "v")
-# combined_plotV
+ library(cowplot)
+ combined_plotV <- plot_grid(TempSPlot , SalinitySPlot , OSPlot , NSectionPlot, ncol = 1, align = "v")
+ combined_plotV
 
 # MAke final plot and add labels
 final_plot <- ggdraw(combined_plotV) +
-  draw_label("Latitude", x = 0.5, y = 0.01, vjust = 0, angle = 0, size = 12) +  
-  draw_label("Depth [m]", x = 0.0009, y = 0.5, vjust = 1, angle = 90, size = 12) 
+  draw_label("Latitude", x = 0.5, y = 0.000009, vjust = 0, angle = 0, size = 12) +  
+  draw_label("Depth [m]", x = 0.000005, y = 0.5, vjust = 1, angle = 90, size = 12) 
 
 final_plot
-# ggsave('SectionPlots_presentation.png', width = 10, height = 5, dpi = 300, units = "in") #for presentation
+
+combined_plotV <- combined_plotV +
+  theme(plot.margin = margin(t = 10, r = 10, b = 30, l = 40))  # bottom and left margins increased
+
+final_plot <- ggdraw(combined_plotV) +
+  draw_label("Latitude", x = 0.5, y = 0.05, vjust = 1, angle = 0, size = 12) +  
+  draw_label("Depth [m]", x = 0.03, y = 0.5, vjust = 1, angle = 90, size = 12)
+final_plot
+
+# ggsave('SectionPlots_presentation.png', width = 13, height = 8, dpi = 300, units = "in") #for presentation
 # ggsave('SectionPlots_poster.png', width = 24, height = 36, units = "in") #for poster
 # ggsave('SectionPlots_presentation_square.png', width = 10, height = 7.5, dpi = 300, units = "in") #for presentation
 
@@ -516,7 +542,7 @@ ggplot(norm_biomass_night, aes(x = log2(size_fraction), y = log2(normalized_biom
   theme_bw(base_size = 12)
 # ggsave('NIGHTZoopSizeAbun_linearR_Normlog2.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
-#zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
+zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
 # zoops <- read.csv(paste(here(), 'Data/Biomass filter weights_USE_THIS.csv', sep='/'))  # Johanna's
 head(zoops)
 
@@ -553,7 +579,7 @@ zoops <- zoops[!is.na(zoops$net_cast_number), ]
 
 zoops$alpha <- ifelse(zoops$time_of_day == 'Day', 0.7, 1)
 
-# Plot
+# SHF and Standardized Biomass Plot with two Y-Axis 
 ggplot(zoops, aes(x = factor(net_cast_number))) +
   geom_col(aes(y = standardized_SHF, fill = Region)) +
   geom_point(aes(y = standardized_plankton_volume * 1000 * scale_factor, shape=time_of_day), color = "black", size = 2.5) +
@@ -573,7 +599,51 @@ ggplot(zoops, aes(x = factor(net_cast_number))) +
 # ggsave('SHFZoop_doubleyaxis.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 
+# SHF Plot with one Y-Axis (Red and Blue different for Day/Night)
+zoops$RegionTime <- paste(zoops$Region, zoops$time_of_day, sep = "-")
+zoops$RegionTime <- factor(zoops$RegionTime, levels = c("North-Day", "North-Night", "South-Day", "South-Night"))
 
+ggplot(zoops, aes(x = factor(net_cast_number), y = standardized_SHF, fill = RegionTime)) +
+  geom_col() +
+  theme_bw() +
+  labs(
+    x = "Station",
+    y = "Standard Haul Factor",
+    fill = " ") +
+  scale_y_continuous(name = "Standard Haul Factor") +
+  ggtitle("Standardized Zooplankton Biomass") +
+    scale_fill_manual(values = c(
+      "North-Day" = "#07abcc",
+      "North-Night" = "#2166ac",
+      "South-Day" = "#df1317",
+      "South-Night" = "#8A0407"
+    )) +
+  theme(panel.grid.minor = element_blank(), 
+        panel.grid.major.x = element_blank(), 
+        legend.position = "bottom")
+# ggsave('SHFZoop_RedBlue.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+
+ggplot(zoops, aes(x = factor(net_cast_number), y = standardized_SHF, fill = RegionTime)) +
+  geom_col() +
+  theme_bw() +
+  labs(
+    x = "Station",
+    y = "Standard Haul Factor",
+    fill = "Region-Time"
+  ) +
+  ggtitle("Standardized Zooplankton Biomass") +
+  scale_y_continuous(name = "Standard Haul Factor") +
+  scale_fill_manual(values = c(
+    "North-Day" = "#66c2a5",
+    "North-Night" = "#3288bd",
+    "South-Day" = "#fc8d62",
+    "South-Night" = "#d53e4f"
+  )) +
+  theme(
+    panel.grid.minor = element_blank(),
+    panel.grid.major.x = element_blank()
+  )
 
 # -----------------------------------------------------------------------------
 
