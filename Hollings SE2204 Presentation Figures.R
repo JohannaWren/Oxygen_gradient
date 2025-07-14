@@ -134,7 +134,7 @@ ggplot() +
 # -------------------------------------------------------------------------------
 # ----------------------------- OCEANOGRAPHY ------------------------------------
 # Panel Plot of Temp, Salinity, Oxygen, Nitrate, Fluorescence 
-
+library("MBA")
 plot_ocng_section <- function(data, ocng_var, Res1, Res2, title_label, Units, Color='turbo', ContourLine=F) {
   clean_data <- data %>%
     select(newLat, Depth, !!sym(ocng_var)) %>%
@@ -156,6 +156,7 @@ plot_ocng_section <- function(data, ocng_var, Res1, Res2, title_label, Units, Co
     geom_raster(aes(fill = OCNVar)) +
     scale_fill_viridis_c(option = Color) +
     scale_y_reverse() +
+    scale_x_reverse() +
     guides(size = "none", 
            fill = guide_colourbar(title.position = "right"), 
            title.theme = element_text(angle = 270, hjust = 0.5, vjust = 0.5)) +
