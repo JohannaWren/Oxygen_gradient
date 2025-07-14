@@ -112,7 +112,7 @@ ctdMeta <- read.csv('CTD_log.csv')
 
 # Make a table with labels you want and the index that we can use for plotting
 id.labs <- stnInfo$Station2
-@@ -46,6 +47,36 @@ nut$Date <- as.Date(nut$Date, '%m/%d/%y')
+nut$Date <- as.Date(nut$Date, '%m/%d/%y')
 # -------------------------------------------------------------------------------
 
 #------------------------------ Final Figures ---------------------------------------
@@ -791,3 +791,46 @@ ggplot(PS, aes(x = "", y = Percent, fill = factor(Phytos))) +
   labs(title = "Phytoplankton Size Composition", fill = "") +
   theme_void()
 # ggsave('PeukSyn_Pie.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+
+
+# -----------------------------------------------------------------------------
+#                             Background maps
+# -----------------------------------------------------------------------------
+library(terra)
+library(tidyterra)
+# SST
+sst <- rast('~/Downloads/SST_Clim_SE2204.nc')
+plot(sst)
+names(sst)
+# Rename variable to something easier to write and crop of in the north/south a little
+sst <- sst %>% 
+  rename(sst=`SEA_SURFACE_TEMPERATURE_TIME1=476020800`) %>% 
+  crop(ext(-170,-130,5,35))
+
+# Chlorophyll
+chl <- rast('~/Downloads/esa-cci-chla-1998-2009-clim-v6-0_322b_9369_f46f_U1752530345600.nc')
+plot(chl)
+names(chl)
+# Crop of in the north/south a little
+chl2 <- chl %>% 
+  crop(ext(190,230,5,35))
+plot(chl2)
+
+# Make a plot using terra and ggplot
+ggplot() +
+  geom_spatraster(data=sst, aes(fill=sst)) +
+  scale_fill_viridis_c(option='turbo') +
+  geom_path(data=all_wpts_short, aes(lon, lat), color='gray30') +
+  geom_point(data=all_wpts, aes(LonDecimalDegree, LatDecimalDegree, color=StnType)) +
+  scale_color_manual(values = c('base'='orange', 'extended'='steelblue'), name='Station') +
+  coord_sf(expand = F)
+
+# Make a plot using terra and ggplot
+ggplot() +
+  geom_spatraster(data=chl2, aes(fill=chlor_a)) +
+  scale_fill_viridis_c(limits=c(0.05,0.25)) +
+  geom_path(data=all_wpts_short, aes(lon+360, lat), color='gray30') +
+  geom_point(data=all_wpts, aes(LonDecimalDegree+360, LatDecimalDegree, color=StnType)) +
+  scale_color_manual(values = c('base'='orange', 'extended'='steelblue'), name='Station') +
+  coord_sf(expand = F)
