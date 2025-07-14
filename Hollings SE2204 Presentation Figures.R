@@ -721,3 +721,42 @@ ggplot(PS, aes(x = "", y = Percent, fill = factor(Phytos))) +
   labs(title = "Phytoplankton Size Composition", fill = "") +
   theme_void()
 # ggsave('PeukSyn_Pie.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+
+
+# -----------------------------------------------------------------------------
+#                             Background maps
+# -----------------------------------------------------------------------------
+library(terra)
+library(tidyterra)
+# SST
+sst <- rast('~/Downloads/SST_Clim_SE2204.nc')
+plot(sst)
+names(sst)
+# Rename variable to something easier to write and crop of in the north/south a little
+sst <- sst %>% 
+  rename(sst=`SEA_SURFACE_TEMPERATURE_TIME1=476020800`) %>% 
+  crop(ext(-170,-130,5,35))
+
+# Chlorophyll
+chl <- rast('~/Downloads/esa-cci-chla-1998-2009-clim-v6-0_37cb_85a1_8421_U1752532888402.nc')
+plot(chl)
+names(chl)
+# Crop of in the north/south a little
+chl2 <- chl %>% 
+  crop(ext(120,260,0,60))
+plot(chl2)
+
+# Make a plot using terra and ggplot
+ggplot() +
+  geom_spatraster(data=sst, aes(fill=sst)) +
+  scale_fill_viridis_c(option='turbo') +
+  geom_path(data=stnInfo, aes(Lon, Lat)) +
+  coord_sf(expand = F)
+
+# Make a plot using terra and ggplot
+ggplot() +
+  geom_spatraster(data=chl2, aes(fill=chlor_a)) +
+  scale_fill_viridis_c(limits=c(0.05,0.25)) +
+  geom_path(data=stnInfo, aes(Lon+360, Lat)) +
+  coord_sf(expand = F)
