@@ -193,9 +193,9 @@ NSectionPlot <- NSectionPlot + geom_point(data = nut, aes(x = Latitude, y = Dept
 NSectionPlot
 
 # Stitch images together into one plot
-library(cowplot)
-combined_plotV <- plot_grid(TempSPlot , SalinitySPlot , OSPlot , NSectionPlot, ncol = 1, align = "v")
-combined_plotV
+# library(cowplot)
+# combined_plotV <- plot_grid(TempSPlot , SalinitySPlot , OSPlot , NSectionPlot, ncol = 1, align = "v")
+# combined_plotV
 
 # MAke final plot and add labels
 final_plot <- ggdraw(combined_plotV) +
@@ -203,6 +203,7 @@ final_plot <- ggdraw(combined_plotV) +
   draw_label("Depth [m]", x = 0.0009, y = 0.5, vjust = 1, angle = 90, size = 12) 
 
 final_plot
+# ggsave('SectionPlots_presentation.png', width = 10, height = 5, dpi = 300, units = "in") #for presentation
 # ggsave('SectionPlots_poster.png', width = 24, height = 36, units = "in") #for poster
 # ggsave('SectionPlots_presentation_square.png', width = 10, height = 7.5, dpi = 300, units = "in") #for presentation
 
