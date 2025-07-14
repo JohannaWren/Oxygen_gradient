@@ -112,7 +112,7 @@ ctdMeta <- read.csv('CTD_log.csv')
 
 # Make a table with labels you want and the index that we can use for plotting
 id.labs <- stnInfo$Station2
-@@ -46,6 +47,36 @@ nut$Date <- as.Date(nut$Date, '%m/%d/%y')
+nut$Date <- as.Date(nut$Date, '%m/%d/%y')
 # -------------------------------------------------------------------------------
 
 #------------------------------ Final Figures ---------------------------------------
@@ -809,24 +809,28 @@ sst <- sst %>%
   crop(ext(-170,-130,5,35))
 
 # Chlorophyll
-chl <- rast('~/Downloads/esa-cci-chla-1998-2009-clim-v6-0_37cb_85a1_8421_U1752532888402.nc')
+chl <- rast('~/Downloads/esa-cci-chla-1998-2009-clim-v6-0_322b_9369_f46f_U1752530345600.nc')
 plot(chl)
 names(chl)
 # Crop of in the north/south a little
 chl2 <- chl %>% 
-  crop(ext(120,260,0,60))
+  crop(ext(190,230,5,35))
 plot(chl2)
 
 # Make a plot using terra and ggplot
 ggplot() +
   geom_spatraster(data=sst, aes(fill=sst)) +
   scale_fill_viridis_c(option='turbo') +
-  geom_path(data=stnInfo, aes(Lon, Lat)) +
+  geom_path(data=all_wpts_short, aes(lon, lat), color='gray30') +
+  geom_point(data=all_wpts, aes(LonDecimalDegree, LatDecimalDegree, color=StnType)) +
+  scale_color_manual(values = c('base'='orange', 'extended'='steelblue'), name='Station') +
   coord_sf(expand = F)
 
 # Make a plot using terra and ggplot
 ggplot() +
   geom_spatraster(data=chl2, aes(fill=chlor_a)) +
   scale_fill_viridis_c(limits=c(0.05,0.25)) +
-  geom_path(data=stnInfo, aes(Lon+360, Lat)) +
+  geom_path(data=all_wpts_short, aes(lon+360, lat), color='gray30') +
+  geom_point(data=all_wpts, aes(LonDecimalDegree+360, LatDecimalDegree, color=StnType)) +
+  scale_color_manual(values = c('base'='orange', 'extended'='steelblue'), name='Station') +
   coord_sf(expand = F)
