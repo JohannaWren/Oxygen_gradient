@@ -809,7 +809,7 @@ sst <- sst %>%
   crop(ext(-170,-130,5,35))
 
 # Chlorophyll
-chl <- rast('~/Downloads/esa-cci-chla-1998-2009-clim-v6-0_322b_9369_f46f_U1752530345600.nc')
+chl <- rast('~/Downloads/Chl_Clim_SE2204.nc')
 plot(chl)
 names(chl)
 # Crop of in the north/south a little
