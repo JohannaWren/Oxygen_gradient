@@ -679,14 +679,14 @@ library(tidyverse)
 
 # Calculate your one way ANCOVA
 res.aov <- ancovaDat %>% 
-  anova_test(log_normalized_biomass ~ log_normalized_size + NorthSouth)
+  anova_test(log_normalized_biomass ~ log_normalized_size + Station)
 get_anova_table(res.aov)
 
 # Post-hoc test
 # Pairwise comparisons
 pwc <- ancovaDat %>% 
   emmeans_test(
-    log_normalized_biomass ~ NorthSouth, covariate = log_normalized_size,
+    log_normalized_biomass ~ Station, covariate = log_normalized_size,
     p.adjust.method = "bonferroni"
   )
 pwc
@@ -695,8 +695,8 @@ pwc
 get_emmeans(pwc)
 # Visualization: line plots with p-values
 pwc <- pwc %>% 
-  add_xy_position(x = "NorthSouth", fun = "mean_se")
-ggline(get_emmeans(pwc), x = "NorthSouth", y = "emmean") +
+  add_xy_position(x = "Station", fun = "mean_se")
+ggline(get_emmeans(pwc), x = "Station", y = "emmean") +
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2) + 
   stat_pvalue_manual(pwc, hide.ns = TRUE, tip.length = FALSE) +
   labs(

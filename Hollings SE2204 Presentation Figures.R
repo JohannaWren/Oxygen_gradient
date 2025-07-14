@@ -93,7 +93,7 @@ head(cytoAllDepth)
 
 # Zooplankton data
 #zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
-zoops <- read.csv('Biomass filter weights_USE_THIS.csv')  # Johanna's
+zoops <- read.csv('Data/Biomass filter weights_USE_THIS.csv')  # Johanna's
 head(zoops)
 
 
@@ -170,8 +170,12 @@ plot_ocng_section <- function(data, ocng_var, Res1, Res2, title_label, Units, Co
     
   # Add contour line if toggle is set to true. Default is no contour line
     if (ContourLine == T) {
-      p <- p + geom_contour(aes(z = OCNVar), colour = "black", alpha = 0.2)
-    }
+      if (ocng_var == 'oxygen') {
+        p <- p + geom_contour(aes(z=OCNVar), colour='black', alpha=0.5, breaks=c(45,89))
+      } else {
+          p <- p + geom_contour(aes(z = OCNVar), colour = "black", alpha = 0.2)
+      }
+      }
   return(p)
 }
 
@@ -206,120 +210,6 @@ final_plot
 # ggsave('SectionPlots_presentation.png', width = 10, height = 5, dpi = 300, units = "in") #for presentation
 # ggsave('SectionPlots_poster.png', width = 24, height = 36, units = "in") #for poster
 # ggsave('SectionPlots_presentation_square.png', width = 10, height = 7.5, dpi = 300, units = "in") #for presentation
-
-
-
-## These are old functions that have been replaced with the one above. 
-# # Section plots
-# plot_ocng_section_nocont <- function(data, ocng_var, Res1, Res2, title_label, Units, Color) {
-#   clean_data <- data %>%
-#     select(newLat, Depth, !!sym(ocng_var)) %>%
-#     rename(Depth = Depth, OCNVar = !!sym(ocng_var)) %>%
-#     filter(!is.na(Depth), !is.na(OCNVar))
-#   
-#   sample_points <- clean_data
-#   
-#   # Interpolation with MBA
-#   interp <- mba.surf(clean_data, no.X = Res1, no.Y = Res2, extend = FALSE)
-#   dimnames(interp$xyz.est$z) <- list(interp$xyz.est$x, interp$xyz.est$y)
-#   
-#   # Convert to dataframe
-#   interp_df <- reshape2::melt(interp$xyz.est$z, varnames = c("newLat", "Depth"), value.name = "OCNVar") %>%
-#     mutate(OCNVAr = round(OCNVar, 1))
-#   
-#   # Plot
-#   ggplot(data = interp_df, aes(x = newLat, y = Depth)) +
-#     geom_raster(aes(fill = OCNVar)) +
-#     scale_fill_viridis_c( option = Color) +
-#     scale_y_reverse() +
-#     guides(size = "none", 
-#            fill = guide_colourbar(title.position = "right"), 
-#            title.theme = element_text(angle = 270, hjust = 0.5, vjust = 0.5)) +
-#     labs(
-#       # y = "Depth [m]",
-#       # x = "Latitude",
-#       x = NULL, 
-#       y = NULL, 
-#       fill = paste0(title_label, Units),
-#       # title = paste("SE2204", title_label, "Section Plot"),
-#       # subtitle = "Interpolated over depth and space"
-#     ) +
-#     coord_cartesian(expand = 0) +
-#     theme(legend.title = element_text(angle = 90, hjust=0.5), 
-#           legend.direction = "vertical",
-#           legend.key.height = unit(1, 'null'), 
-#           legend.key.width = unit(0.5, 'cm'), 
-#           legend.margin = margin(0,0,0,0))
-# }
-# 
-# #OSPlot <- plot_ocng_section_nocont(data = ctdAll, ocng_var = "Oxygen", Res1 = 400, Res2 = 400 , title_label = "Oxygen", Units = " [μmol/kg]", Color = "inferno")
-# OSPlot <- plot_ocng_section_nocont(data = ctdCNV, ocng_var = "oxygen", Res1 = 400, Res2 = 400 , title_label = "Oxygen", Units = " [μmol/kg]", Color = "inferno")
-# OSPlot
-
-
-
-# TempSPlot <- plot_ocng_section(data = ctdAll, ocng_var = "Temperature", Res1 = 100, Res2 = 100, title_label = "Temperature", Units = ' [°C]' )
-# # SalinitySPlot
-# SalinitySPlot <- plot_ocng_section_nocont(data = ctdAll, ocng_var = "Salinity", Res1 = 1000, Res2 = 1000, title_label = "Salinity", Units = " [PSU]", Color = "viridis")
-# SalinitySPlot
-# 
-# # OSPlot
-# OSPlot <- plot_ocng_section_nocont(data = ctdAll, ocng_var = "Oxygen", Res1 = 400, Res2 = 400 , title_label = "Oxygen", Units = " [μmol/kg]", Color = "turbo")
-# OSPlot
-
-# # NSectionPlot
-# plot_nutrient_section <- function(data, nutrient_col, title_label) {
-#   clean_data <- data %>%
-#     select(Latitude, Depth2, !!sym(nutrient_col)) %>%
-#     rename(Depth = Depth2, NutVar = !!sym(nutrient_col)) %>%
-#     filter(!is.na(Latitude), !is.na(Depth), !is.na(NutVar))
-#   
-#   sample_points <- clean_data
-#   
-#   # Interpolation with MBA
-#   interp <- mba.surf(clean_data, no.X = 300, no.Y = 300, extend = TRUE)
-#   dimnames(interp$xyz.est$z) <- list(interp$xyz.est$x, interp$xyz.est$y)
-#   
-#   # Convert to dataframe
-#   interp_df <- melt(interp$xyz.est$z, varnames = c("Latitude", "Depth"), value.name = "NutVar") %>%
-#     mutate(NutVar = round(NutVar, 1))
-#   
-#   # Plot
-#   ggplot(data = interp_df, aes(x = Latitude, y = Depth)) +
-#     geom_raster(aes(fill = NutVar)) +
-#     scale_fill_viridis_c() +
-#     scale_y_reverse() +
-#     geom_contour(aes(z = NutVar), binwidth = 1, colour = "black", alpha = 0.2) +
-#     geom_point(data = sample_points, aes(x = Latitude, y = Depth),
-#                colour = "black", size = 0.2, alpha = 0.4, shape = 8) +
-#     guides(size = "none", 
-#            fill = guide_colourbar(title.position = "right"), 
-#            title.theme = element_text(angle = 270, hjust = 0.5, vjust = 0.5)) +
-#     labs(
-#       # y = "Depth [m]",
-#       # x = "Latitude",
-#       x = NULL, 
-#       y = NULL, 
-#       fill = paste0(title_label, " [µmol/L]"),
-#       # title = paste("SE2204", title_label, "Section Plot"),
-#       # subtitle = "Interpolated over depth and space; \nblack dots show actual sampling locations."
-#     ) +
-#     coord_cartesian(expand = 0) +
-#     theme(legend.title = element_text(angle = 90, hjust=0.5), 
-#           legend.direction = "vertical",
-#           legend.key.height = unit(1, 'null'), 
-#           legend.key.width = unit(0.5, 'cm'), 
-#           legend.margin = margin(0,0,0,0))
-# }
-# NSectionPlot <- plot_nutrient_section(nut, "Nitrate..Nitrite", "Nitrate + Nitrite")
-# NSectionPlot
-
-# # Create the stitched plots 
-# library(patchwork)
-# combined_plot <- TempSPlot / SalinitySPlot / OSPlot / NSectionPlot
-# print(combined_plot)
-
-
 
 # -------------------------------------------------------------------------------
 # -------------------------------- PHYTO ---------------------------------------
@@ -626,7 +516,7 @@ ggplot(norm_biomass_night, aes(x = log2(size_fraction), y = log2(normalized_biom
   theme_bw(base_size = 12)
 # ggsave('NIGHTZoopSizeAbun_linearR_Normlog2.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
-zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
+#zoops <- read.csv(paste(here(), 'Biomass filter weights_USE_THIS.csv', sep='/')) # Emma's
 # zoops <- read.csv(paste(here(), 'Data/Biomass filter weights_USE_THIS.csv', sep='/'))  # Johanna's
 head(zoops)
 
@@ -660,6 +550,8 @@ scale_factor <- max(zoops$standardized_SHF, na.rm = TRUE) /
 
 # Omit na's in the net_cast_number added by the excel sheet, no data lost
 zoops <- zoops[!is.na(zoops$net_cast_number), ]
+
+zoops$alpha <- ifelse(zoops$time_of_day == 'Day', 0.7, 1)
 
 # Plot
 ggplot(zoops, aes(x = factor(net_cast_number))) +
