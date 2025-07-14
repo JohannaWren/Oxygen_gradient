@@ -385,7 +385,7 @@ ggplot(phytoSizeStn13, aes(x = "", y = Percent, fill = factor(Size))) +
   coord_polar(theta = "y") +
   facet_wrap(~ Cast, labeller = labeller(Cast = id.labs)) +
   scale_fill_manual(values = c("#495d86", "#d9b021", "#d26424")) +
-  labs(title = "Phytoplankton Size Composition", fill = "Size [µm]") +
+  labs(fill = "Size [µm]") +
   theme_void()
 # ggsave('PhytoDayPie13_presentation.png', width = 10, height = 4, dpi = 300, units = "in") #for presentation
 
