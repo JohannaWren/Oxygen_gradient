@@ -385,9 +385,14 @@ ggplot(phytoSizeStn13, aes(x = "", y = Percent, fill = factor(Size))) +
   coord_polar(theta = "y") +
   facet_wrap(~ Cast, labeller = labeller(Cast = id.labs)) +
   scale_fill_manual(values = c("#495d86", "#d9b021", "#d26424")) +
-  labs(fill = "Size [µm]") +
-  theme_void()
-# ggsave('PhytoDayPie13_presentation.png', width = 10, height = 4, dpi = 300, units = "in") #for presentation
+  labs(fill = "Size [µm]", size = 10) +
+  theme_void() +
+  theme(
+    strip.text = element_text(size = 10),           # Optional: larger facet labels
+    panel.spacing = unit(0.5, "lines"),             # Reduce space between facets
+    plot.margin = margin(5, 5, 5, 5, unit = "pt")   # Reduce overall margins
+  )
+# ggsave('PhytoDayPie13.png', width = 10, height = 4, dpi = 300, units = "in") #for presentation
 
 
 
@@ -404,9 +409,15 @@ ggplot(phyto_subset_day, aes(x = "", y = Percent, fill = factor(Size))) +
   coord_polar(theta = "y") +
   facet_wrap(~ Cast, labeller = labeller(Cast = id.labs), nrow=1) +
   scale_fill_manual(values = c("#495d86", "#d9b021", "#d26424")) +
-  labs(title = "Phytoplankton Size Composition for Day Stations", fill = "Size [µm]") +
-  theme_void()
-# ggsave('PhytoDayPie_poster.png', width = 24, height = 36, units = "in") #for poster
+  labs(title = "Phytoplankton Size Composition for Day Stations", fill = "Size [µm]", size = 12) +
+  theme_void() +
+  theme(
+    plot.title = element_text(size = 14, hjust = 0.5, vjust = 1),      # Title size
+    strip.text = element_text(size = 12),                   # Facet label size
+    legend.title = element_text(size = 12),                 # Legend title size
+    legend.text = element_text(size = 12)                   # Legend item size
+  )
+# ggsave('PhytoDayPie_poster.png', width = 10, height = 10, units = "in") #for poster
 # ggsave('PhytoDayPie_presentation.png', width = 10, height = 4, dpi = 300, units = "in") #for presentation
 
 # Night
@@ -801,6 +812,7 @@ library(terra)
 library(tidyterra)
 # SST
 sst <- rast('~/Downloads/SST_Clim_SE2204.nc')
+sst <- rast('SST_Clim_SE2204.nc') #Emma's
 plot(sst)
 names(sst)
 # Rename variable to something easier to write and crop of in the north/south a little
@@ -810,6 +822,7 @@ sst <- sst %>%
 
 # Chlorophyll
 chl <- rast('~/Downloads/Chl_Clim_SE2204.nc')
+chl <- rast('Chl_Clim_SE2204.nc') # Emma's
 plot(chl)
 names(chl)
 # Crop of in the north/south a little
@@ -833,4 +846,17 @@ ggplot() +
   geom_path(data=all_wpts_short, aes(lon+360, lat), color='gray30') +
   geom_point(data=all_wpts, aes(LonDecimalDegree+360, LatDecimalDegree, color=StnType)) +
   scale_color_manual(values = c('base'='orange', 'extended'='steelblue'), name='Station') +
-  coord_sf(expand = F)
+  guides(color = "none") +
+  coord_sf(expand = F) +
+  labs(x = "Longitude", 
+       y = "Latitude", 
+       fill = "Chlorophyll [µg/L]") +
+  theme (legend.key.height = unit(1, 'null'))
+# ggsave('ChlGyreTrackMap.png', width=10, height = 5.625, dpi = 300, units = 'in')
+
+
+
+
+
+
+
