@@ -388,9 +388,9 @@ ggplot(phytoSizeStn13, aes(x = "", y = Percent, fill = factor(Size))) +
   labs(fill = "Size [µm]", size = 10) +
   theme_void() +
   theme(
-    strip.text = element_text(size = 10),           # Optional: larger facet labels
-    panel.spacing = unit(0.5, "lines"),             # Reduce space between facets
-    plot.margin = margin(5, 5, 5, 5, unit = "pt")   # Reduce overall margins
+    strip.text = element_text(size = 10),         
+    panel.spacing = unit(0.5, "lines"),             
+    plot.margin = margin(5, 5, 5, 5, unit = "pt")   
   )
 # ggsave('PhytoDayPie13.png', width = 10, height = 4, dpi = 300, units = "in") #for presentation
 
