@@ -206,7 +206,7 @@ SalinitySPlot
 # Oxygen
 OSPlot <- plot_ocng_section(data = ctdCNV, ocng_var = "oxygen", Res1 = 400, Res2 = 400 , title_label = "Oxygen", Units = " [μmol/kg]", Color = "turbo", ContourLine = T)
 OSPlot
-# ggsave('OxygenSectionPlot.png', width = 13, height = 8, dpi = 300, units = "in") #for presentation
+# ggsave('OxygenSectionPlot.png', width = 9, height = 4, dpi = 300, units = "in") #for presentation
 
 # Nutrients
 NSectionPlot <- plot_ocng_section(data = nut, ocng_var = "Nitrate..Nitrite", Res1 = 300, Res2 = 300 , title_label = "Nitrate + Nitrite", Units = " [μmol/L]", Color = "viridis", ContourLine = T)
@@ -235,7 +235,7 @@ final_plot <- ggdraw(combined_plotV) +
   draw_label("Latitude", x = 0.5, y = 0.05, vjust = 1, angle = 0, size = 12) +  
   draw_label("Depth [m]", x = 0.03, y = 0.5, vjust = 1, angle = 90, size = 12)
 final_plot
-# ggsave('SectionPlots_noO2.png', width = 14, height = 8, dpi = 300, units = "in") #for presentation
+ggsave('SectionPlots_noO2.png', width = 9, height = 5, dpi = 300, units = "in") #for presentation
 # ggsave('SectionPlots_poster.png', width = 24, height = 36, units = "in") #for poster
 # ggsave('SectionPlots_presentation_square.png', width = 10, height = 7.5, dpi = 300, units = "in") #for presentation
 
@@ -341,7 +341,7 @@ plot_ocng_section <- function(data, ocng_var, Res1, Res2, title_label, Units) {
 
 plot_ocng_section(data = bulk, ocng_var = "Chlorophyll", Res1 = 250, Res2 = 250, title_label = "Bulk Chlorophyll", Units = " [µg/L]")
 # ggsave('BulkSectionPlots_poster.png', width = 24, height = 36, units = "in") #for poster
-# ggsave('BulkSectionPlots_presentation.png', width = 10, height = 5, dpi = 300, units = "in") #for presentation
+ggsave('BulkSectionPlots_presentation.png', width = 9, height = 4, dpi = 300, units = "in") #for presentation
 
 
 #  -------------------------------- pie chart --------------------------------
