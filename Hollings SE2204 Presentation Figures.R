@@ -857,8 +857,55 @@ ggplot() +
 # ggsave('ChlGyreTrackMap.png', width=10, height = 5.625, dpi = 300, units = 'in')
 
 
+# -----------------------------------------------------------------------------
+#                             Statistical Analysis 
+# -----------------------------------------------------------------------------
+# Add latitude, Day/Night, and NorthS/outh
+bongoMeta <- read.csv('Bongo data.csv')
+bongoMeta <- read_xlsx('Data/Bongo data.xlsx', sheet = 1)
+bongoStn <- data.frame(StationID=bongoMeta$station_id, Lat=bongoMeta$mouth_underwater_lat_dd)
+bongoStn$DayNight <- ifelse(bongoStn$StationID %in% c(2, 5, 8, 11, 13), 'Night', 'Day')
+bongoStn$NorthSouth <- ifelse(bongoStn$StationID > 9, 'South', 'North')
+# join with zoopl data
+ancovaDat <- normalized_biomass %>% 
+  mutate(Station = as.factor(net_cast_number)) %>% 
+  left_join(bongoStn, by=c('net_cast_number'='StationID')) %>% 
+  ungroup()
 
 
+# Run ANCOVA (from https://www.datanovia.com/en/lessons/ancova-in-r/)
+library(ggpubr)
+library(rstatix)
+library(emmeans)
+library(rstatix)
+library(broom)
+library(ggpubr)
+library(tidyverse)
 
+# Calculate your one way ANCOVA
+res.aov <- ancovaDat %>% 
+  anova_test(log_normalized_biomass ~ log_normalized_size + NorthSouth)
+get_anova_table(res.aov)
 
+# Post-hoc test
+# Pairwise comparisons
+pwc <- ancovaDat %>% 
+  emmeans_test(
+    log_normalized_biomass ~ NorthSouth, covariate = log_normalized_size,
+    p.adjust.method = "bonferroni"
+  )
+pwc
+# Display the adjusted means of each group
+# Also called as the estimated marginal means (emmeans)
+get_emmeans(pwc)
+# Visualization: line plots with p-values
+pwc <- pwc %>% 
+  add_xy_position(x = "NorthSouth", fun = "mean_se")
+ggline(get_emmeans(pwc), x = "NorthSouth", y = "emmean") +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.2) + 
+  stat_pvalue_manual(pwc, hide.ns = TRUE, tip.length = FALSE) +
+  labs(
+    subtitle = get_test_label(res.aov, detailed = TRUE),
+    caption = get_pwc_label(pwc))
+# ggsave('NS_ANCOVA.png', width=5, height = 5, dpi = 300, units = 'in')
 
