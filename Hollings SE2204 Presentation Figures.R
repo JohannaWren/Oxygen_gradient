@@ -235,7 +235,7 @@ final_plot <- ggdraw(combined_plotV) +
   draw_label("Latitude", x = 0.5, y = 0.05, vjust = 1, angle = 0, size = 12) +  
   draw_label("Depth [m]", x = 0.03, y = 0.5, vjust = 1, angle = 90, size = 12)
 final_plot
-ggsave('SectionPlots_noO2.png', width = 9, height = 5, dpi = 300, units = "in") #for presentation
+# ggsave('SectionPlots_noO2.png', width = 9, height = 5, dpi = 400, units = "in") #for presentation
 # ggsave('SectionPlots_poster.png', width = 24, height = 36, units = "in") #for poster
 # ggsave('SectionPlots_presentation_square.png', width = 10, height = 7.5, dpi = 300, units = "in") #for presentation
 
@@ -341,7 +341,7 @@ plot_ocng_section <- function(data, ocng_var, Res1, Res2, title_label, Units) {
 
 plot_ocng_section(data = bulk, ocng_var = "Chlorophyll", Res1 = 250, Res2 = 250, title_label = "Bulk Chlorophyll", Units = " [µg/L]")
 # ggsave('BulkSectionPlots_poster.png', width = 24, height = 36, units = "in") #for poster
-ggsave('BulkSectionPlots_presentation.png', width = 9, height = 4, dpi = 300, units = "in") #for presentation
+# ggsave('BulkSectionPlots_presentation.png', width = 9, height = 4, dpi = 300, units = "in") #for presentation
 
 
 #  -------------------------------- pie chart --------------------------------
@@ -401,7 +401,16 @@ ggplot(phytoSizeStn13, aes(x = "", y = Percent, fill = factor(Size))) +
 # Day
 selected_casts_day <- c(8,10,17,19,26,28,35,37)
 # reversed_casts_day <- rev(selected_casts_day)
-
+id.labs <- c(
+  "8" = "1",
+  "10" = "3",
+  "17" = "4",
+  "19" = "6",
+  "26" = "7",
+  "28" = "9",
+  "35" = "10",
+  "37" = "12"
+)
 phyto_subset_day <- phytoSizeStn %>%
   filter(Cast %in% selected_casts_day) %>%
   mutate(Cast = factor(Cast, levels = selected_casts_day))
@@ -409,7 +418,7 @@ phyto_subset_day <- phytoSizeStn %>%
 ggplot(phyto_subset_day, aes(x = "", y = Percent, fill = factor(Size))) +
   geom_col(width = 1) +
   coord_polar(theta = "y") +
-  facet_wrap(~ Cast, labeller = labeller(Cast = id.labs), nrow=1) +
+  facet_wrap(~Cast, labeller = labeller(Cast = id.labs), nrow=1) +
   scale_fill_manual(values = c("#495d86", "#d9b021", "#d26424")) +
   labs(title = "Phytoplankton Size Composition for Day Stations", fill = "Size [µm]", size = 12) +
   theme_void() +
@@ -420,7 +429,7 @@ ggplot(phyto_subset_day, aes(x = "", y = Percent, fill = factor(Size))) +
     legend.text = element_text(size = 12)                   # Legend item size
   )
 # ggsave('PhytoDayPie_poster.png', width = 10, height = 10, units = "in") #for poster
-# ggsave('PhytoDayPie_presentation.png', width = 10, height = 4, dpi = 300, units = "in") #for presentation
+# ggsave('PhytoDayPie.png', width = 9, height = 4, dpi = 400, units = "in") #for presentation
 
 # Night
 selected_casts_night <- c(9, 18, 27, 36, 38)
@@ -498,15 +507,14 @@ ggplot(normalized_biomass, aes(x = log_normalized_size, y = log_normalized_bioma
   ) +
   facet_wrap(~ net_cast_number, ncol = 4) +
   labs(
-    x = expression(log[2]~"Size Fraction [µm]"),
+    x = expression(log[2]~"Size Fractions [µm]"),
     y = expression(log[2]~"Nomalized Biomass [g]"),
-    title = "Zooplankton Biomass Spectrum by Station"
   ) +
   theme_bw(base_size = 12)
-# ggsave('ZoopSizeAbun_linearR_Normlog2.png', width=10, height = 5.625, dpi = 300, units = 'in')
+ggsave('ZoopSizeAbun_linearR_Normlog2.png', width= 8, height = 5, dpi = 300, units = 'in')
 
 
-# Day Stations Zooplankton Biomass Spectrum
+# Day Stations Zooplankton Biomass Spectrum 
 # Filter data for only day stations 
 norm_biomass_day <- normalized_biomass %>%
   filter(net_cast_number %in% c(1, 3, 4, 6, 7, 9, 10, 12))
