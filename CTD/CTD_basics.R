@@ -77,7 +77,7 @@ section %>%
 ###subset and grid section
 section.gridded = section %>%
   #subset(latitude >= 10) %>%
-  sectionGrid(p = seq(0,1300,1))
+  sectionGrid(p = seq(0,1000,1))
 
 # # Remove some spurious values that are intruduced when gridded
 # section.gridded@data$station[[6]]@data$salinity[1:6] <- NA
@@ -184,7 +184,8 @@ dat <- data.frame()
 for (i in seq_along(ctdAll)) {
   dat <- ctdAll[[i]]@data %>% 
     as_tibble() %>% 
-    mutate(Station=substring(files[i],13,14)) %>% 
+    mutate(Stn=substring(files[i],13,16)) %>% 
+    mutate(Cast=i) %>% 
     add_row(dat)
 }
 #dat[which(dat$Station == '06' & dat$pressure <= 3),4:8] <- NA   # this removes spurious values from the top three meters of station 6
