@@ -205,8 +205,8 @@ SalinitySPlot <- plot_ocng_section(data = ctdCNV, ocng_var = "salinity", Res1 = 
 SalinitySPlot
 # Oxygen
 OSPlot <- plot_ocng_section(data = ctdCNV, ocng_var = "oxygen", Res1 = 400, Res2 = 400 , title_label = "Oxygen", Units = " [μmol/kg]", Color = "turbo", ContourLine = T)
-OSPlot
-# ggsave('OxygenSectionPlot.png', width = 9, height = 4, dpi = 300, units = "in") #for presentation
+OSPlot + labs(x ="Latitude" , y = "Depth [m]")
+ggsave('OxygenSectionPlot.png', width = 8, height = 4, dpi = 300, units = "in") #for presentation
 
 # Nutrients
 NSectionPlot <- plot_ocng_section(data = nut, ocng_var = "Nitrate..Nitrite", Res1 = 300, Res2 = 300 , title_label = "Nitrate + Nitrite", Units = " [μmol/L]", Color = "viridis", ContourLine = T)
