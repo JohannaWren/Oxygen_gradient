@@ -15,13 +15,14 @@ library(akima)
 library(MBA)
 library(reshape2)
 library(stringr)
+library(viridis)
 
 # Set working directory
 myDir <- here()  # Johanna's File path
 setwd(myDir)
 
 # Read in CTD files 
-ctdAll <- read.csv('CTD/CTD_data_forAnalysis.csv')
+ctdAll <- read.csv('CTD/CTD_data_forAnalysis_fromCNV.csv')
 stnInfo <- read.csv('CTD/CTD_metadata_forAnalysis.csv')
 
 # Make a table with labels you want and the index that we can use for plotting
@@ -36,14 +37,14 @@ names(id.labs) <- stnInfo$Cast
 ctdMLD <- ctdAll %>% 
   group_by(Cast) %>% 
   filter(Depth <=20) %>% 
-  summarise(SST=mean(Temperature)) %>%
+  summarise(SST=mean(Temperature, na.rm=T)) %>%
   mutate(T_MLD=SST-0.8)
 
 # Temp at 400 meters and thermocline temp
 ctdMLD <- ctdAll %>% 
   group_by(Cast) %>% 
   filter(near(Depth, 400, 0.1)) %>% 
-  summarise(T_400=mean(Temperature)) %>%
+  summarise(T_400=mean(Temperature, na.rm=T)) %>%
   full_join(ctdMLD) %>%
   select(Cast, SST, T_MLD, T_400) %>%
   mutate(TT=T_MLD-(0.25*(T_MLD-T_400)), T_TB=T_MLD-(0.5*(T_MLD-T_400)))
@@ -100,10 +101,10 @@ ctdMLD <- ctdAll %>%
 
 ## Deep chlorophyll max
 ctdMLD <- ctdAll %>% 
-  select(Cast, Depth, Flourescence) %>% 
+  select(Cast, Depth, Fluorescence) %>% 
   group_by(Cast) %>% 
-  slice_max(Flourescence) %>% 
-  rename(DCMdepth=Depth, ChlMax=Flourescence) %>% 
+  slice_max(Fluorescence) %>% 
+  rename(DCMdepth=Depth, ChlMax=Fluorescence) %>% 
   left_join(ctdMLD)
 
 # Add metadata to the data frame
@@ -122,7 +123,7 @@ head(nut)
 nut$Ammonia <- ifelse(nut$Ammonia == "<0.02", 0.01, as.numeric(nut$Ammonia))
 nut$Phosphate <- ifelse(nut$Phosphate == "<0.008", 0.007, as.numeric(nut$Phosphate))
 nut$Silicate <- as.numeric(nut$Silicate)
-nut$`Nitrate + Nitrite` <- as.numeric(nut$`Nitrate + Nitrite`)
+nut$Nitrate..Nitrite <- as.numeric(nut$Nitrate..Nitrite)
 nut$Date <- as.Date(nut$Date, '%m/%d/%y') 
 head(nut)
 ## nutricline depth 
@@ -152,22 +153,6 @@ mean(mean(ctdMLD$DCMdepth[22:23]))
 # Depth integrated chl-a
 chlInt <- (((chl0+chl10)/2) * (depth10-depth0))
 
-i=39
-ctdAll %>% filter(Cast == i) %>% 
-  ggplot() +
-    geom_path(aes(Temperature, Depth)) +
-  scale_y_reverse() +
-  scale_x_continuous(position='top') +
-  theme_light() + 
-  geom_hline(data=ctdMLD[which(ctdMLD$Cast == i),], aes(yintercept = D_MLD), color='darkgray', linetype='dashed') +
-  geom_point(data=ctdMLD[which(ctdMLD$Cast == i),], aes(T_MLD, D_MLD), color='green', size=2) +
-  geom_point(data=ctdMLD[which(ctdMLD$Cast == i),], aes(TT, D_TT), color='red', size=2) +
-  geom_point(data=ctdMLD[which(ctdMLD$Cast == i),], aes(T_TB, D_TB), size=2) +
-  #geom_abline(data=ctdMLD[which(ctdMLD$Cast == i),], aes(slope = TS*-1, intercept = intercept*-1), color='blue', linewidth=0.25) +
-  annotate('text', x=20, y=750, label=paste('Station', ctdMLD$Station2[which(ctdMLD$Cast == i)]))
-  
-
-
 
 
 
@@ -175,31 +160,109 @@ ctdAll %>% filter(Cast == i) %>%
 
 
 ### Section plots ###
+# Make function for the plot
+plot_ocng_section_nocont <- function(data, ocng_var, Res1, Res2, title_label, Units, Color, contours, contourCols, XLab, scalar=1) {
+  clean_data <- na.omit(data) %>%
+    select(Latitude, Depth, !!sym(ocng_var)) %>%
+    rename(OCNVar = !!sym(ocng_var)) %>% 
+    filter(Depth < 1000)
+  
+  # Interpolation with MBA
+  interp <- mba.surf(clean_data, no.X = Res1, no.Y = Res2, extend = T)
+  dimnames(interp$xyz.est$z) <- list(interp$xyz.est$x, interp$xyz.est$y)
+  
+  # Convert to dataframe
+  interp_df <- melt(interp$xyz.est$z, varnames = c("Latitude", "Depth"), value.name = "OCNVar") %>%
+    mutate(OCNVAr = round(OCNVar, 1))
+  
+  # Plot
+  ggplot(data = interp_df, aes(x = Latitude, y = Depth)) +
+    geom_raster(aes(fill = OCNVar)) +
+    geom_contour(aes(z=OCNVar), breaks=contours, colour=contourCols, alpha=0.3) + 
+    geom_segment(data=data.frame(lat=unique(round(clean_data$Latitude, 1))), aes(x = lat, y = 5, xend = lat, yend = 25*scalar)) +
+    scale_fill_gradientn(colors = Color, na.value = 'Transparent') +
+    scale_y_reverse(expand = F, breaks=seq(0,1000,200)*scalar, labels=seq(0,1000,200)*scalar) +
+    scale_x_continuous(expand = F, breaks=seq(10,30,2)) +
+    guides(size = "none", 
+           fill = guide_colourbar(title.position = "right"), 
+           title.theme = element_text(angle = 270, hjust = 0.5, vjust = 0.5)) +
+    labs(
+      y = "Depth [m]",
+      x = XLab, 
+      fill = paste(title_label, Units),
+    ) +
+    theme(legend.title = element_text(angle = 90, hjust=0.5), 
+          legend.direction = "vertical",
+          legend.key.height = unit(1, 'null'), 
+          legend.key.width = unit(0.5, 'cm'), 
+          legend.margin = margin(0,0,0,0))
+}
+
+# Make plot for each variable of interest
+OSPlot <- plot_ocng_section_nocont(data = ctdAll, ocng_var = "Oxygen", Res1 = 300, Res2 = 300 , 
+                                   title_label = "Oxygen", Units = " [μmol/kg]", Color = c('#F7FBFF', '#08519C'), 
+                                   contours = c(90, 45), contourCols = 'black', 
+                                   XLab=NULL)
+
+TempPlot <- plot_ocng_section_nocont(data = ctdAll, ocng_var = "Temperature", Res1 = 300, Res2 = 300 , 
+                                   title_label = "Temperature", Units = " [°C]", Color = oceColorsTurbo(9), 
+                                   contours = c(0), contourCols = 'darkgray', 
+                                   XLab=NULL)
+
+SaltPlot <- plot_ocng_section_nocont(data = ctdAll, ocng_var = "Salinity", Res1 = 300, Res2 = 300 , 
+                                     title_label = "Salinity", Units = "", Color = oceColorsSalinity(9), 
+                                     contours = c(0), contourCols = 'darkgray', 
+                                     XLab=NULL)
+
+N2Plot <- plot_ocng_section_nocont(data = nut, ocng_var = "Nitrate..Nitrite", Res1 = 300, Res2 = 300 , 
+                         title_label = "Nitrate", Units = "[?]", Color = viridis(9, option='mako'), #also like 'rocket'
+                         contours = c(1,10,20,30), contourCols = 'white', 
+                         XLab=NULL, 
+                         scalar=0.2)
+
+ChlorPlot <- plot_ocng_section_nocont(data = nut, ocng_var = "Nitrate..Nitrite", Res1 = 300, Res2 = 300 , 
+                                    title_label = "Nitrate", Units = "[?]", Color = viridis(9, option='mako'), #also like 'rocket'
+                                    contours = c(1,10,20,30), contourCols = 'white', 
+                                    XLab=NULL, 
+                                    scalar=0.2)
 
 
 
 
-# Nutrients
-# Make a new dataset for nutrient analysis with better names
-nutriDN <- nut %>% 
-  dplyr::select(Latitude, Depth, Nitrate..Nitrite) %>% 
-  rename(NutVar=Nitrate..Nitrite)
-# Interpolate to fill section plot
-ctd_mba <- mba.surf(na.omit(nutriDN), no.X = 300, no.Y = 300, extend = T)
-dimnames(ctd_mba$xyz.est$z) <- list(ctd_mba$xyz.est$x, ctd_mba$xyz.est$y)
-ctd_mba <- melt(ctd_mba$xyz.est$z, varnames = c('Latitude', 'Depth'), value.name = 'NutVar') %>% 
-  mutate(NutVar = round(NutVar, 1))
+####-----JOHANNA TESTING NEW INTERPOLATION-----####
+# temp.interp = akima::interp(x = clean_data$Latitude,
+#                             y = clean_data$Depth,
+#                             z = clean_data$Oxygen_Raw,
+#                             duplicate = "mean", nx = 500, ny = 500)
+# temp.interp = akima::interp(x = ctd.tb.all$latitude,
+#                             y = ctd.tb.all$pressure,
+#                             z = unlist(ctd.tb.all[,'oxygen']),
+#                             duplicate = "mean", nx = 500, ny = 300)
+# # Look at the interpolation
+# image(temp.interp)
+# # Put it in a ggplot friendly format and limit it to the top 1,000 meters
+# # Choose which variable you want to plot
+# interp_df = akima::interp2xyz(temp.interp) %>%
+#   as.tibble() %>%
+#   rename(Latitude = x, Depth = y, OCNVar = z) %>%
+#   na.omit() %>%
+#   filter(Depth <=1300 & Depth > 4)
+####-----JOHANNA TESTING NEW INTERPOLATION END-----####
+
+# # temp-depth profile plot for thermocline determination
+# i=39
+# ctdAll %>% filter(Cast == i) %>% 
+#   ggplot() +
+#   geom_path(aes(Temperature, Depth)) +
+#   scale_y_reverse() +
+#   scale_x_continuous(position='top') +
+#   theme_light() + 
+#   geom_hline(data=ctdMLD[which(ctdMLD$Cast == i),], aes(yintercept = D_MLD), color='darkgray', linetype='dashed') +
+#   geom_point(data=ctdMLD[which(ctdMLD$Cast == i),], aes(T_MLD, D_MLD), color='green', size=2) +
+#   geom_point(data=ctdMLD[which(ctdMLD$Cast == i),], aes(TT, D_TT), color='red', size=2) +
+#   geom_point(data=ctdMLD[which(ctdMLD$Cast == i),], aes(T_TB, D_TB), size=2) +
+#   #geom_abline(data=ctdMLD[which(ctdMLD$Cast == i),], aes(slope = TS*-1, intercept = intercept*-1), color='blue', linewidth=0.25) +
+#   annotate('text', x=20, y=750, label=paste('Station', ctdMLD$Station2[which(ctdMLD$Cast == i)]))
 
 
 
-ggplot(data = ctd_mba, aes(x = Latitude, y = Depth)) +
-  geom_raster(aes(fill = NutVar)) +
-  scale_fill_viridis_c(option = 'mako') +
-  scale_x_reverse() +
-  scale_y_reverse() +
-  geom_contour(aes(z = NutVar), breaks=1, colour = "white", alpha = 0.3) + 
-  geom_contour(aes(z = NutVar), breaks=c(5,10), colour = "white", alpha = 0.2, linewidth=0.25) + 
-  geom_contour(aes(z = NutVar), breaks=c(15,20,25,30), colour = "black", alpha = 0.3, linewidth=0.25) +  ### Activate to see which pixels are real and not interpolated
-  geom_point(data = nutriDN, aes(x = Latitude, y = Depth), colour = 'gray40', size = 0.2, alpha = 0.4, shape = 8) +
-  labs(y = "Depth (m)", x = 'Latitude', fill = "Phosphate\n(µmol/L)") +
-  coord_cartesian(expand = 0)
