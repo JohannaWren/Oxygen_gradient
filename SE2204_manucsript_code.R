@@ -161,11 +161,12 @@ chlInt <- (((chl0+chl10)/2) * (depth10-depth0))
 
 ### Section plots ###
 # Make function for the plot
-plot_ocng_section_nocont <- function(data, ocng_var, Res1, Res2, title_label, Units, Color, contours, contourCols, XLab, scalar=1) {
+# Modified to fit from Emma's code in CTD_exploration2.R
+plot_ocng_section_nocont <- function(data, ocng_var, Res1, Res2, title_label, Color, contours, contourCols, XLab, scalar=1) {
   clean_data <- na.omit(data) %>%
     select(Latitude, Depth, !!sym(ocng_var)) %>%
     rename(OCNVar = !!sym(ocng_var)) %>% 
-    filter(Depth < 1000)
+    filter(Depth < 1000*scalar)
   
   # Interpolation with MBA
   interp <- mba.surf(clean_data, no.X = Res1, no.Y = Res2, extend = T)
@@ -189,7 +190,7 @@ plot_ocng_section_nocont <- function(data, ocng_var, Res1, Res2, title_label, Un
     labs(
       y = "Depth [m]",
       x = XLab, 
-      fill = paste(title_label, Units),
+      fill = title_label,
     ) +
     theme(legend.title = element_text(angle = 90, hjust=0.5), 
           legend.direction = "vertical",
@@ -200,33 +201,34 @@ plot_ocng_section_nocont <- function(data, ocng_var, Res1, Res2, title_label, Un
 
 # Make plot for each variable of interest
 OSPlot <- plot_ocng_section_nocont(data = ctdAll, ocng_var = "Oxygen", Res1 = 300, Res2 = 300 , 
-                                   title_label = "Oxygen", Units = " [μmol/kg]", Color = c('#F7FBFF', '#08519C'), 
+                                   title_label = "Oxygen [µmol/kg]", Color = c('#F7FBFF', '#08519C'), 
                                    contours = c(90, 45), contourCols = 'black', 
                                    XLab=NULL)
 
 TempPlot <- plot_ocng_section_nocont(data = ctdAll, ocng_var = "Temperature", Res1 = 300, Res2 = 300 , 
-                                   title_label = "Temperature", Units = " [°C]", Color = oceColorsTurbo(9), 
+                                   title_label = "Temperature [°C]", Color = oceColorsTurbo(9), 
                                    contours = c(0), contourCols = 'darkgray', 
                                    XLab=NULL)
 
 SaltPlot <- plot_ocng_section_nocont(data = ctdAll, ocng_var = "Salinity", Res1 = 300, Res2 = 300 , 
-                                     title_label = "Salinity", Units = "", Color = oceColorsSalinity(9), 
+                                     title_label = "Salinity", Color = oceColorsSalinity(9), 
                                      contours = c(0), contourCols = 'darkgray', 
                                      XLab=NULL)
 
 N2Plot <- plot_ocng_section_nocont(data = nut, ocng_var = "Nitrate..Nitrite", Res1 = 300, Res2 = 300 , 
-                         title_label = "Nitrate", Units = "[?]", Color = viridis(9, option='mako'), #also like 'rocket'
+                         title_label = "Nitrate [µmol/L]", Color = viridis(9, option='mako'), #also like 'rocket'
                          contours = c(1,10,20,30), contourCols = 'white', 
                          XLab=NULL, 
                          scalar=0.2)
 
-ChlorPlot <- plot_ocng_section_nocont(data = nut, ocng_var = "Nitrate..Nitrite", Res1 = 300, Res2 = 300 , 
-                                    title_label = "Nitrate", Units = "[?]", Color = viridis(9, option='mako'), #also like 'rocket'
+ChlPlot <- plot_ocng_section_nocont(data = ctdAll, ocng_var = "Fluorescence", Res1 = 300, Res2 = 300 , 
+                                    title_label = expression("Total Chlorophyll [mg/m"^{3}*"]"), Color = oceColorsChlorophyll(9), #also like 'rocket'
                                     contours = c(1,10,20,30), contourCols = 'white', 
-                                    XLab=NULL, 
+                                    XLab="Latitude [°N]",
                                     scalar=0.2)
 
-
+cowplot::plot_grid(TempPlot, SaltPlot, OSPlot, N2Plot, ChlPlot, ncol=1, rel_heights = c(1,1,1,1,1.15), align = 'v')
+ggsave('CTD/Section_testPlots_forMS.png', width=10, height=12, units='in')
 
 
 ####-----JOHANNA TESTING NEW INTERPOLATION-----####
