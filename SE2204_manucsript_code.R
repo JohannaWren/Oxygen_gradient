@@ -166,7 +166,7 @@ plot_ocng_section_nocont <- function(data, ocng_var, Res1, Res2, title_label, Co
   clean_data <- na.omit(data) %>%
     select(Latitude, Depth, !!sym(ocng_var)) %>%
     rename(OCNVar = !!sym(ocng_var)) %>% 
-    filter(Depth < 1000*scalar)
+    filter(Depth <= 1000*scalar)
   
   # Interpolation with MBA
   interp <- mba.surf(clean_data, no.X = Res1, no.Y = Res2, extend = T)
@@ -200,7 +200,7 @@ plot_ocng_section_nocont <- function(data, ocng_var, Res1, Res2, title_label, Co
 }
 
 # Make plot for each variable of interest
-OSPlot <- plot_ocng_section_nocont(data = ctdAll, ocng_var = "Oxygen", Res1 = 300, Res2 = 300 , 
+OxyPlot <- plot_ocng_section_nocont(data = ctdAll, ocng_var = "Oxygen", Res1 = 300, Res2 = 300 , 
                                    title_label = "Oxygen [µmol/kg]", Color = c('#F7FBFF', '#08519C'), 
                                    contours = c(90, 45), contourCols = 'black', 
                                    XLab=NULL)
@@ -216,7 +216,7 @@ SaltPlot <- plot_ocng_section_nocont(data = ctdAll, ocng_var = "Salinity", Res1 
                                      XLab=NULL)
 
 N2Plot <- plot_ocng_section_nocont(data = nut, ocng_var = "Nitrate..Nitrite", Res1 = 300, Res2 = 300 , 
-                         title_label = "Nitrate [µmol/L]", Color = viridis(9, option='mako'), #also like 'rocket'
+                         title_label = "Nitrate [µmol/L]", Color =viridis(10, option='mako')[2:10], #also like 'rocket'
                          contours = c(1,10,20,30), contourCols = 'white', 
                          XLab=NULL, 
                          scalar=0.2)
@@ -227,7 +227,7 @@ ChlPlot <- plot_ocng_section_nocont(data = ctdAll, ocng_var = "Fluorescence", Re
                                     XLab="Latitude [°N]",
                                     scalar=0.2)
 
-cowplot::plot_grid(TempPlot, SaltPlot, OSPlot, N2Plot, ChlPlot, ncol=1, rel_heights = c(1,1,1,1,1.15), align = 'v')
+cowplot::plot_grid(TempPlot, SaltPlot, OxyPlot, N2Plot, ChlPlot, ncol=1, rel_heights = c(1,1,1,1,1.15), align = 'v')
 ggsave('CTD/Section_testPlots_forMS.png', width=10, height=12, units='in')
 
 
