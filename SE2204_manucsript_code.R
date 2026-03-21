@@ -24,6 +24,8 @@ setwd(myDir)
 # Read in CTD files 
 ctdAll <- read.csv('CTD/CTD_data_forAnalysis_fromCNV.csv')
 stnInfo <- read.csv('CTD/CTD_metadata_forAnalysis.csv')
+DayNight <- c('D','N','D', 'N', 'D', 'N', 'D', 'D', 'N', 'D','N','D','D','N','D','N','D','D','N','D','N','D','N')
+stnInfo$DayNight <- DayNight
 
 # Make a table with labels you want and the index that we can use for plotting
 id.labs <- stnInfo$Station2
@@ -149,12 +151,97 @@ mean(mean(ctdMLD$D_TT[22:23]))
 mean(mean(ctdMLD$DCMdepth[22:23]))
 
 
+## Chlorophyll data
+phyto <- read.csv(paste(here(), 'Data/fluorometry_SE2204.csv', sep='/'))
+head(phyto)
+
+# Clean up the phytoplankton data and make sure and turn filter into sizes
+phyto <- phyto %>% 
+  mutate(Size=as.numeric(Filter))
+
+# Make file for nice station plotting
+id.labs <- phyto$Station
+names(id.labs) <- phyto$Cast
+head(id.labs)
+
+#Link Cast labels to the Station ID
+cast_labels <- phyto %>%
+  distinct(Cast, Station) %>%
+  arrange(Cast)
+label_vector <- setNames(cast_labels$Station, cast_labels$Cast)
+
+# Add day/night to data from metadata file
+phyto <-phyto %>% 
+  left_join(stnInfo[,c('Cast','DayNight')])
+
+# Get bulk surface Chlorophyll
+ExtStns <- c(2,5,11,14,20,23,29,32,39,43)
+ExtStnsLetter <- c('A','A','B','B','C','C','D','D','E','E')
+phyto %>% 
+  filter(Filter == 'bulk', Depth==0) %>% 
+  filter(Cast %in% ExtStns) %>% 
+  mutate(StnLetter = ExtStnsLetter) %>% 
+  ggplot() +
+    geom_bar(aes(StnLetter, Chlorophyll, fill=DayNight), stat='identity', position='dodge') %>% 
+    theme_bw()
+
+
 
 # Depth integrated chl-a
-chlInt <- (((chl0+chl10)/2) * (depth10-depth0))
+# Function to depth integrate one filter size
+chlDepthInt <- function(phytoDat) {
+  chlTotVec <- vector()
+  for (i in 1:9) {
+    chlLayer <- (phytoDat$Chlorophyll[i]+phytoDat$Chlorophyll[i+1])/2
+    chlDepth <- abs(phytoDat$Depth[i]-phytoDat$Depth[i+1])
+    chlTotVec <- cbind(chlTotVec, chlLayer*chlDepth)
+  }
+  return(sum(as.vector(chlTotVec)))
+}
+# Loop through all stations and all filter sizes and calculate the depth integrated chl for all
+depthIntChl <- data.frame(Cast=NA, Filter=NA, Chl=NA)
+for (i in unique(phyto$Cast)) {
+  for (j in unique(phyto$Filter)) {
+    chl <- phyto %>% 
+      filter(Cast == i, Filter == j) %>% 
+      chlDepthInt()
+    
+    depthIntChl <- depthIntChl %>% 
+      add_row(Cast=i, Filter=j, Chl=chl)
+    
+  }
+}
+# Add metadata
+depthIntChl <- stnInfo %>% 
+  select(Station2, Cast, Lon, Lat) %>% 
+  left_join(depthIntChl, by='Cast')
 
+# Make quick plot
+# Make label names
+phytogroups <- c('0.2'='pico', '2'='nano', '20'='micro')
 
+depthIntChl %>% filter(Filter!='bulk') %>% 
+  ggplot(aes(as.factor(round(Lat,1)), Chl)) + 
+    geom_bar(stat='identity') + 
+    facet_wrap(.~Filter, scales='free_y', labeller=as_labeller(phytogroups)) +
+    theme_bw() + 
+    theme(panel.grid = element_blank(), axis.text.x = element_text(angle = 90))
 
+# Phytoplankton biomass
+# Use size fractions only
+phytoSize <- phyto %>% 
+  #filter(Filter != 'bulk') %>%  
+  mutate(Filter = as.numeric(Filter))
+# Define groups
+bin_edges2 <- data.frame(
+  Filter = c(0.2, 2, 20),
+  plower_bound = c(0.2, 2, 20),
+  pupper_bound = c(2, 20, 200 )) %>%
+  mutate(pbin_width = pupper_bound - plower_bound)
+# join datasets
+pnorm <- phytoSize %>%
+  left_join(bin_edges2, by = "Filter") %>%
+  mutate(p_normalized_biomass = Chlorophyll / pbin_width)
 
 
 
