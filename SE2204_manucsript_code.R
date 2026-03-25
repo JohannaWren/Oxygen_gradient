@@ -16,6 +16,8 @@ library(MBA)
 library(reshape2)
 library(stringr)
 library(viridis)
+library(readxl)
+library(cowplot)
 
 # Set working directory
 myDir <- here()  # Johanna's File path
@@ -26,6 +28,7 @@ ctdAll <- read.csv('CTD/CTD_data_forAnalysis_fromCNV.csv')
 stnInfo <- read.csv('CTD/CTD_metadata_forAnalysis.csv')
 DayNight <- c('D','N','D', 'N', 'D', 'N', 'D', 'D', 'N', 'D','N','D','D','N','D','N','D','D','N','D','N','D','N')
 stnInfo$DayNight <- DayNight
+stnInfo$bins2 <- cut(x=round(stnInfo$Lat,2), breaks = seq(30,10,-4))
 
 # Make a table with labels you want and the index that we can use for plotting
 id.labs <- stnInfo$Station2
@@ -110,7 +113,7 @@ ctdMLD <- ctdAll %>%
   left_join(ctdMLD)
 
 # Add metadata to the data frame
-ctdMLD <- left_join(stnInfo[,c(4,5,8,9)],ctdMLD, by='Cast')
+ctdMLD <- left_join(stnInfo[,c(4,5,8,9,15,16,17)],ctdMLD, by='Cast')
 
 ## Nutricline depth
 # Defined as the 1um nitrate level
@@ -149,7 +152,21 @@ mean(mean(ctdMLD$OxygenMin[22:23]))
 mean(mean(ctdMLD$SST[22:23]))
 mean(mean(ctdMLD$D_TT[22:23]))
 mean(mean(ctdMLD$DCMdepth[22:23]))
+# Figure for binned data
+ggplot(ctdMLD, aes(bins2, OMZdepth)) + 
+  geom_boxplot() + 
+  theme_classic() + 
+  scale_y_reverse() + 
+  xlab(label = NULL) +
+  ylab(label='Depth (m)') + 
+  annotate(geom='text', y=-Inf, x=Inf, label='Depth of Oxygen minimum', vjust=1, hjust=1)
 
+phyto %>% 
+  filter(Filter == 'bulk', Depth==0) %>% ggplot(aes(bins2, Chlorophyll)) + geom_boxplot(aes(fill=DayNight)) + scale_fill_discrete(palette=c('gray90', 'gray60')) + 
+  theme_classic() + 
+  xlab(label = NULL) +
+  ylab(label='Chlorophyll a (mg/m3)') + 
+  annotate(geom='text', y=Inf, x=Inf, label='Surface Chlorophyll', vjust=1, hjust=1)
 
 ## Chlorophyll data
 phyto <- read.csv(paste(here(), 'Data/fluorometry_SE2204.csv', sep='/'))
@@ -172,7 +189,7 @@ label_vector <- setNames(cast_labels$Station, cast_labels$Cast)
 
 # Add day/night to data from metadata file
 phyto <-phyto %>% 
-  left_join(stnInfo[,c('Cast','DayNight')])
+  left_join(stnInfo[,c('Cast','DayNight', 'bins2')])
 
 # Get bulk surface Chlorophyll
 ExtStns <- c(2,5,11,14,20,23,29,32,39,43)
@@ -182,8 +199,10 @@ phyto %>%
   filter(Cast %in% ExtStns) %>% 
   mutate(StnLetter = ExtStnsLetter) %>% 
   ggplot() +
-    geom_bar(aes(StnLetter, Chlorophyll, fill=DayNight), stat='identity', position='dodge') %>% 
-    theme_bw()
+    geom_bar(aes(StnLetter, Chlorophyll, fill=DayNight), stat='identity', position='dodge') + 
+    theme_classic() +
+    scale_fill_discrete(palette = c('lightgray', 'darkgray')) +
+    coord_cartesian(expand=F)
 
 
 
@@ -243,7 +262,15 @@ pnorm <- phytoSize %>%
   left_join(bin_edges2, by = "Filter") %>%
   mutate(p_normalized_biomass = Chlorophyll / pbin_width)
 
+## Zooplankton
+zoopsAll <- read_xlsx(paste(here(), 'Data/Bongo data.xlsx', sep='/'), sheet = 2) %>% 
+  filter(!is.na(net_cast_number)) # remove filters that have weights but weren't used
+zoopsMeta <- read_xlsx('Data/Bongo data.xlsx', sheet=1)
+head(zoopsAll)
 
+zoops <- zoopsAll %>% 
+  select(net_cast_number, size_fraction, net_dry_weight, QC_net_weight) %>% 
+  left_join(zoopsMeta[,c('station_id',"net_opening_m2",'flow_counts Net#1','actual_depth_max_m')], by=c('net_cast_number'='station_id'))
 
 
 ### Section plots ###
