@@ -1,7 +1,7 @@
 # Oxygen_gradient_MS
 Describing the ecology and biogeochemistry along an oxygen gradient in the Pacific subtropical gyre. 
 
-Data were collected during the SE2204 reserch cruise onboard NOAA ship Oscar Elton Sette between June 20 and July 10, 2022. Sampling took place along 150W from 30N to 10N. A [summary of the project](https://repository.library.noaa.gov/view/noaa/49070) can be found in the NOAA Institutional Repository. All data are housed in google drive and all code to analyze data is available here.
+Data were collected during the SE2204 research cruise onboard NOAA ship Oscar Elton Sette between June 20 and July 10, 2022. Sampling took place along 150W from 30N to 10N. A [summary of the project](https://repository.library.noaa.gov/view/noaa/49070) can be found in the NOAA Institutional Repository. All data are housed in google drive and all code to analyze data is available here.
 
 Data collected during the cruise:
 - ADCP (Acoustic Doppler Current Profiler)
